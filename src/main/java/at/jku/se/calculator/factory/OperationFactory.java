@@ -6,7 +6,7 @@ import org.apache.logging.log4j.Logger;
 import at.jku.se.calculator.CalcAction;
 import at.jku.se.calculator.operators.AddOperation;
 import at.jku.se.calculator.operators.NullOperation;
-
+import at.jku.se.calculator.operators.DivideOperation;
 /**
  * Factory class for {@link ICalculationOperation}.
  *
@@ -35,7 +35,7 @@ public class OperationFactory {
 		case ADD:
 			return new AddOperation();
 		case DIV:
-			return new NullOperation();
+			return new DivideOperation();
 		case MULT:
 			return new NullOperation();
 		case SUB:
