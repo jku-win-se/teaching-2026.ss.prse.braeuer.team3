@@ -7,6 +7,7 @@ import org.junit.Test;
 import at.jku.se.calculator.CalcAction;
 import at.jku.se.calculator.operators.AddOperation;
 import at.jku.se.calculator.operators.NullOperation;
+import at.jku.se.calculator.operators.SubOperation;
 
 /**
  * This test class performs tests for the {@link OperationFactory} class.
@@ -26,12 +27,12 @@ public class TestOperationFactory {
 	}
 
 	/**
-	 * Tests that SUB returns a {@link NullOperation} (not yet implemented).
+	 * Tests that SUB returns a {@link SubOperation}.
 	 */
 	@Test
 	public void testSubtractionOperation() {
 		ICalculationOperation operation = OperationFactory.getOperation(CalcAction.SUB);
-		assertTrue(operation instanceof NullOperation);
+		assertTrue(operation instanceof SubOperation);
 	}
 
 	/**
