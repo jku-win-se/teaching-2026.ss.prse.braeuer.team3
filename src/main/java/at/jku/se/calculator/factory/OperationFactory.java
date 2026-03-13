@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 import at.jku.se.calculator.CalcAction;
 import at.jku.se.calculator.operators.AddOperation;
 import at.jku.se.calculator.operators.NullOperation;
+import at.jku.se.calculator.operators.SubOperation;
 
 /**
  * Factory class for {@link ICalculationOperation}.
@@ -39,7 +40,7 @@ public class OperationFactory {
 		case MULT:
 			return new NullOperation();
 		case SUB:
-			return new NullOperation();
+			return new SubOperation();
 		default:
 			LOGGER.error("Sorry this operation is not yet implemented!");
 			return new NullOperation();
