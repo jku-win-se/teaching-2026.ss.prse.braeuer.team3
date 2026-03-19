@@ -10,53 +10,45 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: prototype/smarthome-orchestrator
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
-          architecture: x64
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: prototype/smarthome-orchestrator/package-lock.json
 
-      - name: Compile
-        run: mvn compile -q
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Test & coverage check
-        run: mvn test
+      - name: Compile (TypeScript check)
+        run: npx tsc --noEmit
 
-      - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: target/surefire-reports/*.xml
+      - name: Test & coverage
+        run: npx ng test --watch=false --browsers=ChromeHeadless --code-coverage
 
-      - name: Upload JaCoCo coverage report
+      - name: Upload coverage report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: jacoco-report
-          path: target/site/jacoco/
+          name: coverage-report
+          path: prototype/smarthome-orchestrator/coverage/
 
-      - name: PMD static analysis
-        run: mvn pmd:pmd pmd:cpd -q
+      - name: Lint (ESLint)
+        run: npx ng lint
 
-      - name: Upload PMD report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: pmd-report
-          path: target/pmd.xml
+      - name: Build (production)
+        run: npx ng build
 
-      - name: Package
-        run: mvn package -DskipTests -q
-
-      - name: Upload JAR artifact
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: calculator-jar
-          path: target/*.jar
-
+          name: smarthome-dist
+          path: prototype/smarthome-orchestrator/dist/
