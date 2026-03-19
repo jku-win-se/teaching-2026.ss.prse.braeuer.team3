@@ -1,4 +1,7 @@
+<<<<<<< feature/3/add-divide-function
+=======
 <?xml version="1.0" encoding="UTF-8"?>
+>>>>>>> main
 <project version="4">
   <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="MavenProjectsManager">
@@ -8,5 +11,9 @@
       </list>
     </option>
   </component>
+<<<<<<< feature/3/add-divide-function
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_X" default="true" project-jdk-name="openjdk-15" project-jdk-type="JavaSDK" />
+=======
   <component name="ProjectRootManager" version="2" project-jdk-name="temurin-25" project-jdk-type="JavaSDK" />
+>>>>>>> main
 </project>
