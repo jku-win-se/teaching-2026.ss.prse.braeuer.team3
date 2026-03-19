@@ -7,6 +7,7 @@ import at.jku.se.calculator.CalcAction;
 import at.jku.se.calculator.operators.AddOperation;
 import at.jku.se.calculator.operators.NullOperation;
 import at.jku.se.calculator.operators.DivideOperation;
+import at.jku.se.calculator.operators.MultiplyOperation;
 import at.jku.se.calculator.operators.SubOperation;
 
 /**
@@ -39,7 +40,7 @@ public class OperationFactory {
 		case DIV:
 			return new DivideOperation();
 		case MULT:
-			return new NullOperation();
+			return new MultiplyOperation();
 		case SUB:
 			return new SubOperation();
 		default:
