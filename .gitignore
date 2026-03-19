@@ -1,2 +1,9 @@
-# Ignore target folder containing build artifacts
-/target/
+# Angular
+/prototype/smarthome-orchestrator/.angular/
+/prototype/smarthome-orchestrator/node_modules/
+/prototype/smarthome-orchestrator/dist/
+/prototype/smarthome-orchestrator/coverage/
+
+# IDE
+.idea/
+.vscode/
