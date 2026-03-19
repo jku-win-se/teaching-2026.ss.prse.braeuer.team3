@@ -8,7 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { DEVICES, ROOMS } from '../../core/mock-data';
 import { TriggerType, Device } from '../../core/models';
@@ -249,8 +249,8 @@ function roomName(roomId: string): string {
   `,
 })
 export class NewRuleDialogComponent {
-  nameForm: any;
-  actionForm: any;
+  nameForm: FormGroup;
+  actionForm: FormGroup;
 
   selectedTrigger: TriggerType | null = null;
 

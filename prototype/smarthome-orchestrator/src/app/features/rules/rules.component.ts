@@ -11,11 +11,10 @@ import { MatStepperModule } from '@angular/material/stepper';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RULES } from '../../core/mock-data';
-import { Rule, TriggerType } from '../../core/models';
+import { Rule } from '../../core/models';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
-import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { NewRuleDialogComponent } from './new-rule-dialog.component';
 
 @Component({

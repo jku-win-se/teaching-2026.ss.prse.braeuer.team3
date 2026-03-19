@@ -7,7 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Schedule } from '../../core/models';
 
 @Component({
@@ -75,7 +75,7 @@ import { Schedule } from '../../core/models';
   `,
 })
 export class ScheduleDialogComponent {
-  form: any;
+  form: FormGroup;
 
   constructor(
     private fb: FormBuilder,

@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-invite-member-dialog',
@@ -41,7 +41,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angu
   `,
 })
 export class InviteMemberDialogComponent {
-  form: any;
+  form: FormGroup;
 
   constructor(private fb: FormBuilder, private dialogRef: MatDialogRef<InviteMemberDialogComponent>) {
     this.form = this.fb.group({

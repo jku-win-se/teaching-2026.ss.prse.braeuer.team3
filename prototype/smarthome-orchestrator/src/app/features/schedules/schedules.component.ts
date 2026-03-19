@@ -92,7 +92,7 @@ export class SchedulesComponent implements OnInit {
     );
   }
 
-  onCellClick(hourIdx: number, dayIdx: number) {
+  onCellClick(hourIdx: number, _dayIdx: number) {
     const hour = hourIdx + 6;
     this.openAddDialog(`${hour.toString().padStart(2, '0')}:00`);
   }

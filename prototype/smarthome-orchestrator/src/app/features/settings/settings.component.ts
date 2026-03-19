@@ -9,7 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MEMBERS } from '../../core/mock-data';
 import { Member } from '../../core/models';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
@@ -134,8 +134,8 @@ export class SettingsComponent implements OnInit {
   loading = true;
   members: Member[] = [];
   passwordStrength = 0;
-  profileForm: any;
-  passwordForm: any;
+  profileForm: FormGroup;
+  passwordForm: FormGroup;
 
   constructor(private fb: FormBuilder, private dialog: MatDialog, private snackBar: MatSnackBar) {
     this.profileForm = this.fb.group({

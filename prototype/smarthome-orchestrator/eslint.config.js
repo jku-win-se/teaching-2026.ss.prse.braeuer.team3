@@ -17,6 +17,7 @@ module.exports = tseslint.config(
     },
     rules: {
       ...angular.configs.recommended.rules,
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     },
     languageOptions: {
       parserOptions: {

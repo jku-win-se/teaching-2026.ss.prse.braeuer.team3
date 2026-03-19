@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Room, DeviceType } from '../../core/models';
 
 interface DeviceTypeOption { value: DeviceType; label: string; icon: string; }
@@ -61,7 +61,7 @@ interface DeviceTypeOption { value: DeviceType; label: string; icon: string; }
 })
 export class AddDeviceDialogComponent {
   selectedType: DeviceType | null = null;
-  form: any;
+  form: FormGroup;
 
   deviceTypes: DeviceTypeOption[] = [
     { value: 'switch', label: 'Switch', icon: 'toggle_on' },

@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
-import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Scene } from '../../core/models';
 
 const SCENE_ICONS = [
@@ -97,7 +97,7 @@ export class NewSceneDialogComponent {
   icons = SCENE_ICONS;
   selectedIcon = 'auto_awesome';
   devicePairs: { device: string; action: string }[] = [];
-  form: any;
+  form: FormGroup;
 
   constructor(
     private fb: FormBuilder,
