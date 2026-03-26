@@ -1,0 +1,14 @@
+# Local development configuration — never commit this file
+# Overrides application.yml for local development
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smarthome
+    username: smarthome_user
+    password: your_password_here
+  flyway:
+    enabled: true
+
+app:
+  jwt:
+    secret: your_jwt_secret_here_min_32_characters_long

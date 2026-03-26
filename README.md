@@ -1,6 +1,10 @@
-# Einleitung
+# SmartHome Orchestrator
 
-Überblick über das Projekt.
+A home automation platform for managing smart devices, automation rules, schedules, and energy monitoring — developed as part of the Software Engineering Praktikum (SS 2026) at JKU Linz.
+
+**Tech Stack:** Java 21 · Spring Boot 3 · PostgreSQL (Docker) · Angular
+
+> **New here?** Start with the [Developer Setup Guide](./SETUP.md).
 
 # Umgesetzte Anforderungen
 

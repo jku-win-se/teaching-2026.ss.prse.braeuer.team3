@@ -1,12 +1,33 @@
+# macOS
+.DS_Store
+
 # Angular
 /prototype/smarthome-orchestrator/.angular/
 /prototype/smarthome-orchestrator/node_modules/
 /prototype/smarthome-orchestrator/dist/
 /prototype/smarthome-orchestrator/coverage/
+/frontend/.angular/
+/frontend/node_modules/
+/frontend/dist/
+/frontend/coverage/
+
+# Java / Maven
+target/
+/backend/target/
+/backend/.mvn/
+*.class
+*.jar
+*.war
 
 # IDE
 .idea/
 .vscode/
+
+# Environment variables — never commit
+.env
+
+# Local Spring Boot config — for development only
+#backend/src/main/resources/application-local.yml
 
 # Local docs (never upload to git)
 localDocs/*
