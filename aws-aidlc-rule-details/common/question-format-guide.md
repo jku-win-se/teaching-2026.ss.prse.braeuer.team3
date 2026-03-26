@@ -51,7 +51,7 @@ C) Single Sign-On (SSO)
 D) Multi-factor authentication
 E) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ## Question 2
 Will this be a web or mobile application?
@@ -61,7 +61,7 @@ B) Mobile application
 C) Both web and mobile
 D) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 
 ## Question 3
 Is this a new project or existing codebase?
@@ -70,7 +70,7 @@ A) New project (greenfield)
 B) Existing codebase (brownfield)
 C) Other (please describe after [Answer]: tag below)
 
-[Answer]: 
+[Answer]: A
 ```
 
 ### User Response Format
@@ -85,7 +85,7 @@ B) Social media login (Google, Facebook)
 C) Single Sign-On (SSO)
 D) Multi-factor authentication
 
-[Answer]: C
+[Answer]: A
 ```
 
 ### Reading User Responses

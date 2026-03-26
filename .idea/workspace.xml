@@ -4,40 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="be43aaef-b273-4f1f-9350-4abfc25671b2" name="Changes" comment="Implement DivOperation and Tests">
-      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ARCHITECTURE_UML.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CLAUDE.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/ascii-diagram-standards.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/content-validation.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/depth-levels.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/error-handling.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/overconfidence-prevention.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/process-overview.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/question-format-guide.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/session-continuity.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/terminology.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/welcome-message.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/workflow-changes.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/construction/build-and-test.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/construction/code-generation.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/construction/functional-design.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/construction/infrastructure-design.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/construction/nfr-design.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/construction/nfr-requirements.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/extensions/security/baseline/security-baseline.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/inception/application-design.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/inception/requirements-analysis.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/inception/reverse-engineering.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/inception/units-generation.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/inception/user-stories.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/inception/workflow-planning.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/inception/workspace-detection.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/operations/operations.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/localDocs/.gitkeep" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="be43aaef-b273-4f1f-9350-4abfc25671b2" name="Changes" comment="#30 [11h] Einbindung von AI-DLC workflow + vergangen Stunden aus Praesenzeinheiten">
+      <change beforePath="$PROJECT_DIR$/aws-aidlc-rule-details/common/question-format-guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/question-format-guide.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -224,7 +192,7 @@
       <workItem from="1773691851579" duration="25000" />
       <workItem from="1773691881210" duration="3289000" />
       <workItem from="1773947075025" duration="3975000" />
-      <workItem from="1774006414319" duration="12171000" />
+      <workItem from="1774006414319" duration="12550000" />
     </task>
     <task id="LOCAL-00001" summary="Implement DivOperation and Tests">
       <option name="closed" value="true" />
@@ -234,7 +202,15 @@
       <option name="project" value="LOCAL" />
       <updated>1773397932252</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="#30 [11h] Einbindung von AI-DLC workflow + vergangen Stunden aus Praesenzeinheiten">
+      <option name="closed" value="true" />
+      <created>1774518512515</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1774518512516</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -266,7 +242,8 @@
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="Implement DivOperation and Tests" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implement DivOperation and Tests" />
+    <MESSAGE value="#30 [11h] Einbindung von AI-DLC workflow + vergangen Stunden aus Praesenzeinheiten" />
+    <option name="LAST_COMMIT_MESSAGE" value="#30 [11h] Einbindung von AI-DLC workflow + vergangen Stunden aus Praesenzeinheiten" />
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
