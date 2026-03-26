@@ -7,3 +7,7 @@
 # IDE
 .idea/
 .vscode/
+
+# Local docs (never upload to git)
+localDocs/*
+!localDocs/.gitkeep
