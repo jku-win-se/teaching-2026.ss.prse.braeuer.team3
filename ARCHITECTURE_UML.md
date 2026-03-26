@@ -1,53 +1,52 @@
 # Architecture UML
 
+## System Overview
+
 ```mermaid
 graph TD
-    Browser["Browser\nAngular 19 SPA"]
+    Browser["Browser\nAngular SPA"]
 
     subgraph Backend["Spring Boot Backend"]
-        Auth["AuthService\nJWT + BCrypt"]
-        DevSvc["DeviceService"]
-        RoomSvc["RoomService"]
+        Auth["Spring Security\n(JWT + BCrypt)"]
+        DevSvc["DeviceService\n(Rooms + Devices)"]
+        AutoSvc["AutomationService\n(Rules + Schedules)"]
         SceneSvc["SceneService"]
-        RuleEng["RuleEngineService"]
-        SchedSvc["SchedulerService\nQuartz"]
         EnergySvc["EnergyService"]
         LogSvc["ActivityLogService"]
-        NotifSvc["NotificationService"]
     end
 
-    DB[("PostgreSQL")]
-    MQTT["MQTT Broker\nMosquitto"]
-    IoT["IoT Devices"]
+    subgraph Infrastructure["Infrastructure (Docker)"]
+        DB[("PostgreSQL")]
+    end
 
     Browser -- "REST (HTTPS)" --> Auth
-    Browser -- "REST (HTTPS)" --> DevSvc
-    Browser -- "REST (HTTPS)" --> RoomSvc
-    Browser -- "REST (HTTPS)" --> SceneSvc
-    Browser -- "REST (HTTPS)" --> RuleEng
-    Browser -- "REST (HTTPS)" --> SchedSvc
-    Browser -- "REST (HTTPS)" --> EnergySvc
-    Browser -- "REST (HTTPS)" --> LogSvc
-    Browser -- "WebSocket (STOMP)" --> NotifSvc
+    Browser -- "REST (HTTPS) + JWT" --> DevSvc
+    Browser -- "REST (HTTPS) + JWT" --> AutoSvc
+    Browser -- "REST (HTTPS) + JWT" --> SceneSvc
+    Browser -- "REST (HTTPS) + JWT" --> EnergySvc
+    Browser -- "REST (HTTPS) + JWT" --> LogSvc
 
     Auth --> DB
     DevSvc --> DB
-    RoomSvc --> DB
+    AutoSvc --> DB
     SceneSvc --> DB
-    RuleEng --> DB
-    SchedSvc --> DB
     EnergySvc --> DB
     LogSvc --> DB
 
-    RuleEng --> NotifSvc
-    RuleEng --> DevSvc
+    AutoSvc --> LogSvc
     SceneSvc --> DevSvc
-    SchedSvc --> DevSvc
-
-    DevSvc -- "publish" --> MQTT
-    MQTT -- "subscribe" --> DevSvc
-    MQTT <--> IoT
+    AutoSvc --> DevSvc
 ```
+
+**Key design decisions:**
+- **Authentication** is handled by Spring Security with BCrypt password hashing and self-issued JWTs — satisfies NFR-02
+- **PostgreSQL** runs in a Docker container, configured via `docker-compose.yml` committed to the repository — all developers share the same DB setup
+- **Real-time device state updates** are pushed via WebSocket (STOMP) from the backend — no external infrastructure needed
+- **MQTT / IoT** is out of scope (virtual devices only); FR-18 is an optional extension
+
+---
+
+## Class Diagram
 
 ```mermaid
 classDiagram
@@ -82,8 +81,8 @@ classDiagram
     }
     class Schedule {
         UUID id
-        String time
-        RecurrenceType recurrence
+        String cronExpression
+        RuleAction action
         Boolean isVacationOverride
     }
     class ActivityEntry {
@@ -99,11 +98,16 @@ classDiagram
         LocalDate date
     }
 
-    User "1" --> "many" Room
-    Room "1" --> "many" Device
-    Scene "1" --> "many" Device
-    Rule --> Device
-    Schedule --> Device
-    Device "1" --> "many" ActivityEntry
-    Device "1" --> "many" EnergyRecord
+    User "1" --> "many" Room : owns
+    Room "1" --> "many" Device : contains
+    Scene "1" --> "many" Device : references
+    Rule --> Device : targets
+    Schedule --> Device : targets
+    Device "1" --> "many" ActivityEntry : logs
+    Device "1" --> "many" EnergyRecord : tracks
 ```
+
+**Notes:**
+- `passwordHash` is managed by Spring Security (BCrypt) — plain-text passwords are never stored or logged (NFR-02)
+- `UserRole` (Owner / Member) is enforced by Spring Security method-level authorization
+- DB schema is managed via Flyway migrations — version-controlled and shared across all developers
