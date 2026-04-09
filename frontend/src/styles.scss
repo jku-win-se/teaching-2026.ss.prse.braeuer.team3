@@ -75,6 +75,10 @@ html, body {
 
 .page-header {
   margin-bottom: 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   h1 {
     margin: 0 0 4px 0;
     font-size: 26px;
@@ -229,14 +233,19 @@ html, body {
   display: flex; gap: 8px; overflow-x: auto; padding-bottom: 16px;
   scrollbar-width: none; &::-webkit-scrollbar { display: none; }
   .room-chip {
+    display: flex;
+    align-items: center;
+    gap: 2px;
     padding: 7px 16px; border-radius: 20px; border: 1.5px solid var(--border);
     background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 500;
     white-space: nowrap; color: var(--text-secondary); transition: all 0.15s;
     box-shadow: var(--shadow-sm);
+
+
     &.selected { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
     &:not(.selected):hover { border-color: var(--primary); color: var(--primary); }
     &.room-chip-add {
-      border-style: dashed; display: flex; align-items: center; gap: 4px;
+      border-style: dashed; gap: 4px;
       &:hover { border-color: var(--primary); color: var(--primary); }
     }
   }

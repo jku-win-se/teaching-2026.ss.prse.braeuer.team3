@@ -52,17 +52,17 @@ function toRoom(dto: RoomDto): Room {
           {{ room.name }}
           <button
             mat-icon-button
-            style="width:20px;height:20px;line-height:20px;font-size:14px;margin-left:4px;vertical-align:middle;"
+            style="width:24px;height:24px;padding:0;margin-left:4px;position:relative;"
             (click)="$event.stopPropagation(); openRenameRoomDialog(room)"
             title="Rename room">
-            <mat-icon style="font-size:14px;width:14px;height:14px;">edit</mat-icon>
+            <mat-icon style="font-size:15px;width:15px;height:15px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;">edit</mat-icon>
           </button>
           <button
             mat-icon-button
-            style="width:20px;height:20px;line-height:20px;font-size:14px;vertical-align:middle;"
+            style="width:24px;height:24px;padding:0;position:relative;"
             (click)="$event.stopPropagation(); onDeleteRoom(room)"
             title="Delete room">
-            <mat-icon style="font-size:14px;width:14px;height:14px;">delete</mat-icon>
+            <mat-icon style="font-size:15px;width:15px;height:15px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;">delete</mat-icon>
           </button>
         </div>
         <div class="room-chip room-chip-add" (click)="openAddRoomDialog()">
