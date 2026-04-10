@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { MEMBERS } from '../../core/mock-data';
 import { Member } from '../../core/models';
+import { AuthService } from '../../core/auth.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { InviteMemberDialogComponent } from './invite-member-dialog.component';
 
@@ -137,10 +138,10 @@ export class SettingsComponent implements OnInit {
   profileForm: FormGroup;
   passwordForm: FormGroup;
 
-  constructor(private fb: FormBuilder, private dialog: MatDialog, private snackBar: MatSnackBar) {
+  constructor(private fb: FormBuilder, private dialog: MatDialog, private snackBar: MatSnackBar, private auth: AuthService) {
     this.profileForm = this.fb.group({
-      displayName: ['Alex Johnson'],
-      email: ['alex@example.com'],
+      displayName: [this.auth.currentUser?.name ?? ''],
+      email: [{ value: this.auth.currentUser?.email ?? '', disabled: true }],
     });
     this.passwordForm = this.fb.group({
       current: [''],
