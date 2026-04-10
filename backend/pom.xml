@@ -119,7 +119,7 @@
                 <version>${pmd.plugin.version}</version>
                 <configuration>
                     <rulesets>
-                        <ruleset>ruleset.xml</ruleset>
+                        <ruleset>../ruleset.xml</ruleset>
                     </rulesets>
                     <failOnViolation>true</failOnViolation>
                     <printFailingErrors>true</printFailingErrors>
@@ -133,6 +133,15 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!-- Surefire: enable dynamic agent loading required by Mockito/ByteBuddy on Java 21+ -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-XX:+EnableDynamicAgentLoading -Xshare:off -Dnet.bytebuddy.experimental=true</argLine>
+                </configuration>
             </plugin>
 
             <!-- Jacoco test coverage -->
