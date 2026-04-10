@@ -33,7 +33,7 @@ function toRoom(dto: RoomDto): Room {
     CommonModule, MatCardModule, MatIconModule, MatButtonModule,
     MatProgressBarModule, MatDialogModule, MatSnackBarModule,
     MatFormFieldModule, MatInputModule, MatSelectModule, FormsModule, ReactiveFormsModule,
-    DeviceCardComponent, EmptyStateComponent, ConfirmDialogComponent,
+    DeviceCardComponent, EmptyStateComponent,
   ],
   template: `
     <div *ngIf="loading"><mat-progress-bar mode="indeterminate"></mat-progress-bar></div>
@@ -53,6 +53,7 @@ function toRoom(dto: RoomDto): Room {
           <mat-icon style="font-size:14px;width:14px;height:14px;vertical-align:middle;margin-right:4px;">{{ room.icon }}</mat-icon>
           {{ room.name }}
           <button
+            *ngIf="selectedRoomId === room.id"
             mat-icon-button
             style="width:24px;height:24px;padding:0;margin-left:4px;position:relative;"
             (click)="$event.stopPropagation(); openRenameRoomDialog(room)"
@@ -60,6 +61,7 @@ function toRoom(dto: RoomDto): Room {
             <mat-icon style="font-size:15px;width:15px;height:15px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;">edit</mat-icon>
           </button>
           <button
+            *ngIf="selectedRoomId === room.id"
             mat-icon-button
             style="width:24px;height:24px;padding:0;position:relative;"
             (click)="$event.stopPropagation(); onDeleteRoom(room)"
@@ -282,7 +284,12 @@ export class RoomsComponent implements OnInit {
           this.selectedRoomId = newRoom.id;
           this.onSnack(`Room "${result.name}" added ✓`);
         },
-        error: () => this.onSnack('Failed to create room. Please try again.')
+        error: (err: { status: number }) => {
+          const msg = err.status === 409
+            ? 'A room with this name already exists.'
+            : 'Failed to create room. Please try again.';
+          this.onSnack(msg);
+        }
       });
     });
   }
@@ -301,7 +308,12 @@ export class RoomsComponent implements OnInit {
           this.rooms = this.rooms.map(r => r.id === room.id ? updated : r);
           this.onSnack(`Room renamed to "${newName}" ✓`);
         },
-        error: () => this.onSnack('Failed to rename room. Please try again.')
+        error: (err: { status: number }) => {
+          const msg = err.status === 409
+            ? 'A room with this name already exists.'
+            : 'Failed to rename room. Please try again.';
+          this.onSnack(msg);
+        }
       });
     });
   }
@@ -311,8 +323,8 @@ export class RoomsComponent implements OnInit {
     const devicesInRoom = this.devices.filter(d => d.roomId === room.id);
     const hasDevices = devicesInRoom.length > 0;
     const message = hasDevices
-      ? `Room "${room.name}" still has ${devicesInRoom.length} device(s). Are you sure you want to delete it anyway?`
-      : `Are you sure you want to delete the room "${room.name}"?`;
+      ? `Deleting room "${room.name}" will permanently remove it and all ${devicesInRoom.length} device(s) inside. This cannot be undone.`
+      : `Are you sure you want to delete the room "${room.name}"? This cannot be undone.`;
 
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: { title: 'Delete Room', message }
