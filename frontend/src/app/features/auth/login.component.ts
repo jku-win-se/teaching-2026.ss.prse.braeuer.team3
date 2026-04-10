@@ -1,13 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/auth.service';
 
@@ -17,7 +16,7 @@ import { AuthService } from '../../core/auth.service';
   imports: [
     CommonModule, RouterModule, ReactiveFormsModule,
     MatCardModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatIconModule, MatCheckboxModule,
+    MatButtonModule, MatIconModule,
     MatProgressSpinnerModule,
   ],
   template: `
@@ -54,13 +53,10 @@ import { AuthService } from '../../core/auth.service';
               <mat-error *ngIf="form.get('password')?.hasError('required')">Password is required</mat-error>
             </mat-form-field>
 
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:-8px;">
-              <mat-checkbox formControlName="remember" color="primary">
-                <span style="font-size:13px;color:var(--text-muted);">Remember me</span>
-              </mat-checkbox>
-              <a href="#" style="font-size:13px;color:var(--primary);text-decoration:none;font-weight:500;" (click)="$event.preventDefault()">
-                Forgot password?
-              </a>
+
+            <div *ngIf="redirected" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+              <mat-icon style="color:#3B82F6;font-size:18px;width:18px;height:18px;">info_outline</mat-icon>
+              <span style="font-size:13px;color:#1D4ED8;">Please sign in to continue.</span>
             </div>
 
             <div *ngIf="errorMsg" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
@@ -170,12 +166,18 @@ export class LoginComponent {
   showPassword = false;
   loading = false;
   errorMsg = '';
+  redirected = false;
 
-  constructor(private fb: FormBuilder, private auth: AuthService, private router: Router) {
+  constructor(
+    private fb: FormBuilder,
+    private auth: AuthService,
+    private router: Router,
+    private route: ActivatedRoute,
+  ) {
+    this.redirected = this.route.snapshot.queryParamMap.has('redirect');
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
-      remember: [false],
     });
   }
 

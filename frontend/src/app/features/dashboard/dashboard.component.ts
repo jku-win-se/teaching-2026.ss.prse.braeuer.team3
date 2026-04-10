@@ -13,6 +13,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { DEVICES, ROOMS, SCENES, ACTIVITY_LOG } from '../../core/mock-data';
 import { Device, Scene, ActivityEntry } from '../../core/models';
+import { AuthService } from '../../core/auth.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -29,7 +30,7 @@ import { Device, Scene, ActivityEntry } from '../../core/models';
     <div class="page-container" *ngIf="!loading">
       <!-- Greeting -->
       <div class="greeting-section" style="margin-bottom:28px;">
-        <h1>{{ greeting }}, Alex 👋</h1>
+        <h1>{{ greeting }}, {{ auth.currentUser?.name }} 👋</h1>
         <p>Here's what's happening in your home today.</p>
       </div>
 
@@ -142,7 +143,7 @@ export class DashboardComponent implements OnInit {
   scenes = SCENES;
   recentActivity: ActivityEntry[] = [];
 
-  constructor(private snackBar: MatSnackBar) {}
+  constructor(private snackBar: MatSnackBar, public auth: AuthService) {}
 
   ngOnInit() {
     const hour = new Date().getHours();
