@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -241,6 +242,40 @@ class DeviceControllerTest {
 
         mockMvc.perform(delete("/api/rooms/1/devices/5")
                         .with(csrf()))
+                .andExpect(status().isNotFound());
+    }
+
+    // --- PATCH /api/rooms/{roomId}/devices/{deviceId}/state ---
+
+    @Test
+    @WithMockUser
+    void updateState_returns200() throws Exception {
+        DeviceResponse updated = new DeviceResponse(5L, "Lamp", DeviceType.SWITCH,
+                true, 50, 21.0, 0.0, 0);
+        when(deviceService.updateState(any(), eq(1L), eq(5L), any())).thenReturn(updated);
+
+        String body = objectMapper.writeValueAsString(Map.of("stateOn", true));
+
+        mockMvc.perform(patch("/api/rooms/1/devices/5/state")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stateOn").value(true));
+    }
+
+    @Test
+    @WithMockUser
+    void updateState_returns404_whenDeviceNotFound() throws Exception {
+        when(deviceService.updateState(any(), eq(1L), eq(5L), any()))
+                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
+
+        String body = objectMapper.writeValueAsString(Map.of("stateOn", true));
+
+        mockMvc.perform(patch("/api/rooms/1/devices/5/state")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
                 .andExpect(status().isNotFound());
     }
 }

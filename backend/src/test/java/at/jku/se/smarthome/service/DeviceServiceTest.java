@@ -6,6 +6,7 @@ import at.jku.se.smarthome.domain.Room;
 import at.jku.se.smarthome.domain.User;
 import at.jku.se.smarthome.dto.DeviceRequest;
 import at.jku.se.smarthome.dto.DeviceResponse;
+import at.jku.se.smarthome.dto.DeviceStateRequest;
 import at.jku.se.smarthome.dto.RenameDeviceRequest;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RoomRepository;
@@ -205,6 +206,56 @@ class DeviceServiceTest {
         req.setName(name);
         req.setType(type);
         return req;
+    }
+
+    // --- updateState ---
+
+    @Test
+    void updateState_updatesStateOn() {
+        Device device = new Device(room, "Lamp", DeviceType.SWITCH);
+        DeviceStateRequest request = new DeviceStateRequest();
+        request.setStateOn(true);
+
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
+        when(deviceRepository.save(device)).thenReturn(device);
+
+        DeviceResponse response = deviceService.updateState("user@test.com", 1L, 10L, request);
+
+        assertThat(response.isStateOn()).isTrue();
+        verify(deviceRepository).save(device);
+    }
+
+    @Test
+    void updateState_updatesBrightness() {
+        Device device = new Device(room, "Dimmer", DeviceType.DIMMER);
+        DeviceStateRequest request = new DeviceStateRequest();
+        request.setBrightness(75);
+
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
+        when(deviceRepository.save(device)).thenReturn(device);
+
+        DeviceResponse response = deviceService.updateState("user@test.com", 1L, 10L, request);
+
+        assertThat(response.getBrightness()).isEqualTo(75);
+    }
+
+    @Test
+    void updateState_throwsNotFound_whenDeviceNotInRoom() {
+        DeviceStateRequest request = new DeviceStateRequest();
+        request.setStateOn(true);
+
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> deviceService.updateState("user@test.com", 1L, 10L, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
     }
 
     private RenameDeviceRequest buildRenameRequest(String name) {

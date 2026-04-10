@@ -19,7 +19,8 @@ import java.time.LocalDateTime;
  * <p>Devices belong to a {@link Room} and have a type and name.
  * This entity maps to the {@code devices} table created by Flyway migration V3.</p>
  *
- * <p>FR-04: add virtual smart devices specifying type and name.</p>
+ * <p>FR-04: add virtual smart devices specifying type and name.
+ * FR-06: manual device control — state fields persisted in the same table.</p>
  */
 @Entity
 @Table(name = "devices")
@@ -47,6 +48,26 @@ public class Device {
     /** Timestamp when the device was created. */
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /** Whether the device is switched on. */
+    @Column(name = "state_on", nullable = false)
+    private boolean stateOn = false;
+
+    /** Brightness level (0–100), used by dimmer devices. */
+    @Column(nullable = false)
+    private int brightness = 50;
+
+    /** Thermostat target temperature in degrees Celsius. */
+    @Column(nullable = false)
+    private double temperature = 21.0;
+
+    /** Current sensor reading. */
+    @Column(name = "sensor_value", nullable = false)
+    private double sensorValue = 0;
+
+    /** Cover position: 0 = closed, 100 = open. */
+    @Column(name = "cover_position", nullable = false)
+    private int coverPosition = 0;
 
     /** Default constructor required by JPA. */
     public Device() {
@@ -117,5 +138,95 @@ public class Device {
      */
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    /**
+     * Returns whether the device is switched on.
+     *
+     * @return {@code true} if the device is on
+     */
+    public boolean isStateOn() {
+        return stateOn;
+    }
+
+    /**
+     * Sets whether the device is switched on.
+     *
+     * @param stateOn {@code true} to switch on
+     */
+    public void setStateOn(boolean stateOn) {
+        this.stateOn = stateOn;
+    }
+
+    /**
+     * Returns the brightness level (0–100).
+     *
+     * @return brightness percentage
+     */
+    public int getBrightness() {
+        return brightness;
+    }
+
+    /**
+     * Sets the brightness level.
+     *
+     * @param brightness brightness percentage (0–100)
+     */
+    public void setBrightness(int brightness) {
+        this.brightness = brightness;
+    }
+
+    /**
+     * Returns the thermostat target temperature in degrees Celsius.
+     *
+     * @return temperature value
+     */
+    public double getTemperature() {
+        return temperature;
+    }
+
+    /**
+     * Sets the thermostat target temperature.
+     *
+     * @param temperature temperature in degrees Celsius
+     */
+    public void setTemperature(double temperature) {
+        this.temperature = temperature;
+    }
+
+    /**
+     * Returns the current sensor value.
+     *
+     * @return sensor reading
+     */
+    public double getSensorValue() {
+        return sensorValue;
+    }
+
+    /**
+     * Sets the sensor value.
+     *
+     * @param sensorValue the new sensor reading
+     */
+    public void setSensorValue(double sensorValue) {
+        this.sensorValue = sensorValue;
+    }
+
+    /**
+     * Returns the cover position (0 = closed, 100 = open).
+     *
+     * @return cover position
+     */
+    public int getCoverPosition() {
+        return coverPosition;
+    }
+
+    /**
+     * Sets the cover position.
+     *
+     * @param coverPosition 0 for closed, 100 for open
+     */
+    public void setCoverPosition(int coverPosition) {
+        this.coverPosition = coverPosition;
     }
 }

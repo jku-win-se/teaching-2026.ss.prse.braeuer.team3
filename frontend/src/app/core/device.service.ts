@@ -8,6 +8,11 @@ export interface DeviceDto {
   id: number;
   name: string;
   type: DeviceType; // lowercase — matches frontend DeviceType union directly
+  stateOn: boolean;
+  brightness: number;
+  temperature: number;
+  sensorValue: number;
+  coverPosition: number;
 }
 
 /** Shape of the add-device request body. */
@@ -72,5 +77,18 @@ export class DeviceService {
    */
   removeDevice(roomId: number, deviceId: number): Observable<void> {
     return this.http.delete<void>(`${this.BASE}/${roomId}/devices/${deviceId}`);
+  }
+
+  /**
+   * Partially updates the runtime state of a device.
+   * FR-06: Gerät manuell steuern.
+   *
+   * @param roomId   the room's primary key
+   * @param deviceId the device's primary key
+   * @param state    partial state object — only provided fields are applied
+   * @returns observable of the updated device with its new state
+   */
+  updateState(roomId: number, deviceId: number, state: object): Observable<DeviceDto> {
+    return this.http.patch<DeviceDto>(`${this.BASE}/${roomId}/devices/${deviceId}/state`, state);
   }
 }
