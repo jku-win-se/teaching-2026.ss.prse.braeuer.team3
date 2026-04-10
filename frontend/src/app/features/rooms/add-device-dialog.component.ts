@@ -6,8 +6,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import {
+  FormsModule, ReactiveFormsModule, FormBuilder, FormGroup,
+  Validators, AbstractControl, ValidationErrors,
+} from '@angular/forms';
 import { Room, DeviceType } from '../../core/models';
+
+function noWhitespace(control: AbstractControl): ValidationErrors | null {
+  return control.value && control.value.trim().length === 0 ? { whitespace: true } : null;
+}
 
 interface DeviceTypeOption { value: DeviceType; label: string; icon: string; }
 
@@ -21,12 +28,22 @@ interface DeviceTypeOption { value: DeviceType; label: string; icon: string; }
   template: `
     <h2 mat-dialog-title>Add New Device</h2>
     <mat-dialog-content style="padding-top:8px;min-width:400px;">
+
+      <!-- F3: No rooms warning -->
+      <div *ngIf="data.rooms.length === 0"
+           style="background:#FFF3E0;border:1px solid #FFCC80;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+        <mat-icon style="color:#F57C00;">warning</mat-icon>
+        <span style="font-size:14px;color:#E65100;">Please add a room first before adding devices.</span>
+      </div>
+
       <form [formGroup]="form">
         <mat-form-field appearance="outline" style="width:100%;margin-bottom:8px;">
           <mat-label>Device name</mat-label>
           <input matInput formControlName="name" placeholder="e.g. Living Room Speaker">
-          <mat-hint>Give your device a friendly name</mat-hint>
+          <mat-hint>Give your device a friendly name (max 50 characters)</mat-hint>
           <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
+          <mat-error *ngIf="form.get('name')?.hasError('whitespace')">Name cannot be only spaces</mat-error>
+          <mat-error *ngIf="form.get('name')?.hasError('maxlength')">Name must not exceed 50 characters</mat-error>
         </mat-form-field>
 
         <div style="margin-bottom:16px;">
@@ -42,6 +59,11 @@ interface DeviceTypeOption { value: DeviceType; label: string; icon: string; }
               <div style="font-size:11px;" [style.color]="selectedType === opt.value ? '#00897B' : '#616161'">{{ opt.label }}</div>
             </div>
           </div>
+          <!-- F2: type selection hint shown after first submit attempt -->
+          <div *ngIf="submitted && !selectedType"
+               style="font-size:12px;color:#f44336;margin-top:6px;">
+            Please select a device type
+          </div>
         </div>
 
         <mat-form-field appearance="outline" style="width:100%;">
@@ -55,12 +77,13 @@ interface DeviceTypeOption { value: DeviceType; label: string; icon: string; }
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Cancel</button>
-      <button mat-flat-button color="primary" [disabled]="!form.valid || !selectedType" (click)="submit()">Add Device</button>
+      <button mat-flat-button color="primary" [disabled]="data.rooms.length === 0" (click)="submit()">Add Device</button>
     </mat-dialog-actions>
   `,
 })
 export class AddDeviceDialogComponent {
   selectedType: DeviceType | null = null;
+  submitted = false;
   form: FormGroup;
 
   deviceTypes: DeviceTypeOption[] = [
@@ -77,7 +100,7 @@ export class AddDeviceDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: { rooms: Room[]; defaultRoomId: string }
   ) {
     this.form = this.fb.group({
-      name: ['', Validators.required],
+      name: ['', [Validators.required, Validators.maxLength(50), noWhitespace]],
       roomId: [this.data.defaultRoomId, Validators.required],
     });
   }
@@ -85,8 +108,11 @@ export class AddDeviceDialogComponent {
   selectType(type: DeviceType) { this.selectedType = type; }
 
   submit() {
+    this.submitted = true;
+    this.form.markAllAsTouched();
     if (this.form.valid && this.selectedType) {
-      this.dialogRef.close({ ...this.form.value, type: this.selectedType });
+      const trimmedName = (this.form.value.name as string).trim();
+      this.dialogRef.close({ name: trimmedName, roomId: this.form.value.roomId, type: this.selectedType });
     }
   }
 }
