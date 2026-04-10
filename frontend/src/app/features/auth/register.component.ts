@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -9,12 +9,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../core/auth.service';
-
-function passwordMatch(control: AbstractControl): ValidationErrors | null {
-  const pw = control.get('password')?.value;
-  const confirm = control.get('confirmPassword')?.value;
-  return pw && confirm && pw !== confirm ? { mismatch: true } : null;
-}
 
 @Component({
   selector: 'app-register',
@@ -78,15 +72,8 @@ function passwordMatch(control: AbstractControl): ValidationErrors | null {
               <span style="font-size:11px;color:var(--text-muted);">{{ strengthLabel }}</span>
             </div>
 
-            <mat-form-field appearance="outline">
-              <mat-label>Confirm password</mat-label>
-              <mat-icon matPrefix style="margin-right:8px;color:var(--text-muted);">lock_outline</mat-icon>
-              <input matInput [type]="showPassword ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password">
-              <mat-error *ngIf="form.get('confirmPassword')?.hasError('required')">Please confirm your password</mat-error>
-              <mat-error *ngIf="form.hasError('mismatch') && form.get('confirmPassword')?.touched">Passwords do not match</mat-error>
-            </mat-form-field>
 
-            <div *ngIf="errorMsg" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+<div *ngIf="errorMsg" style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
               <mat-icon style="color:#EF4444;font-size:18px;width:18px;height:18px;">error_outline</mat-icon>
               <span style="font-size:13px;color:#B91C1C;">{{ errorMsg }}</span>
             </div>
@@ -187,8 +174,7 @@ export class RegisterComponent {
       name: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
-      confirmPassword: ['', Validators.required],
-    }, { validators: passwordMatch });
+    });
   }
 
   get strengthScore(): number {
@@ -219,7 +205,7 @@ export class RegisterComponent {
     this.errorMsg = '';
     this.auth.register(this.form.value.name, this.form.value.email, this.form.value.password).subscribe({
       next: () => {
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['/login']);
       },
       error: (err: Error) => {
         this.errorMsg = err.message;
