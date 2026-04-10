@@ -21,6 +21,16 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
     List<Device> findByRoomIdOrderByCreatedAtAsc(Long roomId);
 
     /**
+     * Finds a device by its id within a specific room.
+     * Returns empty if the device does not exist or belongs to a different room.
+     *
+     * @param id     the device's primary key
+     * @param roomId the room's primary key
+     * @return an optional containing the device, or empty if not found
+     */
+    java.util.Optional<Device> findByIdAndRoomId(Long id, Long roomId);
+
+    /**
      * Checks whether a device with the given name already exists in the room.
      *
      * @param roomId the room's primary key
@@ -28,4 +38,15 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
      * @return {@code true} if a device with that name already exists in the room
      */
     boolean existsByRoomIdAndName(Long roomId, String name);
+
+    /**
+     * Checks whether another device (excluding the given id) with the same name
+     * exists in the room. Used during rename to allow keeping the same name.
+     *
+     * @param roomId the room's primary key
+     * @param name   the device name to check
+     * @param id     the id of the device being renamed (excluded from the check)
+     * @return {@code true} if a different device with that name already exists in the room
+     */
+    boolean existsByRoomIdAndNameAndIdNot(Long roomId, String name, Long id);
 }

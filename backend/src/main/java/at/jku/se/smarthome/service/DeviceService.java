@@ -5,6 +5,7 @@ import at.jku.se.smarthome.domain.Room;
 import at.jku.se.smarthome.domain.User;
 import at.jku.se.smarthome.dto.DeviceRequest;
 import at.jku.se.smarthome.dto.DeviceResponse;
+import at.jku.se.smarthome.dto.RenameDeviceRequest;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RoomRepository;
 import at.jku.se.smarthome.repository.UserRepository;
@@ -19,7 +20,7 @@ import java.util.List;
  * Service for managing virtual devices in rooms.
  *
  * <p>Implements FR-04: add virtual smart devices to a room,
- * specifying type and name.</p>
+ * specifying type and name. FR-05: rename and remove devices.</p>
  *
  * <p>All operations are scoped to the authenticated user — the target room
  * must be owned by that user.</p>
@@ -86,6 +87,50 @@ public class DeviceService {
         Device device = new Device(room, request.getName(), request.getType());
         Device saved = deviceRepository.save(device);
         return new DeviceResponse(saved.getId(), saved.getName(), saved.getType());
+    }
+
+    /**
+     * Renames an existing virtual device in a room.
+     * FR-05: Gerät umbenennen.
+     *
+     * @param email    the email of the authenticated user
+     * @param roomId   the room's primary key
+     * @param deviceId the device's primary key
+     * @param request  the rename request containing the new name
+     * @return the updated device
+     * @throws ResponseStatusException with status 404 if the room or device is not found
+     * @throws ResponseStatusException with status 409 if another device in the room
+     *                                 already has the requested name
+     */
+    @Transactional
+    public DeviceResponse renameDevice(String email, Long roomId, Long deviceId, RenameDeviceRequest request) {
+        Room room = getOwnedRoom(email, roomId);
+        Device device = deviceRepository.findByIdAndRoomId(deviceId, room.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
+        if (deviceRepository.existsByRoomIdAndNameAndIdNot(room.getId(), request.getName(), deviceId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "A device named '" + request.getName() + "' already exists in this room.");
+        }
+        device.setName(request.getName());
+        Device saved = deviceRepository.save(device);
+        return new DeviceResponse(saved.getId(), saved.getName(), saved.getType());
+    }
+
+    /**
+     * Deletes a virtual device from a room.
+     * FR-05: Gerät löschen.
+     *
+     * @param email    the email of the authenticated user
+     * @param roomId   the room's primary key
+     * @param deviceId the device's primary key
+     * @throws ResponseStatusException with status 404 if the room or device is not found
+     */
+    @Transactional
+    public void deleteDevice(String email, Long roomId, Long deviceId) {
+        Room room = getOwnedRoom(email, roomId);
+        Device device = deviceRepository.findByIdAndRoomId(deviceId, room.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
+        deviceRepository.delete(device);
     }
 
     private Room getOwnedRoom(String email, Long roomId) {

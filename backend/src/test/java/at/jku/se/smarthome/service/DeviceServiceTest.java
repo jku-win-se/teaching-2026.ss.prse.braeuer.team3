@@ -6,6 +6,7 @@ import at.jku.se.smarthome.domain.Room;
 import at.jku.se.smarthome.domain.User;
 import at.jku.se.smarthome.dto.DeviceRequest;
 import at.jku.se.smarthome.dto.DeviceResponse;
+import at.jku.se.smarthome.dto.RenameDeviceRequest;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RoomRepository;
 import at.jku.se.smarthome.repository.UserRepository;
@@ -24,6 +25,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -122,10 +124,92 @@ class DeviceServiceTest {
                         .isEqualTo(HttpStatus.NOT_FOUND));
     }
 
+    // --- renameDevice ---
+
+    @Test
+    void renameDevice_updatesAndReturns() {
+        Device device = new Device(room, "Lamp", DeviceType.SWITCH);
+        RenameDeviceRequest request = buildRenameRequest("Smart Lamp");
+
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
+        when(deviceRepository.existsByRoomIdAndNameAndIdNot(room.getId(), "Smart Lamp", 10L)).thenReturn(false);
+        when(deviceRepository.save(device)).thenReturn(device);
+
+        DeviceResponse response = deviceService.renameDevice("user@test.com", 1L, 10L, request);
+
+        assertThat(response.getName()).isEqualTo("Smart Lamp");
+        verify(deviceRepository).save(device);
+    }
+
+    @Test
+    void renameDevice_throwsConflict_whenNameTaken() {
+        Device device = new Device(room, "Lamp", DeviceType.SWITCH);
+        RenameDeviceRequest request = buildRenameRequest("Thermostat");
+
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
+        when(deviceRepository.existsByRoomIdAndNameAndIdNot(room.getId(), "Thermostat", 10L)).thenReturn(true);
+
+        assertThatThrownBy(() -> deviceService.renameDevice("user@test.com", 1L, 10L, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
+    void renameDevice_throwsNotFound_whenDeviceNotInRoom() {
+        RenameDeviceRequest request = buildRenameRequest("Smart Lamp");
+
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> deviceService.renameDevice("user@test.com", 1L, 10L, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    // --- deleteDevice ---
+
+    @Test
+    void deleteDevice_removesDevice() {
+        Device device = new Device(room, "Lamp", DeviceType.SWITCH);
+
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
+
+        deviceService.deleteDevice("user@test.com", 1L, 10L);
+
+        verify(deviceRepository).delete(device);
+    }
+
+    @Test
+    void deleteDevice_throwsNotFound_whenDeviceNotInRoom() {
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> deviceService.deleteDevice("user@test.com", 1L, 10L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
     private DeviceRequest buildRequest(String name, DeviceType type) {
         DeviceRequest req = new DeviceRequest();
         req.setName(name);
         req.setType(type);
+        return req;
+    }
+
+    private RenameDeviceRequest buildRenameRequest(String name) {
+        RenameDeviceRequest req = new RenameDeviceRequest();
+        req.setName(name);
         return req;
     }
 }

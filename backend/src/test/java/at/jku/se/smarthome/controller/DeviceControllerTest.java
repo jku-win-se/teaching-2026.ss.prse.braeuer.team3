@@ -2,6 +2,7 @@ package at.jku.se.smarthome.controller;
 
 import at.jku.se.smarthome.domain.DeviceType;
 import at.jku.se.smarthome.dto.DeviceResponse;
+import at.jku.se.smarthome.dto.RenameDeviceRequest;
 import at.jku.se.smarthome.repository.UserRepository;
 import at.jku.se.smarthome.security.JwtUtil;
 import at.jku.se.smarthome.service.DeviceService;
@@ -22,10 +23,13 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -156,5 +160,87 @@ class DeviceControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // --- PUT /api/rooms/{roomId}/devices/{deviceId} ---
+
+    @Test
+    @WithMockUser
+    void renameDevice_returns200_withValidRequest() throws Exception {
+        DeviceResponse updated = new DeviceResponse(5L, "Smart Lamp", DeviceType.SWITCH);
+        when(deviceService.renameDevice(any(), eq(1L), eq(5L), any())).thenReturn(updated);
+
+        String body = objectMapper.writeValueAsString(Map.of("name", "Smart Lamp"));
+
+        mockMvc.perform(put("/api/rooms/1/devices/5")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(5))
+                .andExpect(jsonPath("$.name").value("Smart Lamp"));
+    }
+
+    @Test
+    @WithMockUser
+    void renameDevice_returns400_whenNameIsBlank() throws Exception {
+        String body = objectMapper.writeValueAsString(Map.of("name", ""));
+
+        mockMvc.perform(put("/api/rooms/1/devices/5")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void renameDevice_returns404_whenDeviceNotFound() throws Exception {
+        when(deviceService.renameDevice(any(), eq(1L), eq(5L), any()))
+                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
+
+        String body = objectMapper.writeValueAsString(Map.of("name", "Smart Lamp"));
+
+        mockMvc.perform(put("/api/rooms/1/devices/5")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser
+    void renameDevice_returns409_whenNameConflict() throws Exception {
+        when(deviceService.renameDevice(any(), eq(1L), eq(5L), any()))
+                .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Device already exists."));
+
+        String body = objectMapper.writeValueAsString(Map.of("name", "Thermostat"));
+
+        mockMvc.perform(put("/api/rooms/1/devices/5")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isConflict());
+    }
+
+    // --- DELETE /api/rooms/{roomId}/devices/{deviceId} ---
+
+    @Test
+    @WithMockUser
+    void deleteDevice_returns204() throws Exception {
+        mockMvc.perform(delete("/api/rooms/1/devices/5")
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser
+    void deleteDevice_returns404_whenDeviceNotFound() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."))
+                .when(deviceService).deleteDevice(any(), eq(1L), eq(5L));
+
+        mockMvc.perform(delete("/api/rooms/1/devices/5")
+                        .with(csrf()))
+                .andExpect(status().isNotFound());
     }
 }
