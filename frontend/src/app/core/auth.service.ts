@@ -70,7 +70,6 @@ export class AuthService {
   register(name: string, email: string, password: string): Observable<AuthResponse> {
     const body: RegisterRequest = { name, email, password };
     return this.http.post<AuthResponse>(`${this.API}/register`, body).pipe(
-      tap(res => this._storeSession(res)),
       catchError(err => {
         const msg = err.status === 409
           ? 'This email address is already in use.'
