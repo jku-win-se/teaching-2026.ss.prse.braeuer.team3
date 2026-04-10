@@ -135,12 +135,12 @@
                 </executions>
             </plugin>
 
-            <!-- Surefire: enable dynamic agent loading required by Mockito/ByteBuddy on Java 21+ -->
+            <!-- Surefire: include JaCoCo agent via @{argLine} -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <argLine>-XX:+EnableDynamicAgentLoading -Xshare:off -Dnet.bytebuddy.experimental=true</argLine>
+                    <argLine>@{argLine}</argLine>
                 </configuration>
             </plugin>
 

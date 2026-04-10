@@ -10,14 +10,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { DEVICES } from '../../core/mock-data';
-import { Device, Room } from '../../core/models';
+import { Device, DeviceType, Room } from '../../core/models';
 import { RoomService, RoomDto } from '../../core/room.service';
+import { DeviceService, DeviceDto } from '../../core/device.service';
 import { DeviceCardComponent } from '../../shared/components/device-card/device-card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { AddDeviceDialogComponent } from './add-device-dialog.component';
 import { AddRoomDialogComponent } from './add-room-dialog.component';
+import { RenameDeviceDialogComponent } from './rename-device-dialog.component';
 import { RenameRoomDialogComponent } from './rename-room-dialog.component';
 
 function toRoom(dto: RoomDto): Room {
@@ -120,12 +121,11 @@ export class RoomsComponent implements OnInit {
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private roomService: RoomService,
+    private deviceService: DeviceService,
   ) {}
 
   ngOnInit() {
     this.loadRooms();
-    // Devices still use mock data until device API is implemented
-    this.devices = DEVICES.map(d => ({ ...d, state: { ...d.state } }));
   }
 
   loadRooms() {
@@ -135,6 +135,7 @@ export class RoomsComponent implements OnInit {
         this.rooms = dtos.map(toRoom);
         if (this.rooms.length > 0 && !this.selectedRoomId) {
           this.selectedRoomId = this.rooms[0].id;
+          this.loadDevices(this.selectedRoomId);
         }
         this.loading = false;
       },
@@ -145,7 +146,27 @@ export class RoomsComponent implements OnInit {
     });
   }
 
-  selectRoom(id: string) { this.selectedRoomId = id; }
+  selectRoom(id: string) {
+    this.selectedRoomId = id;
+    this.loadDevices(id);
+  }
+
+  loadDevices(roomId: string) {
+    this.deviceService.getDevices(Number(roomId)).subscribe({
+      next: (dtos) => {
+        this.devices = dtos.map((dto: DeviceDto) => ({
+          id: String(dto.id),
+          name: dto.name,
+          roomId: roomId,
+          type: dto.type,
+          icon: this.iconForType(dto.type),
+          state: { on: false, brightness: 50, temperature: 21,
+                   sensorValue: 0, sensorUnit: '°C', coverPosition: 0 },
+        }));
+      },
+      error: () => { this.devices = []; }
+    });
+  }
 
   getRoom(roomId: string): Room | undefined {
     return this.rooms.find(r => r.id === roomId);
@@ -166,11 +187,25 @@ export class RoomsComponent implements OnInit {
   }
 
   onRename(device: Device) {
-    const newName = prompt(`Rename "${device.name}" to:`, device.name);
-    if (newName && newName.trim()) {
-      device.name = newName.trim();
-      this.onSnack(`Device renamed to "${device.name}" ✓`);
-    }
+    const ref = this.dialog.open(RenameDeviceDialogComponent, {
+      width: '400px',
+      data: { currentName: device.name }
+    });
+    ref.afterClosed().subscribe(newName => {
+      if (!newName) { return; }
+      this.deviceService.renameDevice(Number(device.roomId), Number(device.id), newName).subscribe({
+        next: (dto) => {
+          device.name = dto.name;
+          this.onSnack(`Device renamed to "${dto.name}" ✓`);
+        },
+        error: (err: { status: number }) => {
+          const msg = err.status === 409
+            ? `A device named "${newName}" already exists in this room.`
+            : 'Failed to rename device. Please try again.';
+          this.onSnack(msg);
+        }
+      });
+    });
   }
 
   onRemove(device: Device) {
@@ -178,10 +213,14 @@ export class RoomsComponent implements OnInit {
       data: { title: 'Remove Device', message: `Are you sure you want to remove "${device.name}"? This action cannot be undone.` }
     });
     ref.afterClosed().subscribe(confirmed => {
-      if (confirmed) {
-        this.devices = this.devices.filter(d => d.id !== device.id);
-        this.onSnack(`${device.name} removed ✓`);
-      }
+      if (!confirmed) { return; }
+      this.deviceService.removeDevice(Number(device.roomId), Number(device.id)).subscribe({
+        next: () => {
+          this.devices = this.devices.filter(d => d.id !== device.id);
+          this.onSnack(`${device.name} removed ✓`);
+        },
+        error: () => this.onSnack('Failed to remove device. Please try again.')
+      });
     });
   }
 
@@ -258,19 +297,22 @@ export class RoomsComponent implements OnInit {
       data: { rooms: this.rooms, defaultRoomId: this.selectedRoomId }
     });
     ref.afterClosed().subscribe(result => {
-      if (result) {
-        const newDevice: Device = {
-          id: 'd_' + Date.now(),
-          name: result.name,
-          roomId: result.roomId,
-          type: result.type,
-          icon: this.iconForType(result.type),
-          state: { on: false, brightness: 50, temperature: 21, sensorValue: 0, sensorUnit: '°C', coverPosition: 0 },
-        };
-        this.devices = [...this.devices, newDevice];
-        this.selectedRoomId = result.roomId;
-        this.onSnack(`${result.name} added ✓`);
-      }
+      if (!result) { return; }
+      this.deviceService.addDevice(Number(result.roomId), {
+        name: result.name,
+        type: result.type as DeviceType,
+      }).subscribe({
+        next: () => {
+          this.onSnack(`${result.name} added ✓`);
+          this.selectRoom(result.roomId);
+        },
+        error: (err: { status: number }) => {
+          const msg = err.status === 409
+            ? `A device named "${result.name}" already exists in this room.`
+            : 'Failed to add device. Please try again.';
+          this.onSnack(msg);
+        }
+      });
     });
   }
 
