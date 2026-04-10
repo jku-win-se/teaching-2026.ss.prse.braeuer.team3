@@ -18,6 +18,7 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { AddDeviceDialogComponent } from './add-device-dialog.component';
 import { AddRoomDialogComponent } from './add-room-dialog.component';
+import { InjectValueDialogComponent } from './inject-value-dialog.component';
 import { RenameDeviceDialogComponent } from './rename-device-dialog.component';
 import { RenameRoomDialogComponent } from './rename-room-dialog.component';
 
@@ -78,9 +79,9 @@ function toRoom(dto: RoomDto): Room {
           *ngFor="let device of filteredDevices"
           [device]="device"
           [room]="getRoom(device.roomId)"
-          (toggled)="onSnack(device.name + (device.state.on ? ' turned on' : ' turned off') + ' ✓')"
-          (sliderChanged)="onSnack(device.name + ' brightness updated ✓')"
-          (tempChanged)="onSnack(device.name + ' temperature updated ✓')"
+          (toggled)="onToggle(device, $event)"
+          (sliderChanged)="onBrightnessChange(device, $event)"
+          (tempChanged)="onTempChange(device, $event)"
           (coverAction)="onCoverAction(device, $event)"
           (injectValue)="onInjectValue(device)"
           (rename)="onRename(device)"
@@ -160,8 +161,14 @@ export class RoomsComponent implements OnInit {
           roomId: roomId,
           type: dto.type,
           icon: this.iconForType(dto.type),
-          state: { on: false, brightness: 50, temperature: 21,
-                   sensorValue: 0, sensorUnit: '°C', coverPosition: 0 },
+          state: {
+            on: dto.stateOn,
+            brightness: dto.brightness,
+            temperature: dto.temperature,
+            sensorValue: dto.sensorValue,
+            sensorUnit: '°C',
+            coverPosition: dto.coverPosition,
+          },
         }));
       },
       error: () => { this.devices = []; }
@@ -174,16 +181,55 @@ export class RoomsComponent implements OnInit {
 
   onSnack(msg: string) { this.snackBar.open(msg, '', { duration: 2000 }); }
 
+  onToggle(device: Device, on: boolean) {
+    this.deviceService.updateState(Number(device.roomId), Number(device.id), { stateOn: on }).subscribe({
+      next: () => this.onSnack(`${device.name} ${on ? 'turned on' : 'turned off'} ✓`),
+      error: () => this.onSnack('Failed to update device state.')
+    });
+  }
+
+  onBrightnessChange(device: Device, brightness: number) {
+    this.deviceService.updateState(Number(device.roomId), Number(device.id), { brightness }).subscribe({
+      next: () => this.onSnack(`${device.name} brightness updated ✓`),
+      error: () => this.onSnack('Failed to update brightness.')
+    });
+  }
+
+  onTempChange(device: Device, temperature: number) {
+    this.deviceService.updateState(Number(device.roomId), Number(device.id), { temperature }).subscribe({
+      next: () => this.onSnack(`${device.name} temperature updated ✓`),
+      error: () => this.onSnack('Failed to update temperature.')
+    });
+  }
+
   onCoverAction(device: Device, action: string) {
-    if (action === 'open') device.state = { ...device.state, coverPosition: 100 };
-    else if (action === 'close') device.state = { ...device.state, coverPosition: 0 };
-    this.onSnack(`${device.name} ${action} command sent ✓`);
+    if (action === 'open') {
+      device.state = { ...device.state, coverPosition: 100 };
+      this.deviceService.updateState(Number(device.roomId), Number(device.id), { coverPosition: 100 }).subscribe({
+        next: () => this.onSnack(`${device.name} opened ✓`),
+        error: () => this.onSnack('Failed to open cover.')
+      });
+    } else if (action === 'close') {
+      device.state = { ...device.state, coverPosition: 0 };
+      this.deviceService.updateState(Number(device.roomId), Number(device.id), { coverPosition: 0 }).subscribe({
+        next: () => this.onSnack(`${device.name} closed ✓`),
+        error: () => this.onSnack('Failed to close cover.')
+      });
+    } else {
+      this.onSnack(`${device.name} stop command sent`);
+    }
   }
 
   onInjectValue(device: Device) {
-    const newVal = Math.round(Math.random() * 100);
-    device.state = { ...device.state, sensorValue: newVal };
-    this.onSnack(`Injected value ${newVal} ${device.state.sensorUnit} into ${device.name} ✓`);
+    const ref = this.dialog.open(InjectValueDialogComponent, { width: '360px' });
+    ref.afterClosed().subscribe(value => {
+      if (value === null || value === undefined) { return; }
+      device.state = { ...device.state, sensorValue: value };
+      this.deviceService.updateState(Number(device.roomId), Number(device.id), { sensorValue: value }).subscribe({
+        next: () => this.onSnack(`Sensor value set to ${value} ✓`),
+        error: () => this.onSnack('Failed to update sensor value.')
+      });
+    });
   }
 
   onRename(device: Device) {
