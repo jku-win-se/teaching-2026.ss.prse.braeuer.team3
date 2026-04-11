@@ -23,6 +23,8 @@
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
         <pmd.plugin.version>3.21.2</pmd.plugin.version>
+        <flyway-maven-plugin.version>10.10.0</flyway-maven-plugin.version>
+        <properties.plugin.version>1.2.1</properties.plugin.version>
     </properties>
 
     <dependencies>
@@ -110,6 +112,38 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- Load .env file as Maven properties (for flyway plugin) -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>${properties.plugin.version}</version>
+                <configuration>
+                    <files>
+                        <file>${project.basedir}/../.env</file>
+                    </files>
+                </configuration>
+            </plugin>
+
+            <!-- Flyway Maven plugin for manual DB operations -->
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>${flyway-maven-plugin.version}</version>
+                <configuration>
+                    <url>jdbc:postgresql://localhost:5432/${DB_NAME}</url>
+                    <user>${DB_USER}</user>
+                    <password>${DB_PASSWORD}</password>
+                    <cleanDisabled>false</cleanDisabled>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.postgresql</groupId>
+                        <artifactId>postgresql</artifactId>
+                        <version>42.7.3</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
             <!-- PMD code quality (NFR-04) -->

@@ -1,7 +1,7 @@
 -- V3: Create devices table
 -- FR-04: Gerät hinzufügen (type, name, room)
 
-CREATE TABLE devices
+CREATE OR REPLACE TABLE devices
 (
     id         BIGSERIAL   PRIMARY KEY,
     room_id    BIGINT      NOT NULL REFERENCES rooms (id) ON DELETE CASCADE,
