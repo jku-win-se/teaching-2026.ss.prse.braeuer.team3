@@ -105,6 +105,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -119,11 +120,20 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>properties-maven-plugin</artifactId>
                 <version>${properties.plugin.version}</version>
-                <configuration>
-                    <files>
-                        <file>${project.basedir}/../.env</file>
-                    </files>
-                </configuration>
+                <executions>
+                    <execution>
+                        <id>load-env</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <quiet>true</quiet> <files>
+                            <file>${project.basedir}/../.env</file>
+                        </files>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Flyway Maven plugin for manual DB operations -->

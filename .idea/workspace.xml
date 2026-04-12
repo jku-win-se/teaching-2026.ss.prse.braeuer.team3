@@ -5,7 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="be43aaef-b273-4f1f-9350-4abfc25671b2" name="Changes" comment="#30 [11h] Einbindung von AI-DLC workflow + vergangen Stunden aus Praesenzeinheiten">
-      <change beforePath="$PROJECT_DIR$/aws-aidlc-rule-details/common/question-format-guide.md" beforeDir="false" afterPath="$PROJECT_DIR$/aws-aidlc-rule-details/common/question-format-guide.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pom.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,30 +56,30 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "Application.SimpleCalculator.executor": "Run",
-    "JUnit.TestAddOperation.executor": "Run",
-    "JUnit.TestCalculatorController.executor": "Run",
-    "JUnit.TestDivOperation.executor": "Run",
-    "JUnit.TestDivideOperation.executor": "Run",
-    "JUnit.TestOperationFactory.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "include-AI__DLC",
-    "kotlin-language-version-configured": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Project",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "reference.settings.ide.settings.new.ui",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;Application.SimpleCalculator.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestAddOperation.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestCalculatorController.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestDivOperation.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestDivideOperation.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestOperationFactory.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.ide.settings.new.ui&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Applications/IntelliJ IDEA.app/Contents/plugins/javascript-plugin/jsLanguageServicesImpl/external&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/src/test/java/at/jku/se/calculator" />
@@ -193,6 +195,8 @@
       <workItem from="1773691881210" duration="3289000" />
       <workItem from="1773947075025" duration="3975000" />
       <workItem from="1774006414319" duration="12550000" />
+      <workItem from="1775826967009" duration="18353000" />
+      <workItem from="1775975126053" duration="1153000" />
     </task>
     <task id="LOCAL-00001" summary="Implement DivOperation and Tests">
       <option name="closed" value="true" />
