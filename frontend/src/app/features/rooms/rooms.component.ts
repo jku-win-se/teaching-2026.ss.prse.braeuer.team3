@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule, AsyncPipe } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -10,12 +10,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { Device, DeviceType, Room } from '../../core/models';
 import { RoomService, RoomDto } from '../../core/room.service';
 import { DeviceService, DeviceDto } from '../../core/device.service';
+import { RealtimeService } from '../../core/realtime.service';
 import { DeviceCardComponent } from '../../shared/components/device-card/device-card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { ConnectionStatusComponent } from '../../shared/components/connection-status/connection-status.component';
 import { AddDeviceDialogComponent } from './add-device-dialog.component';
 import { AddRoomDialogComponent } from './add-room-dialog.component';
 import { InjectValueDialogComponent } from './inject-value-dialog.component';
@@ -33,11 +36,12 @@ function toRoom(dto: RoomDto): Room {
     CommonModule, MatCardModule, MatIconModule, MatButtonModule,
     MatProgressBarModule, MatDialogModule, MatSnackBarModule,
     MatFormFieldModule, MatInputModule, MatSelectModule, FormsModule, ReactiveFormsModule,
-    DeviceCardComponent, EmptyStateComponent,
+    DeviceCardComponent, EmptyStateComponent, ConnectionStatusComponent, AsyncPipe,
   ],
   template: `
     <div *ngIf="loading"><mat-progress-bar mode="indeterminate"></mat-progress-bar></div>
     <div class="page-container" *ngIf="!loading">
+      <app-connection-status [state]="(realtimeService.state$ | async) ?? 'disconnected'"></app-connection-status>
       <div class="page-header">
         <h1>Rooms &amp; Devices</h1>
         <p class="subtitle">Manage all your smart devices organized by room.</p>
@@ -110,11 +114,13 @@ function toRoom(dto: RoomDto): Room {
     </div>
   `,
 })
-export class RoomsComponent implements OnInit {
+export class RoomsComponent implements OnInit, OnDestroy {
   loading = true;
   rooms: Room[] = [];
   devices: Device[] = [];
   selectedRoomId = '';
+
+  private sseSubscription: Subscription | null = null;
 
   get filteredDevices() {
     return this.devices.filter(d => d.roomId === this.selectedRoomId);
@@ -125,10 +131,30 @@ export class RoomsComponent implements OnInit {
     private snackBar: MatSnackBar,
     private roomService: RoomService,
     private deviceService: DeviceService,
+    readonly realtimeService: RealtimeService,
   ) {}
 
   ngOnInit() {
     this.loadRooms();
+    this.realtimeService.connect();
+    this.sseSubscription = this.realtimeService.deviceUpdates$.subscribe(dto => {
+      const device = this.devices.find(d => d.id === String(dto.id));
+      if (device) {
+        device.state = {
+          on: dto.stateOn,
+          brightness: dto.brightness,
+          temperature: dto.temperature,
+          sensorValue: dto.sensorValue,
+          sensorUnit: device.state.sensorUnit,
+          coverPosition: dto.coverPosition,
+        };
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    this.sseSubscription?.unsubscribe();
+    this.realtimeService.disconnect();
   }
 
   loadRooms() {

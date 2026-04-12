@@ -21,6 +21,10 @@ import java.util.List;
  *
  * <p>Configures stateless JWT authentication, CORS for the Angular frontend
  * (running on {@code localhost:4200}), and BCrypt as the password encoder.</p>
+ *
+ * <p>WebSocket endpoints ({@code /ws/**}) are excluded from Spring Security and
+ * authenticated via {@link at.jku.se.smarthome.websocket.JwtHandshakeInterceptor}
+ * during the HTTP upgrade handshake.</p>
  */
 @Configuration
 @EnableWebSecurity
@@ -29,9 +33,9 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
 
     /**
-     * Constructs a SecurityConfig with the given JWT authentication filter.
+     * Constructs a SecurityConfig with the required JWT authentication filter.
      *
-     * @param jwtAuthFilter the filter that validates Bearer tokens on each request
+     * @param jwtAuthFilter the filter that validates Bearer tokens on regular requests
      */
     public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
@@ -40,8 +44,9 @@ public class SecurityConfig {
     /**
      * Configures the security filter chain.
      *
-     * <p>Public endpoints: {@code /api/auth/**} (login and register).
-     * All other endpoints require a valid JWT token.</p>
+     * <p>Public endpoints: {@code /api/auth/**} (login, register) and
+     * {@code /ws/**} (WebSocket upgrade — secured by {@link at.jku.se.smarthome.websocket.JwtHandshakeInterceptor}).
+     * All other endpoints require a valid JWT Bearer token.</p>
      *
      * @param http the {@link HttpSecurity} builder
      * @return the configured {@link SecurityFilterChain}
@@ -54,7 +59,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/error").permitAll()
+                .requestMatchers("/api/auth/**", "/ws/**", "/error").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -82,7 +87,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:4200"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

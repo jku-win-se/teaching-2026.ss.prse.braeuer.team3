@@ -10,6 +10,7 @@ import at.jku.se.smarthome.dto.RenameDeviceRequest;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RoomRepository;
 import at.jku.se.smarthome.repository.UserRepository;
+import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +23,8 @@ import java.util.List;
  *
  * <p>Implements FR-04: add virtual smart devices to a room,
  * specifying type and name. FR-05: rename and remove devices.
- * FR-06: manual device control with state persistence.</p>
+ * FR-06: manual device control with state persistence.
+ * FR-07: broadcasts state changes to connected WebSocket clients after each update.</p>
  *
  * <p>All operations are scoped to the authenticated user — the target room
  * must be owned by that user.</p>
@@ -33,20 +35,24 @@ public class DeviceService {
     private final DeviceRepository deviceRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final DeviceWebSocketHandler webSocketHandler;
 
     /**
-     * Constructs a DeviceService with the required repositories.
+     * Constructs a DeviceService with the required repositories and WebSocket handler.
      *
-     * @param deviceRepository the repository for device persistence
-     * @param roomRepository   the repository for room lookups
-     * @param userRepository   the repository for resolving the current user
+     * @param deviceRepository  the repository for device persistence
+     * @param roomRepository    the repository for room lookups
+     * @param userRepository    the repository for resolving the current user
+     * @param webSocketHandler  the handler used to push real-time state updates to WebSocket clients
      */
     public DeviceService(DeviceRepository deviceRepository,
                          RoomRepository roomRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         DeviceWebSocketHandler webSocketHandler) {
         this.deviceRepository = deviceRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
+        this.webSocketHandler = webSocketHandler;
     }
 
     /**
@@ -136,10 +142,13 @@ public class DeviceService {
     }
 
     /**
-     * Partially updates the runtime state of a virtual device.
-     * FR-06: Gerät manuell steuern.
+     * Partially updates the runtime state of a virtual device and broadcasts the change
+     * to all active SSE clients of the user.
+     * FR-06: Gerät manuell steuern. FR-07: Echtzeit-Zustandsanzeige.
      *
-     * <p>Only non-null fields in the request are applied; all others remain unchanged.</p>
+     * <p>Only non-null fields in the request are applied; all others remain unchanged.
+     * After persisting the new state, {@link DeviceWebSocketHandler#broadcast} is called so
+     * all connected clients receive the update without a manual reload.</p>
      *
      * @param email    the email of the authenticated user
      * @param roomId   the room's primary key
@@ -168,7 +177,9 @@ public class DeviceService {
         if (request.getCoverPosition() != null) {
             device.setCoverPosition(request.getCoverPosition());
         }
-        return toResponse(deviceRepository.save(device));
+        DeviceResponse response = toResponse(deviceRepository.save(device));
+        webSocketHandler.broadcast(email, response);
+        return response;
     }
 
     private static DeviceResponse toResponse(Device d) {
