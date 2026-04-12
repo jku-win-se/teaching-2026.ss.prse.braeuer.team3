@@ -8,13 +8,13 @@ import at.jku.se.smarthome.dto.DeviceRequest;
 import at.jku.se.smarthome.dto.DeviceResponse;
 import at.jku.se.smarthome.dto.DeviceStateRequest;
 import at.jku.se.smarthome.dto.RenameDeviceRequest;
+import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RoomRepository;
 import at.jku.se.smarthome.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -26,7 +26,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,7 +39,6 @@ class DeviceServiceTest {
     @Mock
     private UserRepository userRepository;
 
-    @InjectMocks
     private DeviceService deviceService;
 
     private User user;
@@ -50,6 +48,15 @@ class DeviceServiceTest {
     void setUp() {
         user = new User("Test User", "user@test.com", "hashed");
         room = new Room(user, "Living Room", "weekend");
+        // Use a no-op DeviceWebSocketHandler subclass — avoids Mockito inline-mock
+        // limitations on JVM versions that restrict byte-buddy instrumentation.
+        DeviceWebSocketHandler noOpWs = new DeviceWebSocketHandler(new com.fasterxml.jackson.databind.ObjectMapper()) {
+            @Override
+            public void broadcast(String userEmail, DeviceResponse deviceResponse) {
+                // no-op: WebSocket broadcast is tested separately in DeviceWebSocketHandlerTest
+            }
+        };
+        deviceService = new DeviceService(deviceRepository, roomRepository, userRepository, noOpWs);
     }
 
     // --- getDevices ---
