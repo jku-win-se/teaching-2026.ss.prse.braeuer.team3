@@ -105,6 +105,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -124,6 +125,15 @@
                         <file>${project.basedir}/../.env</file>
                     </files>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>load-env</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Flyway Maven plugin for manual DB operations -->
