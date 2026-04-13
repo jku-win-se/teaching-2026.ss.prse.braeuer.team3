@@ -7,7 +7,17 @@
     <description>PMD ruleset for SmartHome Orchestrator (NFR-04)</description>
 
     <rule ref="category/java/bestpractices.xml"/>
-    <rule ref="category/java/errorprone.xml"/>
-    <rule ref="category/java/design.xml"/>
+
+    <rule ref="category/java/errorprone.xml">
+        <!-- Removed in PMD 7 (was deprecated in PMD 6) -->
+        <exclude name="DataflowAnomalyAnalysis"/>
+        <exclude name="BeanMembersShouldSerialize"/>
+    </rule>
+
+    <rule ref="category/java/design.xml">
+        <!-- Removed in PMD 7 (was deprecated in PMD 6) -->
+        <exclude name="ModifiedCyclomaticComplexity"/>
+        <exclude name="StdCyclomaticComplexity"/>
+    </rule>
 
 </ruleset>
