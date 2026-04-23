@@ -7,6 +7,11 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+  checks: write
+  pull-requests: write
+
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -66,10 +71,10 @@ jobs:
           path: backend/target/site/jacoco/
 
       - name: Update README coverage badge
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('backend/target/site/jacoco/jacoco.csv') != ''
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('target/site/jacoco/jacoco.csv') != ''
         shell: bash
         run: |
-          coverage="$(awk -F, 'NR>1 {miss += $8; cov += $9} END {total = miss + cov; if (total == 0) {print 0} else {printf "%.0f", (cov/total)*100}}' backend/target/site/jacoco/jacoco.csv)"
+          coverage="$(awk -F, 'NR>1 {miss += $8; cov += $9} END {total = miss + cov; if (total == 0) {print 0} else {printf "%.0f", (cov/total)*100}}' target/site/jacoco/jacoco.csv)"
           color="red"
           if [ "$coverage" -ge 90 ]; then color="brightgreen";
           elif [ "$coverage" -ge 80 ]; then color="green";
