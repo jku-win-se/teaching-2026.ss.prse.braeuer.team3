@@ -4,38 +4,38 @@ Welcome to the AI-Driven Development Life Cycle (AI-DLC) workflow for this proje
 
 ## How This Works
 
-AI-DLC is an adaptive workflow system that guides development through three phases. Read the detail files in `.aidlc-rule-details/` for full instructions per stage.
+AI-DLC is an adaptive workflow system that guides development through three phases. Read the detail files in `aws-aidlc-rule-details/` for full instructions per stage.
 
 ## The Three Phases
 
 ### INCEPTION PHASE (Planning & Architecture)
-- **Workspace Detection** (ALWAYS) → `.aidlc-rule-details/inception/workspace-detection.md`
-- **Reverse Engineering** (CONDITIONAL - brownfield only) → `.aidlc-rule-details/inception/reverse-engineering.md`
-- **Requirements Analysis** (ALWAYS) → `.aidlc-rule-details/inception/requirements-analysis.md`
-- **User Stories** (CONDITIONAL) → `.aidlc-rule-details/inception/user-stories.md`
-- **Application Design** (CONDITIONAL) → `.aidlc-rule-details/inception/application-design.md`
-- **Units Generation** (CONDITIONAL) → `.aidlc-rule-details/inception/units-generation.md`
-- **Workflow Planning** (ALWAYS) → `.aidlc-rule-details/inception/workflow-planning.md`
+- **Workspace Detection** (ALWAYS) → `aws-aidlc-rule-details/inception/workspace-detection.md`
+- **Reverse Engineering** (CONDITIONAL - brownfield only) → `aws-aidlc-rule-details/inception/reverse-engineering.md`
+- **Requirements Analysis** (ALWAYS) → `aws-aidlc-rule-details/inception/requirements-analysis.md`
+- **User Stories** (CONDITIONAL) → `aws-aidlc-rule-details/inception/user-stories.md`
+- **Application Design** (CONDITIONAL) → `aws-aidlc-rule-details/inception/application-design.md`
+- **Units Generation** (CONDITIONAL) → `aws-aidlc-rule-details/inception/units-generation.md`
+- **Workflow Planning** (ALWAYS) → `aws-aidlc-rule-details/inception/workflow-planning.md`
 
 ### CONSTRUCTION PHASE (Design, Implementation, Build & Test)
-- **Functional Design** (CONDITIONAL) → `.aidlc-rule-details/construction/functional-design.md`
-- **NFR Requirements** (CONDITIONAL) → `.aidlc-rule-details/construction/nfr-requirements.md`
-- **NFR Design** (CONDITIONAL) → `.aidlc-rule-details/construction/nfr-design.md`
-- **Infrastructure Design** (CONDITIONAL) → `.aidlc-rule-details/construction/infrastructure-design.md`
-- **Code Generation** (ALWAYS) → `.aidlc-rule-details/construction/code-generation.md`
-- **Build and Test** (ALWAYS) → `.aidlc-rule-details/construction/build-and-test.md`
+- **Functional Design** (CONDITIONAL) → `aws-aidlc-rule-details/construction/functional-design.md`
+- **NFR Requirements** (CONDITIONAL) → `aws-aidlc-rule-details/construction/nfr-requirements.md`
+- **NFR Design** (CONDITIONAL) → `aws-aidlc-rule-details/construction/nfr-design.md`
+- **Infrastructure Design** (CONDITIONAL) → `aws-aidlc-rule-details/construction/infrastructure-design.md`
+- **Code Generation** (ALWAYS) → `aws-aidlc-rule-details/construction/code-generation.md`
+- **Build and Test** (ALWAYS) → `aws-aidlc-rule-details/construction/build-and-test.md`
 
 ### OPERATIONS PHASE
-- **Operations** → `.aidlc-rule-details/operations/operations.md`
+- **Operations** → `aws-aidlc-rule-details/operations/operations.md`
 
 ## Common Rules (apply in ALL phases)
-- `.aidlc-rule-details/common/process-overview.md`
-- `.aidlc-rule-details/common/depth-levels.md`
-- `.aidlc-rule-details/common/error-handling.md`
-- `.aidlc-rule-details/common/content-validation.md`
-- `.aidlc-rule-details/common/overconfidence-prevention.md`
-- `.aidlc-rule-details/common/question-format-guide.md`
-- `.aidlc-rule-details/common/session-continuity.md`
+- `aws-aidlc-rule-details/common/process-overview.md`
+- `aws-aidlc-rule-details/common/depth-levels.md`
+- `aws-aidlc-rule-details/common/error-handling.md`
+- `aws-aidlc-rule-details/common/content-validation.md`
+- `aws-aidlc-rule-details/common/overconfidence-prevention.md`
+- `aws-aidlc-rule-details/common/question-format-guide.md`
+- `aws-aidlc-rule-details/common/session-continuity.md`
 
 ## Key Principles
 - Phases execute only when they add value
