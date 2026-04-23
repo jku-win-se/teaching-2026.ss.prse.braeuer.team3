@@ -182,11 +182,48 @@ public class DeviceService {
         return response;
     }
 
+    /**
+     * Converts a {@link Device} entity to a {@link DeviceResponse}, applying type-aware
+     * null filtering so that state fields irrelevant to the device type are returned as
+     * {@code null} instead of a misleading default value.
+     *
+     * @param d the device entity to convert
+     * @return a response DTO with only the applicable state fields populated
+     */
     private static DeviceResponse toResponse(Device d) {
+        Boolean stateOn = null;
+        Integer brightness = null;
+        Double temperature = null;
+        Double sensorValue = null;
+        Integer coverPosition = null;
+
+        switch (d.getType()) {
+            case SWITCH:
+                stateOn = d.isStateOn();
+                break;
+            case DIMMER:
+                stateOn = d.isStateOn();
+                brightness = d.getBrightness();
+                break;
+            case THERMOSTAT:
+                stateOn = d.isStateOn();
+                temperature = d.getTemperature();
+                break;
+            case SENSOR:
+                temperature = d.getTemperature();
+                sensorValue = d.getSensorValue();
+                break;
+            case COVER:
+                stateOn = d.isStateOn();
+                coverPosition = d.getCoverPosition();
+                break;
+            default:
+                break;
+        }
+
         return new DeviceResponse(
                 d.getId(), d.getName(), d.getType(),
-                d.isStateOn(), d.getBrightness(), d.getTemperature(),
-                d.getSensorValue(), d.getCoverPosition());
+                stateOn, brightness, temperature, sensorValue, coverPosition);
     }
 
     private Room getOwnedRoom(String email, Long roomId) {

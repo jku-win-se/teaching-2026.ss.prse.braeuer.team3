@@ -270,4 +270,86 @@ class DeviceServiceTest {
         req.setName(name);
         return req;
     }
+
+    // --- Bugfix #62: type-aware null filtering in toResponse() ---
+
+    @Test
+    void toResponse_switch_onlyStateOnIsNonNull() {
+        Device device = new Device(room, "Switch", DeviceType.SWITCH);
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())).thenReturn(List.of(device));
+
+        DeviceResponse response = deviceService.getDevices("user@test.com", 1L).get(0);
+
+        assertThat(response.isStateOn()).isNotNull();
+        assertThat(response.getBrightness()).isNull();
+        assertThat(response.getTemperature()).isNull();
+        assertThat(response.getSensorValue()).isNull();
+        assertThat(response.getCoverPosition()).isNull();
+    }
+
+    @Test
+    void toResponse_dimmer_onlyStateOnAndBrightnessAreNonNull() {
+        Device device = new Device(room, "Dimmer", DeviceType.DIMMER);
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())).thenReturn(List.of(device));
+
+        DeviceResponse response = deviceService.getDevices("user@test.com", 1L).get(0);
+
+        assertThat(response.isStateOn()).isNotNull();
+        assertThat(response.getBrightness()).isNotNull();
+        assertThat(response.getTemperature()).isNull();
+        assertThat(response.getSensorValue()).isNull();
+        assertThat(response.getCoverPosition()).isNull();
+    }
+
+    @Test
+    void toResponse_thermostat_onlyStateOnAndTemperatureAreNonNull() {
+        Device device = new Device(room, "Thermostat", DeviceType.THERMOSTAT);
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())).thenReturn(List.of(device));
+
+        DeviceResponse response = deviceService.getDevices("user@test.com", 1L).get(0);
+
+        assertThat(response.isStateOn()).isNotNull();
+        assertThat(response.getBrightness()).isNull();
+        assertThat(response.getTemperature()).isNotNull();
+        assertThat(response.getSensorValue()).isNull();
+        assertThat(response.getCoverPosition()).isNull();
+    }
+
+    @Test
+    void toResponse_sensor_onlyTemperatureAndSensorValueAreNonNull() {
+        Device device = new Device(room, "Sensor", DeviceType.SENSOR);
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())).thenReturn(List.of(device));
+
+        DeviceResponse response = deviceService.getDevices("user@test.com", 1L).get(0);
+
+        assertThat(response.isStateOn()).isNull();
+        assertThat(response.getBrightness()).isNull();
+        assertThat(response.getTemperature()).isNotNull();
+        assertThat(response.getSensorValue()).isNotNull();
+        assertThat(response.getCoverPosition()).isNull();
+    }
+
+    @Test
+    void toResponse_cover_onlyStateOnAndCoverPositionAreNonNull() {
+        Device device = new Device(room, "Cover", DeviceType.COVER);
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())).thenReturn(List.of(device));
+
+        DeviceResponse response = deviceService.getDevices("user@test.com", 1L).get(0);
+
+        assertThat(response.isStateOn()).isNotNull();
+        assertThat(response.getBrightness()).isNull();
+        assertThat(response.getTemperature()).isNull();
+        assertThat(response.getSensorValue()).isNull();
+        assertThat(response.getCoverPosition()).isNotNull();
+    }
 }
