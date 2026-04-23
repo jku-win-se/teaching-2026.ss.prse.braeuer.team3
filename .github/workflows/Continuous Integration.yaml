@@ -66,7 +66,7 @@ jobs:
           path: backend/target/site/jacoco/
 
       - name: PMD static analysis
-        run: mvn pmd:pmd pmd:cpd -q
+        run: mvn pmd:check pmd:cpd -q
 
       - name: Upload PMD report
         uses: actions/upload-artifact@v4
