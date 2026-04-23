@@ -7,11 +7,6 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: write
-  checks: write
-  pull-requests: write
-
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -70,48 +65,8 @@ jobs:
           name: jacoco-report
           path: backend/target/site/jacoco/
 
-      - name: Update README coverage badge
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('target/site/jacoco/jacoco.csv') != ''
-        shell: bash
-        run: |
-          coverage="$(awk -F, 'NR>1 {miss += $8; cov += $9} END {total = miss + cov; if (total == 0) {print 0} else {printf "%.0f", (cov/total)*100}}' target/site/jacoco/jacoco.csv)"
-          color="red"
-          if [ "$coverage" -ge 90 ]; then color="brightgreen";
-          elif [ "$coverage" -ge 80 ]; then color="green";
-          elif [ "$coverage" -ge 70 ]; then color="yellow";
-          elif [ "$coverage" -ge 60 ]; then color="orange";
-          fi
-          badge="[![Coverage](https://img.shields.io/badge/coverage-${coverage}%25-${color})](https://github.com/${{ github.repository }}/actions/workflows/Continuous%20Integration.yaml)"
-          if grep -qE '^\[!\[Coverage\]\(' README.md; then
-            sed -i -E "s#^\[!\[Coverage\]\(.*#${badge}#g" README.md
-          else
-            sed -i "3i ${badge}" README.md
-          fi
-
-      - name: Commit README coverage badge
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        shell: bash
-        run: |
-          if git diff --quiet README.md; then
-            echo "No README changes."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md
-          git commit -m "ci: update coverage badge [skip ci]"
-          git push
-
       - name: PMD static analysis
-        uses: pmd/pmd-github-action@v2
-        id: pmd
-        with:
-          version: '7.17.0'
-          rulesets: 'ruleset.xml'
-
-      - name: Fail build if there are violations
-        if: steps.pmd.outputs.violations != 0
-        run: exit 1
+        run: mvn pmd:check pmd:cpd -q
 
       - name: Upload PMD report
         uses: actions/upload-artifact@v4
