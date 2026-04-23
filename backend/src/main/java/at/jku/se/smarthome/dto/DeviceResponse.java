@@ -7,6 +7,11 @@ import at.jku.se.smarthome.domain.DeviceType;
  *
  * <p>FR-04: add virtual smart devices.
  * FR-06: includes persisted device state fields.</p>
+ *
+ * <p>State fields use wrapper types so that inapplicable fields for a given
+ * device type are returned as {@code null} rather than a misleading default value.
+ * For example, a {@code SWITCH} device will have {@code null} for brightness,
+ * temperature, sensorValue, and coverPosition.</p>
  */
 public class DeviceResponse {
 
@@ -19,20 +24,20 @@ public class DeviceResponse {
     /** The device type, serialized as a lowercase string. */
     private DeviceType type;
 
-    /** Whether the device is switched on. */
-    private boolean stateOn;
+    /** Whether the device is switched on, or {@code null} if not applicable for this type. */
+    private Boolean stateOn;
 
-    /** Brightness level (0–100), used by dimmer devices. */
-    private int brightness;
+    /** Brightness level (0–100) for dimmer devices, or {@code null} if not applicable. */
+    private Integer brightness;
 
-    /** Thermostat target temperature in degrees Celsius. */
-    private double temperature;
+    /** Thermostat target temperature in degrees Celsius, or {@code null} if not applicable. */
+    private Double temperature;
 
-    /** Current sensor reading. */
-    private double sensorValue;
+    /** Current sensor reading, or {@code null} if not applicable. */
+    private Double sensorValue;
 
-    /** Cover position: 0 = closed, 100 = open. */
-    private int coverPosition;
+    /** Cover position (0 = closed, 100 = open), or {@code null} if not applicable. */
+    private Integer coverPosition;
 
     /**
      * Creates a DeviceResponse without state (defaults to off/50/21/0/0).
@@ -49,21 +54,22 @@ public class DeviceResponse {
     }
 
     /**
-     * Creates a DeviceResponse with full state.
+     * Creates a DeviceResponse with type-aware state.
      * Used by FR-06 endpoints that return persisted state.
+     * Fields that are not applicable for the device type are passed as {@code null}.
      *
      * @param id            the device id
      * @param name          the device name
      * @param type          the device type
-     * @param stateOn       whether the device is on
-     * @param brightness    brightness level (0–100)
-     * @param temperature   thermostat target temperature
-     * @param sensorValue   current sensor reading
-     * @param coverPosition cover position (0 or 100)
+     * @param stateOn       whether the device is on, or {@code null} if not applicable
+     * @param brightness    brightness level (0–100), or {@code null} if not applicable
+     * @param temperature   thermostat target temperature, or {@code null} if not applicable
+     * @param sensorValue   current sensor reading, or {@code null} if not applicable
+     * @param coverPosition cover position (0 or 100), or {@code null} if not applicable
      */
     public DeviceResponse(Long id, String name, DeviceType type,
-                          boolean stateOn, int brightness, double temperature,
-                          double sensorValue, int coverPosition) {
+                          Boolean stateOn, Integer brightness, Double temperature,
+                          Double sensorValue, Integer coverPosition) {
         this.id = id;
         this.name = name;
         this.type = type;
@@ -102,47 +108,47 @@ public class DeviceResponse {
     }
 
     /**
-     * Returns whether the device is switched on.
+     * Returns whether the device is switched on, or {@code null} if not applicable for this type.
      *
-     * @return {@code true} if on
+     * @return {@code true} if on, {@code false} if off, {@code null} if not applicable
      */
-    public boolean isStateOn() {
+    public Boolean isStateOn() {
         return stateOn;
     }
 
     /**
-     * Returns the brightness level.
+     * Returns the brightness level, or {@code null} if not applicable for this type.
      *
-     * @return brightness (0–100)
+     * @return brightness (0–100), or {@code null}
      */
-    public int getBrightness() {
+    public Integer getBrightness() {
         return brightness;
     }
 
     /**
-     * Returns the thermostat target temperature.
+     * Returns the thermostat target temperature, or {@code null} if not applicable for this type.
      *
-     * @return temperature in degrees Celsius
+     * @return temperature in degrees Celsius, or {@code null}
      */
-    public double getTemperature() {
+    public Double getTemperature() {
         return temperature;
     }
 
     /**
-     * Returns the current sensor value.
+     * Returns the current sensor value, or {@code null} if not applicable for this type.
      *
-     * @return sensor reading
+     * @return sensor reading, or {@code null}
      */
-    public double getSensorValue() {
+    public Double getSensorValue() {
         return sensorValue;
     }
 
     /**
-     * Returns the cover position.
+     * Returns the cover position, or {@code null} if not applicable for this type.
      *
-     * @return 0 for closed, 100 for open
+     * @return 0 for closed, 100 for open, or {@code null}
      */
-    public int getCoverPosition() {
+    public Integer getCoverPosition() {
         return coverPosition;
     }
 }
