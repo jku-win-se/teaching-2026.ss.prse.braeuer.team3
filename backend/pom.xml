@@ -102,8 +102,8 @@
 
         <!-- WebSocket (raw WebSocket support for FR-07 real-time updates) -->
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-websocket</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
         <!-- JDBC template (kept for DB connection test in SmarthomeApplication) -->

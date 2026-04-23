@@ -178,4 +178,60 @@ class AuthServiceTest {
         assertThat(response.getName()).isEqualTo("Alice");
         assertThat(response.getEmail()).isEqualTo("alice@example.com");
     }
+
+    // ── Bugfix #63: Email case-insensitivity ──────────────────────────────────
+
+    @Test
+    @DisplayName("Bugfix #63: Registrierung mit gemischter Groß-/Kleinschreibung speichert E-Mail in Kleinbuchstaben")
+    void register_withMixedCaseEmail_normalizesToLowercase() {
+        RegisterRequest mixedCaseRequest = new RegisterRequest();
+        mixedCaseRequest.setName("Alice");
+        mixedCaseRequest.setEmail("Alice@Example.COM");
+        mixedCaseRequest.setPassword("password123");
+
+        when(userRepository.existsByEmail("alice@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("hashed-password");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(jwtUtil.generateToken("alice@example.com")).thenReturn("jwt-token");
+
+        AuthResponse response = authService.register(mixedCaseRequest);
+
+        assertThat(response.getEmail()).isEqualTo("alice@example.com");
+        verify(userRepository).existsByEmail("alice@example.com");
+    }
+
+    @Test
+    @DisplayName("Bugfix #63: Doppelte E-Mail mit anderer Groß-/Kleinschreibung wird als Duplikat abgelehnt (409)")
+    void register_withDuplicateEmailDifferentCase_throwsConflict() {
+        RegisterRequest upperCaseRequest = new RegisterRequest();
+        upperCaseRequest.setName("Alice");
+        upperCaseRequest.setEmail("ALICE@EXAMPLE.COM");
+        upperCaseRequest.setPassword("password123");
+
+        when(userRepository.existsByEmail("alice@example.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.register(upperCaseRequest))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("already exists");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Bugfix #63: Login mit anderer Groß-/Kleinschreibung als bei Registrierung erfolgreich")
+    void login_withDifferentCaseThanRegistered_succeeds() {
+        LoginRequest upperCaseLogin = new LoginRequest();
+        upperCaseLogin.setEmail("ALICE@EXAMPLE.COM");
+        upperCaseLogin.setPassword("password123");
+
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(savedUser));
+        when(passwordEncoder.matches("password123", "hashed-password")).thenReturn(true);
+        when(jwtUtil.generateToken("alice@example.com")).thenReturn("jwt-token");
+
+        AuthResponse response = authService.login(upperCaseLogin);
+
+        assertThat(response.getToken()).isEqualTo("jwt-token");
+        assertThat(response.getEmail()).isEqualTo("alice@example.com");
+        verify(userRepository).findByEmail("alice@example.com");
+    }
 }
