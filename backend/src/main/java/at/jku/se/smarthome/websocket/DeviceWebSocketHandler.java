@@ -1,10 +1,8 @@
 package at.jku.se.smarthome.websocket;
 
-import at.jku.se.smarthome.dto.ActivityLogResponse;
 import at.jku.se.smarthome.dto.DeviceResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -99,49 +97,6 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
             payload = objectMapper.writeValueAsString(deviceResponse);
         } catch (JsonProcessingException serializationException) {
             throw new IllegalStateException("Failed to serialise DeviceResponse for broadcast",
-                    serializationException);
-        }
-        TextMessage message = new TextMessage(payload);
-        for (WebSocketSession session : sessions) {
-            if (!session.isOpen()) {
-                removeSession(session);
-                continue;
-            }
-            try {
-                synchronized (session) {
-                    session.sendMessage(message);
-                }
-            } catch (IOException sendException) {
-                removeSession(session);
-            }
-        }
-    }
-
-    /**
-     * Broadcasts a new activity log entry to all open sessions belonging to the given user.
-     *
-     * <p>The message is sent as a JSON object with an additional {@code messageType}
-     * field set to {@code "activityLog"} so the frontend can distinguish it from
-     * device state update messages (FR-08).</p>
-     *
-     * <p>If sending to a single session fails, that session is removed from the
-     * registry and broadcasting continues to the remaining sessions.</p>
-     *
-     * @param userEmail           the e-mail of the user whose sessions should receive the entry
-     * @param activityLogResponse the log entry to broadcast
-     */
-    public void broadcastActivityLog(String userEmail, ActivityLogResponse activityLogResponse) {
-        CopyOnWriteArrayList<WebSocketSession> sessions = sessionMap.get(userEmail);
-        if (sessions == null) {
-            return;
-        }
-        String payload;
-        try {
-            ObjectNode node = objectMapper.valueToTree(activityLogResponse);
-            node.put("messageType", "activityLog");
-            payload = objectMapper.writeValueAsString(node);
-        } catch (JsonProcessingException serializationException) {
-            throw new IllegalStateException("Failed to serialise ActivityLogResponse for broadcast",
                     serializationException);
         }
         TextMessage message = new TextMessage(payload);

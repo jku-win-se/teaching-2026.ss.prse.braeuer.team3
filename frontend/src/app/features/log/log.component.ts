@@ -1,8 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Subscription, forkJoin, of } from 'rxjs';
-import { switchMap, catchError } from 'rxjs/operators';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,21 +8,18 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { ActivityLogService } from '../../core/activity-log.service';
-import { RealtimeService } from '../../core/realtime.service';
-import { DeviceService, DeviceDto } from '../../core/device.service';
-import { RoomService, RoomDto } from '../../core/room.service';
-import { ActivityLogDto } from '../../core/models';
+import { FormsModule } from '@angular/forms';
+import { ACTIVITY_LOG } from '../../core/mock-data';
+import { ActivityEntry } from '../../core/models';
 
 @Component({
   selector: 'app-log',
   standalone: true,
   imports: [
-    CommonModule, FormsModule, MatCardModule, MatIconModule, MatButtonModule,
-    MatProgressBarModule, MatTableModule, MatPaginatorModule, MatFormFieldModule,
-    MatInputModule, MatSelectModule, MatSnackBarModule,
+    CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatProgressBarModule,
+    MatTableModule, MatPaginatorModule, MatFormFieldModule, MatInputModule,
+    MatSnackBarModule, FormsModule,
   ],
   template: `
     <div *ngIf="loading"><mat-progress-bar mode="indeterminate"></mat-progress-bar></div>
@@ -35,46 +29,44 @@ import { ActivityLogDto } from '../../core/models';
           <h1>Activity Log</h1>
           <p class="subtitle">A full history of everything that happened in your home.</p>
         </div>
+        <button mat-stroked-button (click)="exportCsv()">
+          <mat-icon>download</mat-icon> Export CSV
+        </button>
       </div>
 
       <!-- Filter bar -->
       <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
-        <mat-form-field appearance="outline" style="min-width:180px;">
-          <mat-label>From</mat-label>
-          <input matInput type="datetime-local" data-testid="filter-from"
-                 [(ngModel)]="filterFrom">
+        <mat-form-field appearance="outline" style="flex:1;min-width:200px;max-width:400px;">
+          <mat-label>Search activity</mat-label>
+          <mat-icon matPrefix>search</mat-icon>
+          <input matInput [(ngModel)]="searchQuery" (ngModelChange)="filterEntries()" placeholder="Search by device, room, description...">
         </mat-form-field>
-        <mat-form-field appearance="outline" style="min-width:180px;">
-          <mat-label>To</mat-label>
-          <input matInput type="datetime-local" data-testid="filter-to"
-                 [(ngModel)]="filterTo">
-        </mat-form-field>
-        <mat-form-field appearance="outline" style="min-width:180px;">
-          <mat-label>Device</mat-label>
-          <mat-select data-testid="filter-device" [(ngModel)]="filterDeviceId">
-            <mat-option [value]="null">All devices</mat-option>
-            <mat-option *ngFor="let d of allDevices" [value]="d.id">{{ d.name }}</mat-option>
-          </mat-select>
-        </mat-form-field>
-        <button mat-flat-button color="primary" data-testid="btn-apply-filter"
-                (click)="applyFilter()">
-          Apply
-        </button>
-        <button mat-stroked-button data-testid="btn-clear-filter"
-                (click)="clearFilter()">
-          Clear
-        </button>
+        <div class="filter-chips">
+          <div class="filter-chip" [class.active]="activeFilter === 'all'" (click)="setFilter('all')">All</div>
+          <div class="filter-chip" [class.active]="activeFilter === 'user'" (click)="setFilter('user')">By User</div>
+          <div class="filter-chip" [class.active]="activeFilter === 'rule'" (click)="setFilter('rule')">By Rule</div>
+          <div class="filter-chip" [class.active]="activeFilter === 'sensor'" (click)="setFilter('sensor')">By Sensor</div>
+        </div>
       </div>
 
       <!-- Table -->
       <mat-card>
         <mat-card-content style="padding:0;">
-          <table mat-table [dataSource]="entries" style="width:100%;">
+          <table mat-table [dataSource]="pagedEntries" style="width:100%;">
+
+            <ng-container matColumnDef="icon">
+              <th mat-header-cell *matHeaderCellDef style="width:48px;"></th>
+              <td mat-cell *matCellDef="let row" style="padding:8px 0 8px 16px;">
+                <div class="activity-icon" [style.background]="getIconBg(row.deviceType)" style="width:32px;height:32px;">
+                  <mat-icon [style.color]="getIconColor(row.deviceType)" style="font-size:16px;width:16px;height:16px;">{{ getDeviceIcon(row.deviceType) }}</mat-icon>
+                </div>
+              </td>
+            </ng-container>
 
             <ng-container matColumnDef="timestamp">
               <th mat-header-cell *matHeaderCellDef>Time</th>
               <td mat-cell *matCellDef="let row" style="white-space:nowrap;color:#757575;font-size:13px;">
-                {{ row.timestamp | date:'MMM d, H:mm' }}
+                {{ row.timestamp | date:'MMM d, h:mm a' }}
               </td>
             </ng-container>
 
@@ -85,26 +77,22 @@ import { ActivityLogDto } from '../../core/models';
 
             <ng-container matColumnDef="room">
               <th mat-header-cell *matHeaderCellDef>Room</th>
-              <td mat-cell *matCellDef="let row" style="color:#757575;">{{ row.roomName }}</td>
+              <td mat-cell *matCellDef="let row" style="color:#757575;">{{ row.room }}</td>
             </ng-container>
 
-            <ng-container matColumnDef="action">
+            <ng-container matColumnDef="description">
               <th mat-header-cell *matHeaderCellDef>What happened</th>
-              <td mat-cell *matCellDef="let row">{{ row.action }}</td>
+              <td mat-cell *matCellDef="let row">{{ row.description }}</td>
             </ng-container>
 
-            <ng-container matColumnDef="actor">
-              <th mat-header-cell *matHeaderCellDef>Actor</th>
-              <td mat-cell *matCellDef="let row" style="color:#757575;">{{ row.actorName }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="delete">
-              <th mat-header-cell *matHeaderCellDef style="width:48px;"></th>
+            <ng-container matColumnDef="triggeredBy">
+              <th mat-header-cell *matHeaderCellDef>Triggered by</th>
               <td mat-cell *matCellDef="let row">
-                <button mat-icon-button color="warn" data-testid="btn-delete-log"
-                        (click)="deleteEntry(row)" title="Delete entry">
-                  <mat-icon>delete</mat-icon>
-                </button>
+                <span style="padding:2px 10px;border-radius:10px;font-size:12px;font-weight:500;"
+                  [style.background]="row.triggeredBy === 'Rule' ? 'rgba(66,133,244,0.1)' : row.triggeredBy === 'Sensor' ? 'rgba(0,137,123,0.1)' : row.triggeredBy === 'Schedule' ? 'rgba(156,39,176,0.1)' : '#f5f5f5'"
+                  [style.color]="row.triggeredBy === 'Rule' ? '#1976D2' : row.triggeredBy === 'Sensor' ? '#00695C' : row.triggeredBy === 'Schedule' ? '#7B1FA2' : '#616161'">
+                  {{ row.triggeredBy }}
+                </span>
               </td>
             </ng-container>
 
@@ -112,17 +100,16 @@ import { ActivityLogDto } from '../../core/models';
             <tr mat-row *matRowDef="let row; columns: displayedCols;" style="cursor:default;"></tr>
           </table>
 
-          <div *ngIf="entries.length === 0" class="empty-state" style="padding:32px;text-align:center;">
-            <mat-icon class="empty-icon">history</mat-icon>
+          <div *ngIf="filteredEntries.length === 0" class="empty-state" style="padding:32px;">
+            <mat-icon class="empty-icon">search_off</mat-icon>
             <h3>No entries found</h3>
-            <p>Device state changes will appear here.</p>
+            <p>Try a different search term or filter.</p>
           </div>
 
           <mat-paginator
-            data-testid="log-paginator"
-            [length]="totalElements"
-            [pageSize]="pageSize"
-            [pageSizeOptions]="[10, 20, 50]"
+            [length]="filteredEntries.length"
+            [pageSize]="10"
+            [pageSizeOptions]="[5, 10, 20]"
             (page)="onPage($event)"
             showFirstLastButtons>
           </mat-paginator>
@@ -131,103 +118,71 @@ import { ActivityLogDto } from '../../core/models';
     </div>
   `,
 })
-export class LogComponent implements OnInit, OnDestroy {
+export class LogComponent implements OnInit {
   loading = true;
-  entries: ActivityLogDto[] = [];
-  totalElements = 0;
-  pageSize = 20;
-  pageIndex = 0;
-  allDevices: DeviceDto[] = [];
+  searchQuery = '';
+  activeFilter = 'all';
+  allEntries: ActivityEntry[] = [];
+  filteredEntries: ActivityEntry[] = [];
+  pagedEntries: ActivityEntry[] = [];
+  displayedCols = ['icon', 'timestamp', 'device', 'room', 'description', 'triggeredBy'];
+  private pageIndex = 0;
+  private pageSize = 10;
 
-  filterFrom = '';
-  filterTo = '';
-  filterDeviceId: number | null = null;
+  constructor(private snackBar: MatSnackBar) {}
 
-  displayedCols = ['timestamp', 'device', 'room', 'action', 'actor', 'delete'];
+  ngOnInit() {
+    setTimeout(() => {
+      this.allEntries = ACTIVITY_LOG;
+      this.filteredEntries = [...this.allEntries];
+      this.updatePage();
+      this.loading = false;
+    }, 600);
+  }
 
-  private realtimeSub?: Subscription;
+  setFilter(filter: string) {
+    this.activeFilter = filter;
+    this.filterEntries();
+  }
 
-  constructor(
-    private activityLogService: ActivityLogService,
-    private realtimeService: RealtimeService,
-    private deviceService: DeviceService,
-    private roomService: RoomService,
-    private snackBar: MatSnackBar,
-  ) {}
-
-  ngOnInit(): void {
-    this.loadDevices();
-    this.loadLogs();
-    // On new real-time entry, reload current page so the chronological list stays accurate.
-    // New entries appear at the end (ASC order), so the last page is affected most.
-    this.realtimeSub = this.realtimeService.activityLogUpdates$.subscribe(() => {
-      this.loadLogs();
+  filterEntries() {
+    this.filteredEntries = this.allEntries.filter(e => {
+      const matchesFilter =
+        this.activeFilter === 'all' ||
+        (this.activeFilter === 'user' && !['Rule', 'Sensor', 'Schedule'].includes(e.triggeredBy)) ||
+        (this.activeFilter === 'rule' && e.triggeredBy === 'Rule') ||
+        (this.activeFilter === 'sensor' && e.triggeredBy === 'Sensor');
+      const q = this.searchQuery.toLowerCase();
+      const matchesSearch = !q || e.deviceName.toLowerCase().includes(q) || e.room.toLowerCase().includes(q) || e.description.toLowerCase().includes(q);
+      return matchesFilter && matchesSearch;
     });
-  }
-
-  ngOnDestroy(): void {
-    this.realtimeSub?.unsubscribe();
-  }
-
-  loadDevices(): void {
-    this.roomService.getRooms().pipe(
-      switchMap((rooms: RoomDto[]) => {
-        if (rooms.length === 0) { return of<DeviceDto[][]>([]); }
-        return forkJoin(rooms.map(r => this.deviceService.getDevices(r.id).pipe(catchError(() => of<DeviceDto[]>([])))));
-      }),
-      catchError(() => of<DeviceDto[][]>([]))
-    ).subscribe((devicesByRoom: DeviceDto[][]) => {
-      this.allDevices = devicesByRoom.flat();
-    });
-  }
-
-  loadLogs(): void {
-    this.loading = true;
-    const from = this.filterFrom ? new Date(this.filterFrom).toISOString() : undefined;
-    const to = this.filterTo ? new Date(this.filterTo).toISOString() : undefined;
-    const deviceId = this.filterDeviceId ?? undefined;
-    this.activityLogService.getLogs(this.pageIndex, this.pageSize, from, to, deviceId).subscribe({
-      next: page => {
-        this.entries = page.content;
-        this.totalElements = page.totalElements;
-        this.loading = false;
-      },
-      error: () => {
-        this.loading = false;
-        this.snackBar.open('Failed to load activity log.', '', { duration: 3000 });
-      },
-    });
-  }
-
-  applyFilter(): void {
     this.pageIndex = 0;
-    this.loadLogs();
+    this.updatePage();
   }
 
-  clearFilter(): void {
-    this.filterFrom = '';
-    this.filterTo = '';
-    this.filterDeviceId = null;
-    this.pageIndex = 0;
-    this.loadLogs();
-  }
-
-  onPage(event: PageEvent): void {
+  onPage(event: PageEvent) {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
-    this.loadLogs();
+    this.updatePage();
   }
 
-  deleteEntry(entry: ActivityLogDto): void {
-    this.activityLogService.deleteLog(entry.id).subscribe({
-      next: () => {
-        this.entries = this.entries.filter(e => e.id !== entry.id);
-        this.totalElements--;
-        this.snackBar.open('Entry deleted.', '', { duration: 2000 });
-      },
-      error: () => {
-        this.snackBar.open('Failed to delete entry.', '', { duration: 3000 });
-      },
-    });
+  updatePage() {
+    const start = this.pageIndex * this.pageSize;
+    this.pagedEntries = this.filteredEntries.slice(start, start + this.pageSize);
+  }
+
+  exportCsv() { this.snackBar.open('Activity log exported ✓', '', { duration: 2000 }); }
+
+  getDeviceIcon(type: string): string {
+    const map: Record<string, string> = { switch: 'toggle_on', dimmer: 'lightbulb', thermostat: 'thermostat', sensor: 'sensors', cover: 'blinds' };
+    return map[type] ?? 'devices';
+  }
+  getIconBg(type: string): string {
+    const map: Record<string, string> = { switch: 'rgba(255,179,0,0.1)', dimmer: 'rgba(255,179,0,0.1)', thermostat: 'rgba(66,133,244,0.1)', sensor: 'rgba(0,137,123,0.1)', cover: 'rgba(156,39,176,0.1)' };
+    return map[type] ?? '#f5f5f5';
+  }
+  getIconColor(type: string): string {
+    const map: Record<string, string> = { switch: '#FFB300', dimmer: '#FFB300', thermostat: '#1976D2', sensor: '#00897B', cover: '#8E24AA' };
+    return map[type] ?? '#9e9e9e';
   }
 }

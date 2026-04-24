@@ -67,27 +67,6 @@ export interface ActivityEntry {
   deviceType: DeviceType;
 }
 
-/** Shape of an activity log entry as returned by the backend API (FR-08). */
-export interface ActivityLogDto {
-  id: number;
-  timestamp: string;  // ISO-8601 string from backend
-  deviceId: number;
-  deviceName: string;
-  roomName: string;
-  actorName: string;
-  action: string;
-  messageType?: string; // present when received via WebSocket
-}
-
-/** Shape of a paginated Spring Data Page as returned by the backend. */
-export interface SpringPage<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  number: number;  // current page index
-  size: number;
-}
-
 export interface EnergyDevice {
   deviceId: string;
   deviceName: string;
