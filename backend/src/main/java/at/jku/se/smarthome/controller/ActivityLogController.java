@@ -3,7 +3,6 @@ package at.jku.se.smarthome.controller;
 import at.jku.se.smarthome.dto.ActivityLogResponse;
 import at.jku.se.smarthome.service.ActivityLogService;
 import org.springframework.data.domain.Page;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -61,11 +60,13 @@ public class ActivityLogController {
             @AuthenticationPrincipal UserDetails principal,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
             @RequestParam(required = false) Long deviceId) {
+        Instant fromInstant = (from != null && !from.isBlank()) ? Instant.parse(from) : null;
+        Instant toInstant   = (to   != null && !to.isBlank())   ? Instant.parse(to)   : null;
         Page<ActivityLogResponse> result = activityLogService.getLogs(
-                principal.getUsername(), page, size, from, to, deviceId);
+                principal.getUsername(), page, size, fromInstant, toInstant, deviceId);
         return ResponseEntity.ok(result);
     }
 
