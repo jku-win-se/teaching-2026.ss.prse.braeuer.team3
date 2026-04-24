@@ -1,3 +1,5 @@
+![Coverage](.github/badges/jacoco.svg)
+
 # SmartHome Orchestrator
 
 A home automation platform for managing smart devices, automation rules, schedules, and energy monitoring — developed as part of the Software Engineering Praktikum (SS 2026) at JKU Linz.
