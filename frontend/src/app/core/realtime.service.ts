@@ -2,7 +2,6 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { AuthService } from './auth.service';
 import { DeviceDto } from './device.service';
-import { ActivityLogDto } from './models';
 
 /** WebSocket connection state. */
 export type ConnectionState = 'connected' | 'disconnected' | 'reconnecting';
@@ -28,10 +27,6 @@ export class RealtimeService implements OnDestroy {
   private readonly deviceSubject = new Subject<DeviceDto>();
   /** Observable stream of device state updates received from the backend. */
   readonly deviceUpdates$ = this.deviceSubject.asObservable();
-
-  private readonly activityLogSubject = new Subject<ActivityLogDto>();
-  /** Observable stream of new activity log entries received from the backend (FR-08). */
-  readonly activityLogUpdates$ = this.activityLogSubject.asObservable();
 
   private webSocket: WebSocket | null = null;
   private reconnectAttempts = 0;
@@ -60,12 +55,8 @@ export class RealtimeService implements OnDestroy {
 
     this.webSocket.onmessage = (event: MessageEvent) => {
       try {
-        const raw = JSON.parse(event.data as string) as { messageType?: string };
-        if (raw.messageType === 'activityLog') {
-          this.activityLogSubject.next(raw as ActivityLogDto);
-        } else {
-          this.deviceSubject.next(raw as DeviceDto);
-        }
+        const dto = JSON.parse(event.data as string) as DeviceDto;
+        this.deviceSubject.next(dto);
       } catch {
         // Malformed message — ignore silently
       }

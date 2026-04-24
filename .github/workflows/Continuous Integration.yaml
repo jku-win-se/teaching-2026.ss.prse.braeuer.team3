@@ -84,7 +84,7 @@ jobs:
             git commit -m "chore: update JaCoCo coverage badge [skip ci]"
             git push origin HEAD:main
           fi
-      
+
       - name: PMD static analysis
         run: mvn pmd:check pmd:cpd-check -q
 

@@ -1,13 +1,5 @@
 # AI-DLC Audit Log
 
-## FR-08 Activity Log — Code Generation Plan
-**Timestamp**: 2026-04-24T00:00:00
-**AI Prompt**: "using ai-dlc I want to implement https://github.com/jku-win-se/teaching-2026.ss.prse.braeuer.team3/issues/15"
-**Plan**: `aidlc-docs/construction/plans/fr08-activity-log-code-generation-plan.md`
-**Status**: Awaiting user approval before code generation begins
-
----
-
 ## Code Generation Plan — Bugfix #62: Device State Null-Safety Per Type
 **Timestamp**: 2026-04-23T00:00:00
 **AI Prompt**: "yes please start fixing that with ai-dlc"

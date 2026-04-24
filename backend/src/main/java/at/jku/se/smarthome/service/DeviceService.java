@@ -3,7 +3,6 @@ package at.jku.se.smarthome.service;
 import at.jku.se.smarthome.domain.Device;
 import at.jku.se.smarthome.domain.Room;
 import at.jku.se.smarthome.domain.User;
-import at.jku.se.smarthome.dto.ActivityLogResponse;
 import at.jku.se.smarthome.dto.DeviceRequest;
 import at.jku.se.smarthome.dto.DeviceResponse;
 import at.jku.se.smarthome.dto.DeviceStateRequest;
@@ -25,8 +24,7 @@ import java.util.List;
  * <p>Implements FR-04: add virtual smart devices to a room,
  * specifying type and name. FR-05: rename and remove devices.
  * FR-06: manual device control with state persistence.
- * FR-07: broadcasts state changes to connected WebSocket clients after each update.
- * FR-08: logs every manual state change via {@link ActivityLogService}.</p>
+ * FR-07: broadcasts state changes to connected WebSocket clients after each update.</p>
  *
  * <p>All operations are scoped to the authenticated user — the target room
  * must be owned by that user.</p>
@@ -38,28 +36,23 @@ public class DeviceService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final DeviceWebSocketHandler webSocketHandler;
-    private final ActivityLogService activityLogService;
 
     /**
-     * Constructs a DeviceService with the required repositories, WebSocket handler,
-     * and activity log service.
+     * Constructs a DeviceService with the required repositories and WebSocket handler.
      *
-     * @param deviceRepository   the repository for device persistence
-     * @param roomRepository     the repository for room lookups
-     * @param userRepository     the repository for resolving the current user
-     * @param webSocketHandler   the handler used to push real-time state updates to WebSocket clients
-     * @param activityLogService the service used to record activity log entries (FR-08)
+     * @param deviceRepository  the repository for device persistence
+     * @param roomRepository    the repository for room lookups
+     * @param userRepository    the repository for resolving the current user
+     * @param webSocketHandler  the handler used to push real-time state updates to WebSocket clients
      */
     public DeviceService(DeviceRepository deviceRepository,
                          RoomRepository roomRepository,
                          UserRepository userRepository,
-                         DeviceWebSocketHandler webSocketHandler,
-                         ActivityLogService activityLogService) {
+                         DeviceWebSocketHandler webSocketHandler) {
         this.deviceRepository = deviceRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
         this.webSocketHandler = webSocketHandler;
-        this.activityLogService = activityLogService;
     }
 
     /**
@@ -149,15 +142,13 @@ public class DeviceService {
     }
 
     /**
-     * Partially updates the runtime state of a virtual device, logs the change in the
-     * activity log (FR-08), and broadcasts the update to all connected WebSocket clients
-     * of the user (FR-07).
+     * Partially updates the runtime state of a virtual device and broadcasts the change
+     * to all active SSE clients of the user.
+     * FR-06: Gerät manuell steuern. FR-07: Echtzeit-Zustandsanzeige.
      *
      * <p>Only non-null fields in the request are applied; all others remain unchanged.
      * After persisting the new state, {@link DeviceWebSocketHandler#broadcast} is called so
-     * all connected clients receive the device update without a manual reload.
-     * Additionally, a new activity log entry is created and broadcast via
-     * {@link DeviceWebSocketHandler#broadcastActivityLog}.</p>
+     * all connected clients receive the update without a manual reload.</p>
      *
      * @param email    the email of the authenticated user
      * @param roomId   the room's primary key
@@ -169,8 +160,6 @@ public class DeviceService {
     @Transactional
     public DeviceResponse updateState(String email, Long roomId, Long deviceId, DeviceStateRequest request) {
         Room room = getOwnedRoom(email, roomId);
-        User resolvedUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found."));
         Device device = deviceRepository.findByIdAndRoomId(deviceId, room.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
         if (request.getStateOn() != null) {
@@ -190,11 +179,6 @@ public class DeviceService {
         }
         DeviceResponse response = toResponse(deviceRepository.save(device));
         webSocketHandler.broadcast(email, response);
-
-        String action = activityLogService.buildActionDescription(device, request);
-        ActivityLogResponse logEntry = activityLogService.log(device, resolvedUser, resolvedUser.getName(), action);
-        webSocketHandler.broadcastActivityLog(email, logEntry);
-
         return response;
     }
 
