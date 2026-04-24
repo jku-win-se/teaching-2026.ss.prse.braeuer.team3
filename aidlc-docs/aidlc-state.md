@@ -32,13 +32,13 @@
 - [ ] Infrastructure Design — SKIP
 - [x] Code Generation (Unit 1: sse-backend) — 2026-04-12
 - [x] Code Generation (Unit 2: sse-frontend) — 2026-04-12
-- [ ] Build and Test
+- [x] Build and Test — 2026-04-24 (Bugfix #71: activity log timeframe filter)
 
 ### 🟡 OPERATIONS PHASE
 - [ ] Operations — PLACEHOLDER
 
 ## Current Status
 - **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: Code Generation (Bugfix #62: device-state) — complete
-- **Next Stage**: Build and Test
-- **Status**: Code generated, 126/126 tests pass — awaiting user review
+- **Current Stage**: Build and Test — complete
+- **Next Stage**: Operations
+- **Status**: Ready for merge (branch: 71-bugfix-activity-log)
