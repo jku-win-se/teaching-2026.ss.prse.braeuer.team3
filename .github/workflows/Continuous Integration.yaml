@@ -86,7 +86,7 @@ jobs:
           fi
       
       - name: PMD static analysis
-        run: mvn pmd:check pmd:cpd -q
+        run: mvn pmd:check pmd:cpd-check -q
 
       - name: Upload PMD report
         uses: actions/upload-artifact@v4
