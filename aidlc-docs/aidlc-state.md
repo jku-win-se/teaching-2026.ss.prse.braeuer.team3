@@ -39,6 +39,6 @@
 
 ## Current Status
 - **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: Code Generation (Bugfix #62: device-state) — complete
-- **Next Stage**: Build and Test
-- **Status**: Code generated, 126/126 tests pass — awaiting user review
+- **Current Stage**: Code Generation Plan (FR-08: activity-log) — awaiting approval
+- **Next Stage**: Code Generation — fr08-activity-log
+- **Status**: Awaiting User Approval

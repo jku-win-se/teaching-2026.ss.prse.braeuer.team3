@@ -4,6 +4,7 @@ import at.jku.se.smarthome.domain.Device;
 import at.jku.se.smarthome.domain.DeviceType;
 import at.jku.se.smarthome.domain.Room;
 import at.jku.se.smarthome.domain.User;
+import at.jku.se.smarthome.dto.ActivityLogResponse;
 import at.jku.se.smarthome.dto.DeviceRequest;
 import at.jku.se.smarthome.dto.DeviceResponse;
 import at.jku.se.smarthome.dto.DeviceStateRequest;
@@ -12,6 +13,8 @@ import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RoomRepository;
 import at.jku.se.smarthome.repository.UserRepository;
+
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +41,8 @@ class DeviceServiceTest {
     private RoomRepository roomRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private ActivityLogService activityLogService;
 
     private DeviceService deviceService;
 
@@ -53,10 +58,15 @@ class DeviceServiceTest {
         DeviceWebSocketHandler noOpWs = new DeviceWebSocketHandler(new com.fasterxml.jackson.databind.ObjectMapper()) {
             @Override
             public void broadcast(String userEmail, DeviceResponse deviceResponse) {
-                // no-op: WebSocket broadcast is tested separately in DeviceWebSocketHandlerTest
+                // no-op: WebSocket device broadcast is tested separately in DeviceWebSocketHandlerTest
+            }
+
+            @Override
+            public void broadcastActivityLog(String userEmail, ActivityLogResponse activityLogResponse) {
+                // no-op: WebSocket activity log broadcast is tested separately
             }
         };
-        deviceService = new DeviceService(deviceRepository, roomRepository, userRepository, noOpWs);
+        deviceService = new DeviceService(deviceRepository, roomRepository, userRepository, noOpWs, activityLogService);
     }
 
     // --- getDevices ---
@@ -227,6 +237,9 @@ class DeviceServiceTest {
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
         when(deviceRepository.save(device)).thenReturn(device);
+        when(activityLogService.buildActionDescription(any(), any())).thenReturn("Turned on");
+        when(activityLogService.log(any(), any(), any(), any())).thenReturn(
+                new ActivityLogResponse(1L, Instant.now(), null, "Lamp", "Living Room", "Test User", "Turned on"));
 
         DeviceResponse response = deviceService.updateState("user@test.com", 1L, 10L, request);
 
@@ -244,6 +257,9 @@ class DeviceServiceTest {
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
         when(deviceRepository.save(device)).thenReturn(device);
+        when(activityLogService.buildActionDescription(any(), any())).thenReturn("Brightness set to 75%");
+        when(activityLogService.log(any(), any(), any(), any())).thenReturn(
+                new ActivityLogResponse(1L, Instant.now(), null, "Dimmer", "Living Room", "Test User", "Brightness set to 75%"));
 
         DeviceResponse response = deviceService.updateState("user@test.com", 1L, 10L, request);
 
