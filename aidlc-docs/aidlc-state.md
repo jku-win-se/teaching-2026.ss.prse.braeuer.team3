@@ -56,8 +56,28 @@
 - [ ] Code Generation — EXECUTE
 - [ ] Build and Test — EXECUTE
 
+## FR-10 Stage Progress (new feature cycle)
+
+### 🔵 INCEPTION PHASE — FR-10
+- [x] Workspace Detection — reuse existing (2026-04-25)
+- [x] Reverse Engineering — reuse existing (2026-04-25)
+- [x] Requirements Analysis — 2026-04-25
+- [ ] User Stories — SKIP
+- [x] Workflow Planning — 2026-04-25
+- [ ] Application Design — SKIP
+- [ ] Units Generation — SKIP
+
+### 🟢 CONSTRUCTION PHASE — FR-10
+- [ ] Functional Design — SKIP
+- [ ] NFR Requirements — SKIP
+- [ ] NFR Design — SKIP
+- [ ] Infrastructure Design — SKIP
+- [x] Code Generation Plan — COMPLETE (2026-04-25)
+- [x] Code Generation — COMPLETE (2026-04-25)
+- [x] Build and Test — COMPLETE (2026-04-25)
+
 ## Current Status
-- **Lifecycle Phase**: INCEPTION (FR-09)
-- **Current Stage**: NFR Design (Unit 1: schedule-backend) — awaiting user approval
-- **Next Stage**: Code Generation (Unit 1: schedule-backend)
-- **Plan**: aidlc-docs/inception/plans/fr09-execution-plan.md
+- **Lifecycle Phase**: CONSTRUCTION (FR-10)
+- **Current Stage**: Build and Test complete — 196/196 tests, PMD clean, Javadoc clean
+- **Next Stage**: Ready for merge / Operations
+- **Summary**: aidlc-docs/construction/build-and-test/fr10-build-and-test-summary.md

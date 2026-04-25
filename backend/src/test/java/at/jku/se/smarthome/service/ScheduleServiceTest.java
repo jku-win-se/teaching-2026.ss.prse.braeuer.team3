@@ -157,7 +157,7 @@ class ScheduleServiceTest {
         Schedule s = buildSchedule();
         s.setEnabled(true);
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
-        when(scheduleRepository.findById(s.getId())).thenReturn(Optional.of(s));
+        when(scheduleRepository.findByIdAndDeviceRoomUser(s.getId(), user)).thenReturn(Optional.of(s));
         when(scheduleRepository.save(any())).thenReturn(s);
 
         ScheduleResponse result = scheduleService.setEnabled(EMAIL, s.getId(), false);
@@ -171,7 +171,7 @@ class ScheduleServiceTest {
         Schedule s = buildSchedule();
         s.setEnabled(false);
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
-        when(scheduleRepository.findById(s.getId())).thenReturn(Optional.of(s));
+        when(scheduleRepository.findByIdAndDeviceRoomUser(s.getId(), user)).thenReturn(Optional.of(s));
         when(scheduleRepository.save(any())).thenReturn(s);
 
         scheduleService.setEnabled(EMAIL, s.getId(), true);
@@ -186,7 +186,7 @@ class ScheduleServiceTest {
     void deleteSchedule_removesEntity() {
         Schedule s = buildSchedule();
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
-        when(scheduleRepository.findById(s.getId())).thenReturn(Optional.of(s));
+        when(scheduleRepository.findByIdAndDeviceRoomUser(s.getId(), user)).thenReturn(Optional.of(s));
 
         scheduleService.deleteSchedule(EMAIL, s.getId());
 
@@ -196,7 +196,7 @@ class ScheduleServiceTest {
     @Test
     void deleteSchedule_throwsNotFound_whenNotOwned() {
         when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
-        when(scheduleRepository.findById(99L)).thenReturn(Optional.empty());
+        when(scheduleRepository.findByIdAndDeviceRoomUser(99L, user)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> scheduleService.deleteSchedule(EMAIL, 99L))
                 .isInstanceOf(ResponseStatusException.class)

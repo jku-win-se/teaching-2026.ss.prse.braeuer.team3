@@ -274,8 +274,7 @@ public class ScheduleService {
     }
 
     private Schedule resolveOwnedSchedule(User user, Long scheduleId) {
-        return scheduleRepository.findById(scheduleId)
-                .filter(s -> Objects.equals(s.getDevice().getRoom().getUser().getId(), user.getId()))
+        return scheduleRepository.findByIdAndDeviceRoomUser(scheduleId, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Schedule not found."));
     }
 

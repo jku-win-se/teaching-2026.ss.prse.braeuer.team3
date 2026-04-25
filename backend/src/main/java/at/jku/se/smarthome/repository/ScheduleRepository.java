@@ -2,9 +2,11 @@ package at.jku.se.smarthome.repository;
 
 import at.jku.se.smarthome.domain.Device;
 import at.jku.se.smarthome.domain.Schedule;
+import at.jku.se.smarthome.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Spring Data JPA repository for {@link Schedule} entities.
@@ -40,4 +42,14 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
      * @return list of schedules for those devices
      */
     List<Schedule> findByDeviceIn(List<Device> devices);
+
+    /**
+     * Returns the schedule with the given id if it belongs to the given user.
+     * Ownership is verified via the device → room → user relationship.
+     *
+     * @param id   the schedule's primary key
+     * @param user the owning user
+     * @return an {@link Optional} containing the schedule, or empty if not found or not owned
+     */
+    Optional<Schedule> findByIdAndDeviceRoomUser(Long id, User user);
 }
