@@ -35,7 +35,7 @@ import { Device, Room } from '../../../core/models';
               <div style="font-size:12px;color:#9e9e9e;">{{ room?.name }} · {{ device.type | titlecase }}</div>
             </div>
           </div>
-          <button mat-icon-button [matMenuTriggerFor]="menu" style="margin:-8px -8px 0 0;">
+          <button mat-icon-button [matMenuTriggerFor]="menu" style="margin:-8px -8px 0 0;" *ngIf="showMenu">
             <mat-icon>more_vert</mat-icon>
           </button>
           <mat-menu #menu="matMenu">
@@ -120,8 +120,7 @@ import { Device, Room } from '../../../core/models';
             </div>
             <div class="cover-buttons">
               <button mat-stroked-button color="primary" (click)="coverAction.emit('open')" style="flex:1;">Open</button>
-              <button mat-stroked-button (click)="coverAction.emit('stop')" style="flex:1;">Stop</button>
-              <button mat-stroked-button (click)="coverAction.emit('close')" style="flex:1;">Close</button>
+<button mat-stroked-button (click)="coverAction.emit('close')" style="flex:1;">Closed</button>
             </div>
           </div>
         </ng-container>
@@ -132,6 +131,7 @@ import { Device, Room } from '../../../core/models';
 export class DeviceCardComponent {
   @Input() device!: Device;
   @Input() room?: Room;
+  @Input() showMenu = true;
   @Output() toggled = new EventEmitter<boolean>();
   @Output() sliderChanged = new EventEmitter<number>();
   @Output() tempChanged = new EventEmitter<number>();

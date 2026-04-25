@@ -1,27 +1,31 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
-import { DEVICES, ROOMS, SCENES, ACTIVITY_LOG } from '../../core/mock-data';
-import { Device, Scene, ActivityEntry } from '../../core/models';
+import { forkJoin, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
+import { SCENES, ACTIVITY_LOG } from '../../core/mock-data';
+import { Device, Room, Scene, ActivityEntry } from '../../core/models';
 import { AuthService } from '../../core/auth.service';
+import { RoomService, RoomDto } from '../../core/room.service';
+import { DeviceService, DeviceDto } from '../../core/device.service';
+import { RealtimeService } from '../../core/realtime.service';
+import { toRoom, dtoToDevice, DEVICE_ICON, DEVICE_ICON_BG, DEVICE_ICON_COLOR } from '../../core/device-utils';
+import { DeviceCardComponent } from '../../shared/components/device-card/device-card.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
   imports: [
     CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatSlideToggleModule,
-    MatSnackBarModule, MatProgressBarModule, MatDatepickerModule, MatFormFieldModule,
-    MatInputModule, MatNativeDateModule, FormsModule,
+    MatSnackBarModule, MatProgressBarModule, FormsModule, DeviceCardComponent,
   ],
   template: `
     <div *ngIf="loading">
@@ -36,12 +40,12 @@ import { AuthService } from '../../core/auth.service';
 
       <!-- Summary Cards -->
       <div class="stat-cards-row">
-        <mat-card class="stat-card">
+        <mat-card class="stat-card" style="cursor:pointer;" (click)="goToRooms()">
           <div class="stat-icon-bg" style="background:rgba(79,70,229,0.1);">
             <mat-icon style="color:#4F46E5;">devices</mat-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">12</div>
+            <div class="stat-value">{{ totalDevices }}</div>
             <div class="stat-label">Total Devices</div>
           </div>
         </mat-card>
@@ -50,7 +54,7 @@ import { AuthService } from '../../core/auth.service';
             <mat-icon style="color:#10B981;">check_circle</mat-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">7</div>
+            <div class="stat-value">{{ activeDevices }}</div>
             <div class="stat-label">Active Now</div>
           </div>
         </mat-card>
@@ -76,21 +80,21 @@ import { AuthService } from '../../core/auth.service';
 
       <!-- Quick Controls -->
       <div class="section-title">Quick Controls</div>
+      <div *ngIf="quickDevices.length === 0" style="color:rgba(0,0,0,.4);margin-bottom:28px;">
+        No devices found.
+        <span style="cursor:pointer;color:#4F46E5;" (click)="goToRooms()">Add a device →</span>
+      </div>
       <div class="quick-controls-grid" style="margin-bottom:28px;">
-        <mat-card
+        <app-device-card
           *ngFor="let device of quickDevices"
-          class="quick-control-card"
-          [class.device-on]="device.state.on"
-          (click)="toggleDevice(device)">
-          <div class="device-icon-wrap">
-            <mat-icon>{{ device.icon }}</mat-icon>
-          </div>
-          <p class="device-name">{{ device.name }}</p>
-          <p class="device-room">{{ getRoomName(device.roomId) }}</p>
-          <span class="device-status" [style.color]="device.state.on ? '#4F46E5' : '#94A3B8'">
-            {{ device.state.on ? '● ON' : '○ OFF' }}
-          </span>
-        </mat-card>
+          [device]="device"
+          [room]="getRoom(device.roomId)"
+          [showMenu]="false"
+          (toggled)="onToggle(device, $event)"
+          (sliderChanged)="onBrightnessChange(device, $event)"
+          (tempChanged)="onTempChange(device, $event)"
+          (coverAction)="onCoverAction(device, $event)">
+        </app-device-card>
       </div>
 
       <!-- My Scenes -->
@@ -133,65 +137,146 @@ import { AuthService } from '../../core/auth.service';
     </div>
   `,
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   loading = true;
   greeting = '';
   vacationActive = false;
   vacationEnd = new Date(Date.now() + 14 * 86400000);
 
   quickDevices: Device[] = [];
+  rooms: Room[] = [];
+  totalDevices = 0;
+  activeDevices = 0;
+
+  private allDevices: Device[] = [];
+  private realtimeSub: Subscription | null = null;
+
   scenes = SCENES;
   recentActivity: ActivityEntry[] = [];
 
-  constructor(private snackBar: MatSnackBar, public auth: AuthService) {}
+  constructor(
+    private snackBar: MatSnackBar,
+    private router: Router,
+    private roomService: RoomService,
+    private deviceService: DeviceService,
+    private realtimeService: RealtimeService,
+    public auth: AuthService
+  ) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     const hour = new Date().getHours();
     this.greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-    setTimeout(() => {
-      this.loading = false;
-      this.quickDevices = DEVICES.filter(d => ['d1','d2','d9','d11'].includes(d.id));
-      this.recentActivity = ACTIVITY_LOG.slice(0, 5);
-    }, 600);
+    this.recentActivity = ACTIVITY_LOG.slice(0, 5);
+
+    this.roomService.getRooms().pipe(
+      switchMap((dtos: RoomDto[]) => {
+        this.rooms = dtos.map(toRoom);
+        if (!dtos.length) { return of([] as Device[][]); }
+        return forkJoin(
+          dtos.map(dto =>
+            this.deviceService.getDevices(dto.id).pipe(
+              map((devices: DeviceDto[]) => devices.map(d => dtoToDevice(d, String(dto.id))))
+            )
+          )
+        );
+      }),
+      map((nested: Device[][]) => nested.flat())
+    ).subscribe({
+      next: (devices: Device[]) => {
+        this.allDevices = devices;
+        this.totalDevices = devices.length;
+        this.activeDevices = devices.filter(d => d.state.on).length;
+        this.quickDevices = devices.slice(0, 8);
+        this.loading = false;
+      },
+      error: () => { this.loading = false; }
+    });
+
+    this.realtimeService.connect();
+    this.realtimeSub = this.realtimeService.deviceUpdates$.subscribe(dto => {
+      const device = this.allDevices.find(d => d.id === String(dto.id));
+      if (device) {
+        device.state = {
+          ...device.state,
+          on: dto.stateOn,
+          brightness: dto.brightness,
+          temperature: dto.temperature,
+          sensorValue: dto.sensorValue,
+          coverPosition: dto.coverPosition,
+        };
+      }
+      this.activeDevices = this.allDevices.filter(d => d.state.on).length;
+    });
   }
 
-  getRoomName(roomId: string) {
-    return ROOMS.find(r => r.id === roomId)?.name ?? '';
+  ngOnDestroy(): void {
+    this.realtimeSub?.unsubscribe();
+    this.realtimeService.disconnect();
   }
 
-  toggleDevice(device: Device) {
-    device.state = { ...device.state, on: !device.state.on };
-    this.snackBar.open(`${device.name} turned ${device.state.on ? 'on' : 'off'} ✓`, '', { duration: 2000 });
+  goToRooms(): void {
+    this.router.navigate(['/rooms']);
   }
 
-  activateScene(scene: Scene) {
+  getRoom(roomId: string): Room | undefined {
+    return this.rooms.find(r => r.id === roomId);
+  }
+
+  onToggle(device: Device, on: boolean): void {
+    this.deviceService.updateState(Number(device.roomId), Number(device.id), { stateOn: on }).subscribe({
+      next: () => this.snackBar.open(`${device.name} ${on ? 'turned on' : 'turned off'} ✓`, '', { duration: 2000 }),
+      error: () => this.snackBar.open('Failed to update device state.', '', { duration: 2000 })
+    });
+  }
+
+  onBrightnessChange(device: Device, brightness: number): void {
+    this.deviceService.updateState(Number(device.roomId), Number(device.id), { brightness }).subscribe({
+      next: () => this.snackBar.open(`${device.name} brightness updated ✓`, '', { duration: 2000 }),
+      error: () => this.snackBar.open('Failed to update brightness.', '', { duration: 2000 })
+    });
+  }
+
+  onTempChange(device: Device, temperature: number): void {
+    this.deviceService.updateState(Number(device.roomId), Number(device.id), { temperature }).subscribe({
+      next: () => this.snackBar.open(`${device.name} temperature updated ✓`, '', { duration: 2000 }),
+      error: () => this.snackBar.open('Failed to update temperature.', '', { duration: 2000 })
+    });
+  }
+
+  onCoverAction(device: Device, action: string): void {
+    if (action === 'open') {
+      device.state = { ...device.state, coverPosition: 100 };
+      this.deviceService.updateState(Number(device.roomId), Number(device.id), { coverPosition: 100 }).subscribe({
+        next: () => this.snackBar.open(`${device.name} opened ✓`, '', { duration: 2000 }),
+        error: () => this.snackBar.open('Failed to open shutter.', '', { duration: 2000 })
+      });
+    } else if (action === 'close') {
+      device.state = { ...device.state, coverPosition: 0 };
+      this.deviceService.updateState(Number(device.roomId), Number(device.id), { coverPosition: 0 }).subscribe({
+        next: () => this.snackBar.open(`${device.name} closed ✓`, '', { duration: 2000 }),
+        error: () => this.snackBar.open('Failed to close shutter.', '', { duration: 2000 })
+      });
+    } else {
+      this.snackBar.open(`${device.name} stop command sent`, '', { duration: 2000 });
+    }
+  }
+
+  activateScene(scene: Scene): void {
     this.snackBar.open(`${scene.name} activated ✓`, '', { duration: 2000 });
   }
 
-  onVacationToggle(active: boolean) {
+  onVacationToggle(active: boolean): void {
     this.snackBar.open(active ? 'Vacation mode enabled ✓' : 'Vacation mode disabled', '', { duration: 2000 });
   }
 
   relativeTime(date: Date): string {
     const diff = Math.floor((Date.now() - date.getTime()) / 60000);
-    if (diff < 1) return 'just now';
-    if (diff < 60) return `${diff} min ago`;
-    const h = Math.floor(diff / 60);
-    return `${h}h ago`;
+    if (diff < 1) { return 'just now'; }
+    if (diff < 60) { return `${diff} min ago`; }
+    return `${Math.floor(diff / 60)}h ago`;
   }
 
-  getDeviceIcon(type: string): string {
-    const map: Record<string, string> = { switch: 'lightbulb', dimmer: 'lightbulb', thermostat: 'thermostat', sensor: 'sensors', cover: 'blinds' };
-    return map[type] ?? 'devices';
-  }
-
-  getDeviceIconBg(type: string): string {
-    const map: Record<string, string> = { switch: 'rgba(249,115,22,0.1)', dimmer: 'rgba(249,115,22,0.1)', thermostat: 'rgba(139,92,246,0.1)', sensor: 'rgba(79,70,229,0.1)', cover: 'rgba(16,185,129,0.1)' };
-    return map[type] ?? 'var(--bg)';
-  }
-
-  getDeviceIconColor(type: string): string {
-    const map: Record<string, string> = { switch: '#F97316', dimmer: '#F97316', thermostat: '#8B5CF6', sensor: '#4F46E5', cover: '#10B981' };
-    return map[type] ?? '#94A3B8';
-  }
+  getDeviceIcon(type: string): string { return DEVICE_ICON[type] ?? 'devices'; }
+  getDeviceIconBg(type: string): string { return DEVICE_ICON_BG[type] ?? 'var(--bg)'; }
+  getDeviceIconColor(type: string): string { return DEVICE_ICON_COLOR[type] ?? '#94A3B8'; }
 }

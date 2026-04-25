@@ -91,7 +91,7 @@ export class AddDeviceDialogComponent {
     { value: 'dimmer', label: 'Dimmer', icon: 'lightbulb' },
     { value: 'thermostat', label: 'Thermostat', icon: 'thermostat' },
     { value: 'sensor', label: 'Sensor', icon: 'sensors' },
-    { value: 'cover', label: 'Cover', icon: 'blinds' },
+    { value: 'cover', label: 'Shutter', icon: 'blinds' },
   ];
 
   constructor(
