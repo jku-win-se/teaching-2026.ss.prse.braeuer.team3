@@ -199,6 +199,49 @@ public class DeviceService {
     }
 
     /**
+     * Partially updates the runtime state of a device using a caller-supplied actor name.
+     *
+     * <p>Intended for internal callers (e.g. {@link ScheduleService}) that need to apply
+     * a device state change without an authenticated HTTP request. Skips ownership lookup —
+     * the caller is responsible for providing a valid device ID and owner. Broadcasts the
+     * updated state via WebSocket and records an activity log entry with the given actor name.</p>
+     *
+     * @param deviceId  the primary key of the device to update
+     * @param request   the state fields to apply (null fields are ignored)
+     * @param owner     the user who owns the device (used for WebSocket routing and activity log)
+     * @param actorName the display name to record as the actor in the activity log
+     * @return the updated device response DTO
+     * @throws ResponseStatusException with status 404 if the device is not found
+     */
+    @Transactional
+    public DeviceResponse updateStateAsActor(Long deviceId, DeviceStateRequest request,
+                                             User owner, String actorName) {
+        Device device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
+        if (request.getStateOn() != null) {
+            device.setStateOn(request.getStateOn());
+        }
+        if (request.getBrightness() != null) {
+            device.setBrightness(request.getBrightness());
+        }
+        if (request.getTemperature() != null) {
+            device.setTemperature(request.getTemperature());
+        }
+        if (request.getSensorValue() != null) {
+            device.setSensorValue(request.getSensorValue());
+        }
+        if (request.getCoverPosition() != null) {
+            device.setCoverPosition(request.getCoverPosition());
+        }
+        DeviceResponse response = toResponse(deviceRepository.save(device));
+        webSocketHandler.broadcast(owner.getEmail(), response);
+        String action = activityLogService.buildActionDescription(device, request);
+        ActivityLogResponse logEntry = activityLogService.log(device, owner, actorName, action);
+        webSocketHandler.broadcastActivityLog(owner.getEmail(), logEntry);
+        return response;
+    }
+
+    /**
      * Converts a {@link Device} entity to a {@link DeviceResponse}, applying type-aware
      * null filtering so that state fields irrelevant to the device type are returned as
      * {@code null} instead of a misleading default value.
