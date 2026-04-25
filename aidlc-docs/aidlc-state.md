@@ -37,8 +37,27 @@
 ### 🟡 OPERATIONS PHASE
 - [ ] Operations — PLACEHOLDER
 
+## FR-09 Stage Progress (new feature cycle)
+
+### 🔵 INCEPTION PHASE — FR-09
+- [x] Workspace Detection — reuse existing (2026-04-24)
+- [x] Reverse Engineering — reuse existing (2026-04-24)
+- [x] Requirements Analysis — 2026-04-24
+- [ ] User Stories — SKIP
+- [x] Workflow Planning — 2026-04-24
+- [x] Application Design — 2026-04-24
+- [x] Units Generation — 2026-04-24
+
+### 🟢 CONSTRUCTION PHASE — FR-09
+- [x] Functional Design (Unit 1: schedule-backend) — 2026-04-24
+- [x] NFR Requirements (Unit 1: schedule-backend) — 2026-04-24
+- [x] NFR Design (Unit 1: schedule-backend) — 2026-04-24
+- [ ] Infrastructure Design — SKIP
+- [ ] Code Generation — EXECUTE
+- [ ] Build and Test — EXECUTE
+
 ## Current Status
-- **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: Build and Test — complete
-- **Next Stage**: Operations
-- **Status**: Ready for merge (branch: 71-bugfix-activity-log)
+- **Lifecycle Phase**: INCEPTION (FR-09)
+- **Current Stage**: NFR Design (Unit 1: schedule-backend) — awaiting user approval
+- **Next Stage**: Code Generation (Unit 1: schedule-backend)
+- **Plan**: aidlc-docs/inception/plans/fr09-execution-plan.md

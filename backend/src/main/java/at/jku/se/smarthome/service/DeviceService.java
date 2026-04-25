@@ -173,6 +173,47 @@ public class DeviceService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found."));
         Device device = deviceRepository.findByIdAndRoomId(deviceId, room.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
+        applyStateFields(device, request);
+        DeviceResponse response = toResponse(deviceRepository.save(device));
+        webSocketHandler.broadcast(email, response);
+
+        String action = activityLogService.buildActionDescription(device, request);
+        ActivityLogResponse logEntry = activityLogService.log(device, resolvedUser, resolvedUser.getName(), action);
+        webSocketHandler.broadcastActivityLog(email, logEntry);
+
+        return response;
+    }
+
+    /**
+     * Partially updates the runtime state of a device using a caller-supplied actor name.
+     *
+     * <p>Intended for internal callers (e.g. {@link ScheduleService}) that need to apply
+     * a device state change without an authenticated HTTP request. Skips ownership lookup —
+     * the caller is responsible for providing a valid device ID and owner. Broadcasts the
+     * updated state via WebSocket and records an activity log entry with the given actor name.</p>
+     *
+     * @param deviceId  the primary key of the device to update
+     * @param request   the state fields to apply (null fields are ignored)
+     * @param owner     the user who owns the device (used for WebSocket routing and activity log)
+     * @param actorName the display name to record as the actor in the activity log
+     * @return the updated device response DTO
+     * @throws ResponseStatusException with status 404 if the device is not found
+     */
+    @Transactional
+    public DeviceResponse updateStateAsActor(Long deviceId, DeviceStateRequest request,
+                                             User owner, String actorName) {
+        Device device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
+        applyStateFields(device, request);
+        DeviceResponse response = toResponse(deviceRepository.save(device));
+        webSocketHandler.broadcast(owner.getEmail(), response);
+        String action = activityLogService.buildActionDescription(device, request);
+        ActivityLogResponse logEntry = activityLogService.log(device, owner, actorName, action);
+        webSocketHandler.broadcastActivityLog(owner.getEmail(), logEntry);
+        return response;
+    }
+
+    private void applyStateFields(Device device, DeviceStateRequest request) {
         if (request.getStateOn() != null) {
             device.setStateOn(request.getStateOn());
         }
@@ -188,14 +229,6 @@ public class DeviceService {
         if (request.getCoverPosition() != null) {
             device.setCoverPosition(request.getCoverPosition());
         }
-        DeviceResponse response = toResponse(deviceRepository.save(device));
-        webSocketHandler.broadcast(email, response);
-
-        String action = activityLogService.buildActionDescription(device, request);
-        ActivityLogResponse logEntry = activityLogService.log(device, resolvedUser, resolvedUser.getName(), action);
-        webSocketHandler.broadcastActivityLog(email, logEntry);
-
-        return response;
     }
 
     /**

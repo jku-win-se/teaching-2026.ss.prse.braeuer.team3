@@ -2,11 +2,13 @@ package at.jku.se.smarthome;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Entry point for the SmartHome Orchestrator Spring Boot application.
  */
 @SpringBootApplication
+@EnableScheduling
 public class SmarthomeApplication {
 
     /**

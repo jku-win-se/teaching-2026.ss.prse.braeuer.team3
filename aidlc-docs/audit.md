@@ -1,5 +1,55 @@
 # AI-DLC Audit Log
 
+## Refactoring — Quartz → @Scheduled (FR-09 schedule-backend)
+**Timestamp**: 2026-04-25T08:00:00
+**Decision**: Replace Quartz Scheduler with Spring @Scheduled polling
+**Plan**: `aidlc-docs/construction/plans/schedule-backend-code-generation-plan.md` (updated)
+**Changes**: 13 steps — deleted V7 SQL + QuartzConfig + ScheduleJobExecutor, refactored ScheduleService, reverted DeviceService, updated all tests and docs
+**Net reduction**: ~355 lines
+**Approval**: "approved" (user)
+**Status**: Complete — 172 tests passing
+
+---
+
+## Code Generation Plan — schedule-backend (FR-09)
+**Timestamp**: 2026-04-24T00:00:00
+**Plan**: `aidlc-docs/construction/plans/schedule-backend-code-generation-plan.md`
+**Steps**: 17 steps (2 modified existing files, 12 new files, 3 test files)
+**Status**: Awaiting user approval
+
+---
+
+## Units Generation — FR-09: Zeitpläne konfigurieren
+**Timestamp**: 2026-04-24T00:00:00
+**Artifacts**: `aidlc-docs/inception/application-design/fr09-unit-of-work*.md`
+**Units**: schedule-backend, schedule-frontend
+**Status**: Awaiting user approval
+
+---
+
+## Application Design — FR-09: Zeitpläne konfigurieren
+**Timestamp**: 2026-04-24T00:00:00
+**Artifacts**: `aidlc-docs/inception/application-design/fr09-*.md`
+**Status**: Awaiting user approval
+
+---
+
+## Workflow Planning — FR-09: Zeitpläne konfigurieren
+**Timestamp**: 2026-04-24T00:00:00
+**Plan**: `aidlc-docs/inception/plans/fr09-execution-plan.md`
+**Status**: Awaiting user approval
+
+---
+
+## Requirements Analysis — FR-09: Zeitpläne konfigurieren
+**Timestamp**: 2026-04-24T00:00:00
+**AI Prompt**: "using AI-DLC, I want to implement issue https://github.com/jku-win-se/teaching-2026.ss.prse.braeuer.team3/issues/16"
+**Questions**: `aidlc-docs/inception/requirements/fr09-requirement-verification-questions.md`
+**Requirements**: `aidlc-docs/inception/requirements/fr09-requirements.md`
+**Status**: Requirements generated — awaiting user approval
+
+---
+
 ## Build and Test — Bugfix #71: Activity Log Timeframe Filter
 **Timestamp**: 2026-04-24T00:00:00
 **Branch**: `71-bugfix-activity-log`

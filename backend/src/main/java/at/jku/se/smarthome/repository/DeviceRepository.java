@@ -49,4 +49,13 @@ public interface DeviceRepository extends JpaRepository<Device, Long> {
      * @return {@code true} if a different device with that name already exists in the room
      */
     boolean existsByRoomIdAndNameAndIdNot(Long roomId, String name, Long id);
+
+    /**
+     * Returns all devices belonging to rooms owned by the given user.
+     * Used to retrieve all devices accessible to a user across all their rooms.
+     *
+     * @param userId the primary key of the owning user
+     * @return list of devices owned by the user
+     */
+    List<Device> findAllByRoomUserId(Long userId);
 }
