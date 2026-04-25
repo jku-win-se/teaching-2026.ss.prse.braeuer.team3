@@ -12,8 +12,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { Device, DeviceType, Room } from '../../core/models';
-import { RoomService, RoomDto } from '../../core/room.service';
+import { RoomService } from '../../core/room.service';
 import { DeviceService, DeviceDto } from '../../core/device.service';
+import { toRoom, dtoToDevice, DEVICE_ICON } from '../../core/device-utils';
 import { RealtimeService } from '../../core/realtime.service';
 import { DeviceCardComponent } from '../../shared/components/device-card/device-card.component';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
@@ -25,9 +26,6 @@ import { InjectValueDialogComponent } from './inject-value-dialog.component';
 import { RenameDeviceDialogComponent } from './rename-device-dialog.component';
 import { RenameRoomDialogComponent } from './rename-room-dialog.component';
 
-function toRoom(dto: RoomDto): Room {
-  return { id: String(dto.id), name: dto.name, icon: dto.icon };
-}
 
 @Component({
   selector: 'app-rooms',
@@ -183,21 +181,7 @@ export class RoomsComponent implements OnInit, OnDestroy {
   loadDevices(roomId: string) {
     this.deviceService.getDevices(Number(roomId)).subscribe({
       next: (dtos) => {
-        this.devices = dtos.map((dto: DeviceDto) => ({
-          id: String(dto.id),
-          name: dto.name,
-          roomId: roomId,
-          type: dto.type,
-          icon: this.iconForType(dto.type),
-          state: {
-            on: dto.stateOn,
-            brightness: dto.brightness,
-            temperature: dto.temperature,
-            sensorValue: dto.sensorValue,
-            sensorUnit: '°C',
-            coverPosition: dto.coverPosition,
-          },
-        }));
+        this.devices = dtos.map((dto: DeviceDto) => dtoToDevice(dto, roomId));
       },
       error: () => { this.devices = []; }
     });
@@ -401,10 +385,6 @@ export class RoomsComponent implements OnInit, OnDestroy {
   }
 
   iconForType(type: string): string {
-    const map: Record<string, string> = {
-      switch: 'lightbulb', dimmer: 'lightbulb',
-      thermostat: 'thermostat', sensor: 'sensors', cover: 'blinds'
-    };
-    return map[type] ?? 'devices';
+    return DEVICE_ICON[type] ?? 'devices';
   }
 }

@@ -57,6 +57,42 @@ export interface Schedule {
   recurrence: RecurrenceType;
 }
 
+/** Day-of-week definitions shared between schedule dialog and schedule list. */
+export const DAYS = [
+  { label: 'Mon', value: 'MONDAY' },
+  { label: 'Tue', value: 'TUESDAY' },
+  { label: 'Wed', value: 'WEDNESDAY' },
+  { label: 'Thu', value: 'THURSDAY' },
+  { label: 'Fri', value: 'FRIDAY' },
+  { label: 'Sat', value: 'SATURDAY' },
+  { label: 'Sun', value: 'SUNDAY' },
+];
+
+/** Shape of a schedule as returned by the backend API (FR-09). */
+export interface ScheduleDto {
+  id: number;
+  name: string;
+  deviceId: number;
+  deviceName: string;
+  roomName: string;
+  daysOfWeek: string[];   // uppercase Java DayOfWeek names, e.g. ["MONDAY","FRIDAY"]
+  hour: number;           // 0–23
+  minute: number;         // 0–59
+  actionPayload: string;  // JSON string e.g. {"stateOn":true}
+  enabled: boolean;
+}
+
+/** Request body for creating or updating a schedule (FR-09). */
+export interface ScheduleRequest {
+  name: string;
+  deviceId: number;
+  daysOfWeek: string[];
+  hour: number;
+  minute: number;
+  actionPayload: string;
+  enabled: boolean;
+}
+
 export interface ActivityEntry {
   id: string;
   timestamp: Date;
