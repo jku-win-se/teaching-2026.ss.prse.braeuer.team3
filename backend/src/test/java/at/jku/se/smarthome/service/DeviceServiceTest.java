@@ -65,7 +65,15 @@ class DeviceServiceTest {
                 // no-op: WebSocket activity log broadcast is tested separately
             }
         };
-        deviceService = new DeviceService(deviceRepository, roomRepository, userRepository, noOpWs, activityLogService);
+        RuleService noOpRuleService = new RuleService(null, null, null, null) {
+            @Override
+            public void evaluateRulesForDevice(at.jku.se.smarthome.domain.Device device,
+                                               at.jku.se.smarthome.dto.DeviceStateRequest request,
+                                               boolean stateOnChanged) {
+                // no-op: rule evaluation is tested separately in RuleServiceTest
+            }
+        };
+        deviceService = new DeviceService(deviceRepository, roomRepository, userRepository, noOpWs, activityLogService, noOpRuleService);
     }
 
     // --- getDevices ---

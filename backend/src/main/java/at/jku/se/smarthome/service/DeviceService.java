@@ -12,6 +12,7 @@ import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RoomRepository;
 import at.jku.se.smarthome.repository.UserRepository;
 import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +27,8 @@ import java.util.List;
  * specifying type and name. FR-05: rename and remove devices.
  * FR-06: manual device control with state persistence.
  * FR-07: broadcasts state changes to connected WebSocket clients after each update.
- * FR-08: logs every manual state change via {@link ActivityLogService}.</p>
+ * FR-08: logs every manual state change via {@link ActivityLogService}.
+ * FR-10: triggers IF-THEN rule evaluation after every user-initiated state update.</p>
  *
  * <p>All operations are scoped to the authenticated user — the target room
  * must be owned by that user.</p>
@@ -39,27 +41,31 @@ public class DeviceService {
     private final UserRepository userRepository;
     private final DeviceWebSocketHandler webSocketHandler;
     private final ActivityLogService activityLogService;
+    private final RuleService ruleService;
 
     /**
      * Constructs a DeviceService with the required repositories, WebSocket handler,
-     * and activity log service.
+     * activity log service, and rule service.
      *
      * @param deviceRepository   the repository for device persistence
      * @param roomRepository     the repository for room lookups
      * @param userRepository     the repository for resolving the current user
      * @param webSocketHandler   the handler used to push real-time state updates to WebSocket clients
      * @param activityLogService the service used to record activity log entries (FR-08)
+     * @param ruleService        the service used to evaluate IF-THEN rules after state changes (FR-10)
      */
     public DeviceService(DeviceRepository deviceRepository,
                          RoomRepository roomRepository,
                          UserRepository userRepository,
                          DeviceWebSocketHandler webSocketHandler,
-                         ActivityLogService activityLogService) {
+                         ActivityLogService activityLogService,
+                         @Lazy RuleService ruleService) {
         this.deviceRepository = deviceRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
         this.webSocketHandler = webSocketHandler;
         this.activityLogService = activityLogService;
+        this.ruleService = ruleService;
     }
 
     /**
@@ -173,6 +179,7 @@ public class DeviceService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found."));
         Device device = deviceRepository.findByIdAndRoomId(deviceId, room.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
+        boolean stateOnChanged = request.getStateOn() != null && request.getStateOn() != device.isStateOn();
         applyStateFields(device, request);
         DeviceResponse response = toResponse(deviceRepository.save(device));
         webSocketHandler.broadcast(email, response);
@@ -181,6 +188,7 @@ public class DeviceService {
         ActivityLogResponse logEntry = activityLogService.log(device, resolvedUser, resolvedUser.getName(), action);
         webSocketHandler.broadcastActivityLog(email, logEntry);
 
+        ruleService.evaluateRulesForDevice(device, request, stateOnChanged);
         return response;
     }
 
