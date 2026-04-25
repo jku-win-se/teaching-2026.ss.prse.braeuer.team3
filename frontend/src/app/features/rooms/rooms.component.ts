@@ -12,7 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { Device, DeviceType, Room } from '../../core/models';
-import { RoomService, RoomDto } from '../../core/room.service';
+import { RoomService } from '../../core/room.service';
 import { DeviceService, DeviceDto } from '../../core/device.service';
 import { toRoom, dtoToDevice, DEVICE_ICON } from '../../core/device-utils';
 import { RealtimeService } from '../../core/realtime.service';
