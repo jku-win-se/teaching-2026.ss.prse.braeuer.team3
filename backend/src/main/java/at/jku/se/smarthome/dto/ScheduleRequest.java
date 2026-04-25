@@ -94,6 +94,9 @@ public class ScheduleRequest {
         this.daysOfWeek = daysOfWeek;
     }
 
+    // CPD-OFF — getters/setters for hour, minute, actionPayload and enabled are structurally
+    // identical to Schedule.java by design (DTO mirrors entity fields); not a real duplication.
+
     /**
      * Returns the hour of day (0–23).
      *
@@ -165,4 +168,5 @@ public class ScheduleRequest {
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
+    // CPD-ON
 }

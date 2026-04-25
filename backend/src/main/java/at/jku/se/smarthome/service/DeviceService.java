@@ -173,21 +173,7 @@ public class DeviceService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found."));
         Device device = deviceRepository.findByIdAndRoomId(deviceId, room.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
-        if (request.getStateOn() != null) {
-            device.setStateOn(request.getStateOn());
-        }
-        if (request.getBrightness() != null) {
-            device.setBrightness(request.getBrightness());
-        }
-        if (request.getTemperature() != null) {
-            device.setTemperature(request.getTemperature());
-        }
-        if (request.getSensorValue() != null) {
-            device.setSensorValue(request.getSensorValue());
-        }
-        if (request.getCoverPosition() != null) {
-            device.setCoverPosition(request.getCoverPosition());
-        }
+        applyStateFields(device, request);
         DeviceResponse response = toResponse(deviceRepository.save(device));
         webSocketHandler.broadcast(email, response);
 
@@ -218,6 +204,16 @@ public class DeviceService {
                                              User owner, String actorName) {
         Device device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
+        applyStateFields(device, request);
+        DeviceResponse response = toResponse(deviceRepository.save(device));
+        webSocketHandler.broadcast(owner.getEmail(), response);
+        String action = activityLogService.buildActionDescription(device, request);
+        ActivityLogResponse logEntry = activityLogService.log(device, owner, actorName, action);
+        webSocketHandler.broadcastActivityLog(owner.getEmail(), logEntry);
+        return response;
+    }
+
+    private void applyStateFields(Device device, DeviceStateRequest request) {
         if (request.getStateOn() != null) {
             device.setStateOn(request.getStateOn());
         }
@@ -233,12 +229,6 @@ public class DeviceService {
         if (request.getCoverPosition() != null) {
             device.setCoverPosition(request.getCoverPosition());
         }
-        DeviceResponse response = toResponse(deviceRepository.save(device));
-        webSocketHandler.broadcast(owner.getEmail(), response);
-        String action = activityLogService.buildActionDescription(device, request);
-        ActivityLogResponse logEntry = activityLogService.log(device, owner, actorName, action);
-        webSocketHandler.broadcastActivityLog(owner.getEmail(), logEntry);
-        return response;
     }
 
     /**
