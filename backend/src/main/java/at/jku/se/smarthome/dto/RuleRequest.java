@@ -7,10 +7,15 @@ import at.jku.se.smarthome.domain.TriggerType;
  * Request body for creating or replacing an IF-THEN rule (FR-10).
  *
  * <p>Used for {@code POST /api/rules} and {@code PUT /api/rules/{id}}.
- * Fields {@code triggerOperator} and {@code triggerThresholdValue} are only
- * required when {@code triggerType} is {@code THRESHOLD}.</p>
+ * Fields {@code triggerOperator} / {@code triggerThresholdValue} are required for THRESHOLD.
+ * Fields {@code triggerHour} / {@code triggerMinute} / {@code triggerDaysOfWeek} are required for TIME.
+ * {@code triggerDeviceId} must be {@code null} for TIME rules.</p>
  */
 public class RuleRequest {
+
+    /** Default constructor for JSON deserialization. */
+    public RuleRequest() {
+    }
 
     /** Display name for the rule (required, max 100 characters). */
     private String name;
@@ -45,6 +50,18 @@ public class RuleRequest {
      * {@code "open"} or {@code "close"} for Shutter.
      */
     private String actionValue;
+
+    /** Hour of day (0–23) for TIME rules. Must be {@code null} for other trigger types. */
+    private Integer triggerHour;
+
+    /** Minute of hour (0–59) for TIME rules. Must be {@code null} for other trigger types. */
+    private Integer triggerMinute;
+
+    /**
+     * Comma-separated uppercase {@link java.time.DayOfWeek} names for TIME rules,
+     * e.g. {@code "MONDAY,FRIDAY"}. Must be {@code null} for other trigger types.
+     */
+    private String triggerDaysOfWeek;
 
     /**
      * Returns the display name of the rule.
@@ -188,5 +205,59 @@ public class RuleRequest {
      */
     public void setActionValue(String actionValue) {
         this.actionValue = actionValue;
+    }
+
+    /**
+     * Returns the trigger hour for TIME rules.
+     *
+     * @return hour (0–23), or {@code null} for non-TIME rules
+     */
+    public Integer getTriggerHour() {
+        return triggerHour;
+    }
+
+    /**
+     * Sets the trigger hour for TIME rules.
+     *
+     * @param triggerHour hour (0–23); {@code null} for non-TIME rules
+     */
+    public void setTriggerHour(Integer triggerHour) {
+        this.triggerHour = triggerHour;
+    }
+
+    /**
+     * Returns the trigger minute for TIME rules.
+     *
+     * @return minute (0–59), or {@code null} for non-TIME rules
+     */
+    public Integer getTriggerMinute() {
+        return triggerMinute;
+    }
+
+    /**
+     * Sets the trigger minute for TIME rules.
+     *
+     * @param triggerMinute minute (0–59); {@code null} for non-TIME rules
+     */
+    public void setTriggerMinute(Integer triggerMinute) {
+        this.triggerMinute = triggerMinute;
+    }
+
+    /**
+     * Returns the comma-separated day-of-week string for TIME rules.
+     *
+     * @return e.g. {@code "MONDAY,FRIDAY"}, or {@code null} for non-TIME rules
+     */
+    public String getTriggerDaysOfWeek() {
+        return triggerDaysOfWeek;
+    }
+
+    /**
+     * Sets the comma-separated day-of-week string for TIME rules.
+     *
+     * @param triggerDaysOfWeek e.g. {@code "MONDAY,FRIDAY"}; {@code null} for non-TIME rules
+     */
+    public void setTriggerDaysOfWeek(String triggerDaysOfWeek) {
+        this.triggerDaysOfWeek = triggerDaysOfWeek;
     }
 }

@@ -77,7 +77,28 @@
 - [x] Build and Test — COMPLETE (2026-04-25)
 
 ## Current Status
-- **Lifecycle Phase**: CONSTRUCTION (FR-10)
-- **Current Stage**: Build and Test complete — 196/196 tests, PMD clean, Javadoc clean
+- **Lifecycle Phase**: CONSTRUCTION (US-012)
+- **Current Stage**: Build and Test complete — 203/203 tests, 0 PMD violations, Javadoc clean
 - **Next Stage**: Ready for merge / Operations
-- **Summary**: aidlc-docs/construction/build-and-test/fr10-build-and-test-summary.md
+- **Summary**: aidlc-docs/construction/build-and-test/us012-build-and-test-summary.md
+
+## US-012 Stage Progress (new feature cycle)
+
+### 🔵 INCEPTION PHASE — US-012
+- [x] Workspace Detection — reuse existing (2026-04-28)
+- [x] Reverse Engineering — reuse existing (2026-04-28)
+- [x] Requirements Analysis — 2026-04-28
+- [ ] User Stories — SKIP
+- [x] Workflow Planning — 2026-04-28
+- [ ] Application Design — SKIP
+- [x] Units Generation — 2026-04-28
+
+### 🟢 CONSTRUCTION PHASE — US-012
+- [x] Functional Design (Unit 1: Backend TIME trigger) — 2026-04-28
+- [ ] NFR Requirements — SKIP
+- [ ] NFR Design — SKIP
+- [ ] Infrastructure Design — SKIP
+- [x] Code Generation (Unit 1: Backend) — 2026-04-28
+- [x] Code Generation (Unit 2: Frontend) — 2026-04-28
+- [x] Build and Test — COMPLETE (2026-04-29)
+

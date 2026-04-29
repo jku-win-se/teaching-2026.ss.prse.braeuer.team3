@@ -161,3 +161,21 @@
 **Context**: 7 Klärungsfragen erstellt in requirement-verification-questions.md für FR-07 (Technologie, Scope, Auth, Granularität, Reconnect, Initial-Load, Tests).
 
 ---
+
+## Code Generation Plan — US-012 Backend (Unit 1)
+**Timestamp**: 2026-04-28T00:00:00
+**AI Prompt**: "Approve and Continue — proceed with Code Generation Unit 1 (Backend)?"
+**User Response**: "Approve and Continue"
+**Status**: Approved
+**Context**: Code generation plan for US-012 Backend unit (11 steps) created and approved
+
+## Build and Test Stage — US-012
+**Timestamp**: 2026-04-29T19:05:00+02:00
+**Build Status**: SUCCESS
+**Test Status**: PASS — 203/203 tests
+**PMD Status**: 0 rule violations (infrastructure issue pre-existing, not new code)
+**Javadoc Status**: CLEAN
+**Files Generated**:
+- us012-build-and-test-summary.md
+
+---

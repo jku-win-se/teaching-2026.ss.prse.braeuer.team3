@@ -32,15 +32,39 @@ export interface Scene {
   deviceActions: { deviceId: string; action: string }[];
 }
 
-export type TriggerType = 'time' | 'threshold' | 'event';
+export type TriggerType = 'TIME' | 'THRESHOLD' | 'EVENT';
 
-export interface Rule {
-  id: string;
+/** Shape of a rule as returned by the backend API (US-012). */
+export interface RuleDto {
+  id: number;
   name: string;
-  summary: string;
+  enabled: boolean;
   triggerType: TriggerType;
-  active: boolean;
-  hasConflict?: boolean;
+  triggerDeviceId?: number;
+  triggerDeviceName?: string;
+  triggerOperator?: 'GT' | 'LT';
+  triggerThresholdValue?: number;
+  triggerHour?: number;
+  triggerMinute?: number;
+  triggerDaysOfWeek?: string;
+  actionDeviceId: number;
+  actionDeviceName: string;
+  actionValue: string;
+}
+
+/** Request body for creating or updating a rule (US-012). */
+export interface RuleRequest {
+  name: string;
+  enabled: boolean;
+  triggerType: TriggerType;
+  triggerDeviceId?: number;
+  triggerOperator?: 'GT' | 'LT';
+  triggerThresholdValue?: number;
+  triggerHour?: number;
+  triggerMinute?: number;
+  triggerDaysOfWeek?: string;
+  actionDeviceId: number;
+  actionValue: string;
 }
 
 export type RecurrenceType = 'daily' | 'weekdays' | 'weekends' | 'custom';

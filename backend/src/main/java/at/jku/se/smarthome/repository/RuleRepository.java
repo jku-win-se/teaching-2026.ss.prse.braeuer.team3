@@ -2,6 +2,7 @@ package at.jku.se.smarthome.repository;
 
 import at.jku.se.smarthome.domain.Device;
 import at.jku.se.smarthome.domain.Rule;
+import at.jku.se.smarthome.domain.TriggerType;
 import at.jku.se.smarthome.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -41,4 +42,16 @@ public interface RuleRepository extends JpaRepository<Rule, Long> {
      * @return an {@link Optional} containing the rule, or empty if not found or not owned
      */
     Optional<Rule> findByIdAndUser(Long id, User user);
+
+    /**
+     * Returns all enabled TIME rules scheduled for the given hour and minute.
+     * Used by {@link at.jku.se.smarthome.service.RuleScheduler} every minute.
+     *
+     * @param triggerType  must be {@link TriggerType#TIME}
+     * @param triggerHour  current hour (0–23)
+     * @param triggerMinute current minute (0–59)
+     * @return list of matching enabled TIME rules
+     */
+    List<Rule> findByEnabledTrueAndTriggerTypeAndTriggerHourAndTriggerMinute(
+            TriggerType triggerType, int triggerHour, int triggerMinute);
 }

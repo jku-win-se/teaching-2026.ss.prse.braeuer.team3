@@ -15,17 +15,17 @@ import jakarta.persistence.Table;
 /**
  * JPA entity representing an IF-THEN automation rule.
  *
- * <p>A rule watches a trigger device and fires an action on an action device
- * when the configured condition is met. Supported trigger types are
- * {@link TriggerType#THRESHOLD} (sensor value comparison) and
- * {@link TriggerType#EVENT} (on/off state change).</p>
+ * <p>A rule fires an action on a target device when its configured condition is met.
+ * Supported trigger types: {@link TriggerType#THRESHOLD} (sensor value comparison),
+ * {@link TriggerType#EVENT} (on/off state change), and {@link TriggerType#TIME}
+ * (time-of-day + day-of-week, evaluated by {@link at.jku.se.smarthome.service.RuleScheduler}).</p>
  *
- * <p>Rules are evaluated reactively inside
+ * <p>THRESHOLD and EVENT rules are evaluated reactively inside
  * {@link at.jku.se.smarthome.service.DeviceService#updateState} after every
- * {@code PATCH /state} call. This entity maps to the {@code rules} table
- * created by Flyway migration V7.</p>
+ * {@code PATCH /state} call. TIME rules have no trigger device.</p>
  *
- * <p>Implements FR-10: Rule Engine (IF-THEN).</p>
+ * <p>This entity maps to the {@code rules} table (Flyway V7 + V8).
+ * Implements FR-10 / US-012.</p>
  */
 @Entity
 @Table(name = "rules")
@@ -45,10 +45,29 @@ public class Rule {
     @Column(name = "trigger_type", nullable = false, length = 20)
     private TriggerType triggerType;
 
-    /** The device whose state change triggers evaluation of this rule. */
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "trigger_device_id", nullable = false)
+    /**
+     * The device whose state change triggers evaluation of this rule.
+     * {@code null} for {@link TriggerType#TIME} rules.
+     */
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "trigger_device_id", nullable = true)
     private Device triggerDevice;
+
+    /** Hour of day (0–23) for {@link TriggerType#TIME} rules. {@code null} otherwise. */
+    @Column(name = "trigger_hour")
+    private Integer triggerHour;
+
+    /** Minute of hour (0–59) for {@link TriggerType#TIME} rules. {@code null} otherwise. */
+    @Column(name = "trigger_minute")
+    private Integer triggerMinute;
+
+    /**
+     * Comma-separated uppercase Java {@link java.time.DayOfWeek} names for
+     * {@link TriggerType#TIME} rules, e.g. {@code "MONDAY,FRIDAY"}.
+     * {@code null} for THRESHOLD and EVENT rules.
+     */
+    @Column(name = "trigger_days_of_week", length = 100)
+    private String triggerDaysOfWeek;
 
     /**
      * Comparison operator for THRESHOLD rules.
@@ -259,5 +278,59 @@ public class Rule {
      */
     public void setUser(User user) {
         this.user = user;
+    }
+
+    /**
+     * Returns the hour of day for TIME rules.
+     *
+     * @return hour (0–23), or {@code null} for non-TIME rules
+     */
+    public Integer getTriggerHour() {
+        return triggerHour;
+    }
+
+    /**
+     * Sets the hour of day for TIME rules.
+     *
+     * @param triggerHour hour (0–23); {@code null} for non-TIME rules
+     */
+    public void setTriggerHour(Integer triggerHour) {
+        this.triggerHour = triggerHour;
+    }
+
+    /**
+     * Returns the minute of hour for TIME rules.
+     *
+     * @return minute (0–59), or {@code null} for non-TIME rules
+     */
+    public Integer getTriggerMinute() {
+        return triggerMinute;
+    }
+
+    /**
+     * Sets the minute of hour for TIME rules.
+     *
+     * @param triggerMinute minute (0–59); {@code null} for non-TIME rules
+     */
+    public void setTriggerMinute(Integer triggerMinute) {
+        this.triggerMinute = triggerMinute;
+    }
+
+    /**
+     * Returns the comma-separated day-of-week string for TIME rules.
+     *
+     * @return e.g. {@code "MONDAY,FRIDAY"}, or {@code null} for non-TIME rules
+     */
+    public String getTriggerDaysOfWeek() {
+        return triggerDaysOfWeek;
+    }
+
+    /**
+     * Sets the comma-separated day-of-week string for TIME rules.
+     *
+     * @param triggerDaysOfWeek e.g. {@code "MONDAY,FRIDAY"}; {@code null} for non-TIME rules
+     */
+    public void setTriggerDaysOfWeek(String triggerDaysOfWeek) {
+        this.triggerDaysOfWeek = triggerDaysOfWeek;
     }
 }

@@ -267,6 +267,81 @@ class RuleServiceTest {
         assertThat(captor.getValue().getStateOn()).isTrue();
     }
 
+    // --- createRule: TIME ---
+
+    @Test
+    void createRule_time_success_noTriggerDevice() {
+        RuleRequest req = buildTimeRequest();
+        Rule saved = buildTimeRule();
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(deviceRepository.findById(11L)).thenReturn(Optional.of(switchDevice));
+        when(ruleRepository.save(any(Rule.class))).thenReturn(saved);
+
+        RuleResponse response = ruleService.createRule(EMAIL, req);
+
+        assertThat(response.getTriggerType()).isEqualTo(TriggerType.TIME);
+        assertThat(response.getTriggerHour()).isEqualTo(7);
+        assertThat(response.getTriggerMinute()).isEqualTo(30);
+        assertThat(response.getTriggerDaysOfWeek()).isEqualTo("MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY,SATURDAY,SUNDAY");
+        assertThat(response.getTriggerDeviceId()).isNull();
+    }
+
+    @Test
+    void createRule_time_missingHour_throws400() {
+        RuleRequest req = buildTimeRequest();
+        req.setTriggerHour(null);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> ruleService.createRule(EMAIL, req))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode().value()).isEqualTo(400));
+    }
+
+    @Test
+    void createRule_time_missingDays_throws400() {
+        RuleRequest req = buildTimeRequest();
+        req.setTriggerDaysOfWeek(null);
+
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> ruleService.createRule(EMAIL, req))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode().value()).isEqualTo(400));
+    }
+
+    // --- evaluateTimeRules ---
+
+    @Test
+    void evaluateTimeRules_fires_whenDayMatches() {
+        Rule rule = buildTimeRule();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        when(ruleRepository.findByEnabledTrueAndTriggerTypeAndTriggerHourAndTriggerMinute(
+                TriggerType.TIME, now.getHour(), now.getMinute()))
+                .thenReturn(List.of(rule));
+
+        ruleService.evaluateTimeRules();
+
+        // Rule has "MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY,SATURDAY,SUNDAY" — always fires
+        verify(deviceService).updateStateAsActor(eq(11L), any(DeviceStateRequest.class), eq(user), anyString());
+    }
+
+    @Test
+    void evaluateTimeRules_noFire_whenDayNotMatches() {
+        Rule rule = buildTimeRule();
+        // Set days to a day that is definitely not today: use an impossible day string
+        rule.setTriggerDaysOfWeek("NEVERDAY");
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        when(ruleRepository.findByEnabledTrueAndTriggerTypeAndTriggerHourAndTriggerMinute(
+                TriggerType.TIME, now.getHour(), now.getMinute()))
+                .thenReturn(List.of(rule));
+
+        ruleService.evaluateTimeRules();
+
+        verify(deviceService, never()).updateStateAsActor(anyLong(), any(), any(), any());
+    }
+
     // --- Helpers ---
 
     private RuleRequest buildThresholdRequest() {
@@ -291,6 +366,34 @@ class RuleServiceTest {
         rule.setTriggerDevice(sensorDevice);
         rule.setTriggerOperator(TriggerOperator.GT);
         rule.setTriggerThresholdValue(25.0);
+        rule.setActionDevice(switchDevice);
+        rule.setActionValue("true");
+        rule.setEnabled(true);
+        return rule;
+    }
+
+    private RuleRequest buildTimeRequest() {
+        RuleRequest req = new RuleRequest();
+        req.setName("Morning Lights");
+        req.setTriggerType(TriggerType.TIME);
+        req.setTriggerHour(7);
+        req.setTriggerMinute(30);
+        req.setTriggerDaysOfWeek("MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY,SATURDAY,SUNDAY");
+        req.setActionDeviceId(11L);
+        req.setActionValue("true");
+        req.setEnabled(true);
+        return req;
+    }
+
+    private Rule buildTimeRule() {
+        Rule rule = new Rule();
+        ReflectionTestUtils.setField(rule, "id", 3L);
+        rule.setName("Morning Lights");
+        rule.setUser(user);
+        rule.setTriggerType(TriggerType.TIME);
+        rule.setTriggerHour(7);
+        rule.setTriggerMinute(30);
+        rule.setTriggerDaysOfWeek("MONDAY,TUESDAY,WEDNESDAY,THURSDAY,FRIDAY,SATURDAY,SUNDAY");
         rule.setActionDevice(switchDevice);
         rule.setActionValue("true");
         rule.setEnabled(true);
