@@ -1,4 +1,4 @@
-import { Room, Device, Scene, Rule, Schedule, ActivityEntry, EnergyDevice, EnergyRoom, Member } from './models';
+import { Room, Device, Scene, Schedule, ActivityEntry, EnergyDevice, EnergyRoom, Member } from './models';
 
 export const ROOMS: Room[] = [
   { id: 'r1', name: 'Living Room', icon: 'weekend' },
@@ -51,32 +51,6 @@ export const SCENES: Scene[] = [
   },
 ];
 
-export const RULES: Rule[] = [
-  {
-    id: 'rl1', name: 'Morning Wake-Up', triggerType: 'time', active: true,
-    summary: 'Every weekday at 7:00 AM → Open Living Room Blinds and set lights to 60%'
-  },
-  {
-    id: 'rl2', name: 'Motion Lighting', triggerType: 'event', active: true,
-    summary: 'When motion is detected in Hallway → Turn on Hallway Light for 5 minutes'
-  },
-  {
-    id: 'rl3', name: 'High Temperature Alert', triggerType: 'threshold', active: true,
-    summary: 'When Kitchen temperature exceeds 28°C → Turn on AC and send notification'
-  },
-  {
-    id: 'rl4', name: 'Night Mode', triggerType: 'time', active: false,
-    summary: 'Every day at 11:00 PM → Activate Goodnight scene'
-  },
-  {
-    id: 'rl5', name: 'Motion Blinds', triggerType: 'event', active: true, hasConflict: true,
-    summary: 'When motion is detected in Hallway → Open Living Room Blinds immediately'
-  },
-  {
-    id: 'rl6', name: 'Sleep Blinds', triggerType: 'time', active: true, hasConflict: true,
-    summary: 'Every day at 10:00 PM → Close Living Room Blinds for the night'
-  },
-];
 
 export const SCHEDULES: Schedule[] = [
   { id: 'sc1', name: 'Morning Lights', deviceId: 'd1', deviceName: 'Ceiling Light', action: 'Turn On 60%', days: [0,1,2,3,4], startTime: '07:00', color: '#00897B', recurrence: 'weekdays' },

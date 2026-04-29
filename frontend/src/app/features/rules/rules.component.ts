@@ -7,13 +7,9 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatStepperModule } from '@angular/material/stepper';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { RULES } from '../../core/mock-data';
-import { Rule } from '../../core/models';
+import { FormsModule } from '@angular/forms';
+import { RuleDto } from '../../core/models';
+import { RuleService } from '../../core/rule.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { NewRuleDialogComponent } from './new-rule-dialog.component';
 
@@ -22,8 +18,7 @@ import { NewRuleDialogComponent } from './new-rule-dialog.component';
   standalone: true,
   imports: [
     CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatSlideToggleModule,
-    MatProgressBarModule, MatDialogModule, MatSnackBarModule, MatStepperModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule, FormsModule, ReactiveFormsModule,
+    MatProgressBarModule, MatDialogModule, MatSnackBarModule, FormsModule,
     EmptyStateComponent,
   ],
   template: `
@@ -39,17 +34,27 @@ import { NewRuleDialogComponent } from './new-rule-dialog.component';
           <div class="rule-card-content">
             <div class="rule-header">
               <h3>{{ rule.name }}</h3>
-              <mat-slide-toggle [(ngModel)]="rule.active" color="primary" (change)="onToggleRule(rule)"></mat-slide-toggle>
+              <mat-slide-toggle [(ngModel)]="rule.enabled" color="primary"
+                                (change)="onToggleRule(rule)"
+                                data-testid="rule-toggle">
+              </mat-slide-toggle>
             </div>
-            <p class="rule-summary">{{ rule.summary }}</p>
+            <p class="rule-summary">{{ buildSummary(rule) }}</p>
             <div class="rule-chips">
               <span class="trigger-chip">
-                <span *ngIf="rule.triggerType === 'time'">🕐 Time</span>
-                <span *ngIf="rule.triggerType === 'threshold'">📊 Threshold</span>
-                <span *ngIf="rule.triggerType === 'event'">⚡ Event</span>
+                <span *ngIf="rule.triggerType === 'TIME'">🕐 Time</span>
+                <span *ngIf="rule.triggerType === 'THRESHOLD'">📊 Threshold</span>
+                <span *ngIf="rule.triggerType === 'EVENT'">⚡ Event</span>
               </span>
-              <span *ngIf="rule.hasConflict" class="conflict-chip">⚠ Conflict detected</span>
-              <span *ngIf="!rule.active" style="font-size:12px;color:#9e9e9e;">Inactive</span>
+              <span *ngIf="!rule.enabled" style="font-size:12px;color:#9e9e9e;">Inactive</span>
+            </div>
+            <div class="rule-actions">
+              <button mat-icon-button (click)="openEditRule(rule)" title="Edit" data-testid="rule-edit-btn">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" (click)="confirmDelete(rule)" title="Delete" data-testid="rule-delete-btn">
+                <mat-icon>delete</mat-icon>
+              </button>
             </div>
           </div>
         </mat-card>
@@ -67,42 +72,88 @@ import { NewRuleDialogComponent } from './new-rule-dialog.component';
     </div>
 
     <div class="fab-container">
-      <button mat-fab color="primary" (click)="openNewRule()">
+      <button mat-fab color="primary" (click)="openNewRule()" data-testid="rule-add-fab">
         <mat-icon>add</mat-icon>
       </button>
     </div>
   `,
+  styles: [`
+    .rule-actions { display: flex; justify-content: flex-end; margin-top: 4px; }
+  `],
 })
 export class RulesComponent implements OnInit {
   loading = true;
-  rules: Rule[] = [];
+  rules: RuleDto[] = [];
 
-  constructor(private dialog: MatDialog, private snackBar: MatSnackBar) {}
+  constructor(
+    private ruleService: RuleService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar,
+  ) {}
 
   ngOnInit() {
-    setTimeout(() => {
-      this.rules = RULES.map(r => ({ ...r }));
-      this.loading = false;
-    }, 600);
+    this.loadRules();
   }
 
-  onToggleRule(rule: Rule) {
-    this.snackBar.open(`"${rule.name}" ${rule.active ? 'enabled' : 'disabled'} ✓`, '', { duration: 2000 });
+  loadRules() {
+    this.loading = true;
+    this.ruleService.getRules().subscribe({
+      next: rules => { this.rules = rules; this.loading = false; },
+      error: () => { this.loading = false; },
+    });
+  }
+
+  onToggleRule(rule: RuleDto) {
+    this.ruleService.setEnabled(rule.id, rule.enabled).subscribe({
+      next: updated => {
+        rule.enabled = updated.enabled;
+        this.snackBar.open(`"${rule.name}" ${rule.enabled ? 'enabled' : 'disabled'} ✓`, '', { duration: 2000 });
+      },
+      error: () => {
+        rule.enabled = !rule.enabled;
+        this.snackBar.open('Failed to update rule', '', { duration: 2000 });
+      },
+    });
+  }
+
+  confirmDelete(rule: RuleDto) {
+    const confirmed = confirm(`Delete rule "${rule.name}"?`);
+    if (!confirmed) return;
+    this.ruleService.deleteRule(rule.id).subscribe({
+      next: () => {
+        this.rules = this.rules.filter(r => r.id !== rule.id);
+        this.snackBar.open(`Rule "${rule.name}" deleted ✓`, '', { duration: 2000 });
+      },
+      error: () => this.snackBar.open('Failed to delete rule', '', { duration: 2000 }),
+    });
   }
 
   openNewRule() {
-    const ref = this.dialog.open(NewRuleDialogComponent, { width: '560px' });
-    ref.afterClosed().subscribe(result => {
-      if (result) {
-        this.rules = [...this.rules, {
-          id: 'rl_' + Date.now(),
-          name: result.name,
-          summary: `When ${result.triggerLabel} → ${result.action}`,
-          triggerType: result.triggerType,
-          active: true,
-        }];
-        this.snackBar.open(`Rule "${result.name}" created ✓`, '', { duration: 2000 });
-      }
+    const ref = this.dialog.open(NewRuleDialogComponent, { width: '580px', data: null });
+    ref.afterClosed().subscribe(created => {
+      if (created) this.loadRules();
     });
+  }
+
+  openEditRule(rule: RuleDto) {
+    const ref = this.dialog.open(NewRuleDialogComponent, { width: '580px', data: rule });
+    ref.afterClosed().subscribe(updated => {
+      if (updated) this.loadRules();
+    });
+  }
+
+  buildSummary(rule: RuleDto): string {
+    let trigger = '';
+    if (rule.triggerType === 'TIME') {
+      const h = String(rule.triggerHour ?? 0).padStart(2, '0');
+      const m = String(rule.triggerMinute ?? 0).padStart(2, '0');
+      trigger = `Every ${rule.triggerDaysOfWeek ?? ''} at ${h}:${m}`;
+    } else if (rule.triggerType === 'THRESHOLD') {
+      const op = rule.triggerOperator === 'GT' ? '>' : '<';
+      trigger = `${rule.triggerDeviceName} ${op} ${rule.triggerThresholdValue}`;
+    } else {
+      trigger = `${rule.triggerDeviceName} state changes`;
+    }
+    return `When ${trigger} → ${rule.actionValue} ${rule.actionDeviceName}`;
   }
 }

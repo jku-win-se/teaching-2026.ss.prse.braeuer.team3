@@ -150,7 +150,7 @@ class RuleControllerTest {
     @WithMockUser(username = "user@test.com")
     void setEnabled_returns200() throws Exception {
         RuleResponse disabled = new RuleResponse(1L, "Cool Down", false, TriggerType.THRESHOLD,
-                10L, "Sensor", TriggerOperator.GT, 25.0, 11L, "AC", "true");
+                10L, "Sensor", TriggerOperator.GT, 25.0, null, null, null, 11L, "AC", "true");
         when(ruleService.setEnabled(anyString(), eq(1L), anyBoolean())).thenReturn(disabled);
 
         mockMvc.perform(patch("/api/rules/1/enabled")
@@ -199,6 +199,36 @@ class RuleControllerTest {
 
     private RuleResponse buildResponse() {
         return new RuleResponse(1L, "Cool Down", true, TriggerType.THRESHOLD,
-                10L, "Sensor", TriggerOperator.GT, 25.0, 11L, "AC", "true");
+                10L, "Sensor", TriggerOperator.GT, 25.0, null, null, null, 11L, "AC", "true");
+    }
+
+    private RuleResponse buildTimeResponse() {
+        return new RuleResponse(2L, "Morning Lights", true, TriggerType.TIME,
+                null, null, null, null, 7, 30, "MONDAY,FRIDAY", 11L, "AC", "true");
+    }
+
+    @Test
+    @WithMockUser(username = "user@test.com")
+    void createRule_timeRequest_returns201WithTimeFields() throws Exception {
+        RuleRequest req = new RuleRequest();
+        req.setName("Morning Lights");
+        req.setTriggerType(TriggerType.TIME);
+        req.setTriggerHour(7);
+        req.setTriggerMinute(30);
+        req.setTriggerDaysOfWeek("MONDAY,FRIDAY");
+        req.setActionDeviceId(11L);
+        req.setActionValue("true");
+
+        when(ruleService.createRule(anyString(), any(RuleRequest.class))).thenReturn(buildTimeResponse());
+
+        mockMvc.perform(post("/api/rules")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.triggerType").value("TIME"))
+                .andExpect(jsonPath("$.triggerHour").value(7))
+                .andExpect(jsonPath("$.triggerMinute").value(30))
+                .andExpect(jsonPath("$.triggerDaysOfWeek").value("MONDAY,FRIDAY"));
     }
 }

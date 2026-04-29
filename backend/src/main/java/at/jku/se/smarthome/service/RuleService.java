@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -91,12 +92,13 @@ public class RuleService {
      * @param request the rule creation request
      * @return the created rule as a response DTO
      * @throws ResponseStatusException with status 401 if the user is not found
+     * @throws ResponseStatusException with status 400 if required TIME fields are missing
      * @throws ResponseStatusException with status 404 if either device is not found or not owned
      */
     @Transactional
     public RuleResponse createRule(String email, RuleRequest request) {
         User user = resolveUser(email);
-        Device triggerDevice = resolveOwnedDevice(user, request.getTriggerDeviceId());
+        Device triggerDevice = resolveTriggerDevice(user, request);
         Device actionDevice = resolveOwnedDevice(user, request.getActionDeviceId());
 
         Rule rule = new Rule();
@@ -118,6 +120,7 @@ public class RuleService {
      * @param request the replacement request
      * @return the updated rule as a response DTO
      * @throws ResponseStatusException with status 401 if the user is not found
+     * @throws ResponseStatusException with status 400 if required TIME fields are missing
      * @throws ResponseStatusException with status 404 if the rule, trigger device,
      *                                 or action device is not found or not owned
      */
@@ -125,11 +128,39 @@ public class RuleService {
     public RuleResponse updateRule(String email, Long ruleId, RuleRequest request) {
         User user = resolveUser(email);
         Rule rule = resolveOwnedRule(user, ruleId);
-        Device triggerDevice = resolveOwnedDevice(user, request.getTriggerDeviceId());
+        Device triggerDevice = resolveTriggerDevice(user, request);
         Device actionDevice = resolveOwnedDevice(user, request.getActionDeviceId());
 
         applyRequest(rule, request, triggerDevice, actionDevice);
         return toResponse(ruleRepository.save(rule));
+    }
+
+    /**
+     * Evaluates all enabled TIME rules whose scheduled hour and minute match the current time.
+     * Called once per minute by {@link RuleScheduler}.
+     *
+     * <p>Only rules whose {@code triggerDaysOfWeek} contains the current day of the week
+     * are executed.</p>
+     */
+    @Transactional
+    public void evaluateTimeRules() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        String today = now.getDayOfWeek().name();
+        List<Rule> candidates = ruleRepository
+                .findByEnabledTrueAndTriggerTypeAndTriggerHourAndTriggerMinute(
+                        TriggerType.TIME, now.getHour(), now.getMinute());
+        for (Rule rule : candidates) {
+            try {
+                List<String> days = Arrays.asList(rule.getTriggerDaysOfWeek().split(","));
+                if (days.contains(today)) {
+                    executeRule(rule);
+                }
+            } catch (Exception e) {
+                if (log.isWarnEnabled()) {
+                    log.warn("TIME rule {} evaluation failed: {}", rule.getId(), e.getMessage());
+                }
+            }
+        }
     }
 
     /**
@@ -238,12 +269,37 @@ public class RuleService {
         return req;
     }
 
+    private Device resolveTriggerDevice(User user, RuleRequest request) {
+        if (request.getTriggerType() == TriggerType.TIME) {
+            if (request.getTriggerHour() == null || request.getTriggerMinute() == null
+                    || request.getTriggerDaysOfWeek() == null
+                    || request.getTriggerDaysOfWeek().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "TIME rules require triggerHour, triggerMinute and triggerDaysOfWeek.");
+            }
+            return null;
+        }
+        return resolveOwnedDevice(user, request.getTriggerDeviceId());
+    }
+
     private void applyRequest(Rule rule, RuleRequest request, Device triggerDevice, Device actionDevice) {
         rule.setName(request.getName());
         rule.setTriggerType(request.getTriggerType());
-        rule.setTriggerDevice(triggerDevice);
-        rule.setTriggerOperator(request.getTriggerOperator());
-        rule.setTriggerThresholdValue(request.getTriggerThresholdValue());
+        if (request.getTriggerType() == TriggerType.TIME) {
+            rule.setTriggerDevice(null);
+            rule.setTriggerHour(request.getTriggerHour());
+            rule.setTriggerMinute(request.getTriggerMinute());
+            rule.setTriggerDaysOfWeek(request.getTriggerDaysOfWeek());
+            rule.setTriggerOperator(null);
+            rule.setTriggerThresholdValue(null);
+        } else {
+            rule.setTriggerDevice(triggerDevice);
+            rule.setTriggerHour(null);
+            rule.setTriggerMinute(null);
+            rule.setTriggerDaysOfWeek(null);
+            rule.setTriggerOperator(request.getTriggerOperator());
+            rule.setTriggerThresholdValue(request.getTriggerThresholdValue());
+        }
         rule.setActionDevice(actionDevice);
         rule.setActionValue(request.getActionValue());
         rule.setEnabled(request.getEnabled() == null || request.getEnabled());
@@ -266,15 +322,19 @@ public class RuleService {
     }
 
     private static RuleResponse toResponse(Rule rule) {
+        Device trigger = rule.getTriggerDevice();
         return new RuleResponse(
                 rule.getId(),
                 rule.getName(),
                 rule.isEnabled(),
                 rule.getTriggerType(),
-                rule.getTriggerDevice().getId(),
-                rule.getTriggerDevice().getName(),
+                trigger != null ? trigger.getId() : null,
+                trigger != null ? trigger.getName() : null,
                 rule.getTriggerOperator(),
                 rule.getTriggerThresholdValue(),
+                rule.getTriggerHour(),
+                rule.getTriggerMinute(),
+                rule.getTriggerDaysOfWeek(),
                 rule.getActionDevice().getId(),
                 rule.getActionDevice().getName(),
                 rule.getActionValue()
