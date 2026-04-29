@@ -66,7 +66,16 @@ interface DeviceOption { id: number; name: string; type: string; }
         <mat-spinner diameter="40"></mat-spinner>
       </div>
 
-      <mat-stepper [linear]="true" #stepper orientation="horizontal" *ngIf="!loadingDevices">
+      <div *ngIf="!loadingDevices && rooms.length === 0"
+           style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px 16px;color:#757575;">
+        <mat-icon style="font-size:40px;width:40px;height:40px;">meeting_room</mat-icon>
+        <p style="margin:0;font-size:14px;text-align:center;">
+          No rooms or devices found.<br>Add a room and at least one device first.
+        </p>
+        <button mat-flat-button mat-dialog-close>Close</button>
+      </div>
+
+      <mat-stepper [linear]="true" #stepper orientation="horizontal" *ngIf="!loadingDevices && rooms.length > 0">
 
         <!-- Step 1: Name -->
         <mat-step [stepControl]="nameForm">
@@ -291,9 +300,11 @@ export class NewRuleDialogComponent implements OnInit {
   ngOnInit() {
     this.roomService.getRooms().subscribe(rooms => {
       this.rooms = rooms.map(r => ({ id: r.id, name: r.name }));
-      const deviceRequests = rooms.map(r =>
-        this.deviceService.getDevices(r.id)
-      );
+      if (rooms.length === 0) {
+        this.loadingDevices = false;
+        return;
+      }
+      const deviceRequests = rooms.map(r => this.deviceService.getDevices(r.id));
       forkJoin(deviceRequests).subscribe(allDevices => {
         rooms.forEach((r, i) => this.allDevicesByRoom.set(r.id, allDevices[i]));
         this.loadingDevices = false;
