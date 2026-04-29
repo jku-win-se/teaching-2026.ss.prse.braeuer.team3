@@ -90,4 +90,4 @@ Soll die Konflikt-Erkennung erhalten bleiben?
 - A) **Entfernen** — Backend liefert kein `hasConflict`, UI-Only-Feature ist nicht sinnvoll
 - B) **Backend erweitern** — `hasConflict` in `RuleResponse` berechnen und zurückgeben
 - C) **Als Frontend-only behalten** — immer `false` (kein Konflikt) setzen, Anzeige bleibt erhalten
-- D) Other (please describe after [Answer]: tag below)
+- D) Other (please describe after [Answer]: tag below) 
