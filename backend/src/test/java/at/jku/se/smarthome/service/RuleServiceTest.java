@@ -8,11 +8,13 @@ import at.jku.se.smarthome.domain.TriggerOperator;
 import at.jku.se.smarthome.domain.TriggerType;
 import at.jku.se.smarthome.domain.User;
 import at.jku.se.smarthome.dto.DeviceStateRequest;
+import at.jku.se.smarthome.dto.RuleNotificationDto;
 import at.jku.se.smarthome.dto.RuleRequest;
 import at.jku.se.smarthome.dto.RuleResponse;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RuleRepository;
 import at.jku.se.smarthome.repository.UserRepository;
+import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,6 +46,7 @@ class RuleServiceTest {
     @Mock private DeviceRepository deviceRepository;
     @Mock private UserRepository userRepository;
     @Mock private DeviceService deviceService;
+    @Mock private DeviceWebSocketHandler wsHandler;
 
     private RuleService ruleService;
 
@@ -56,7 +60,7 @@ class RuleServiceTest {
 
     @BeforeEach
     void setUp() {
-        ruleService = new RuleService(ruleRepository, deviceRepository, userRepository, deviceService);
+        ruleService = new RuleService(ruleRepository, deviceRepository, userRepository, deviceService, wsHandler);
 
         user = new User("Test User", EMAIL, "hashed");
         ReflectionTestUtils.setField(user, "id", 1L);
@@ -340,6 +344,86 @@ class RuleServiceTest {
         ruleService.evaluateTimeRules();
 
         verify(deviceService, never()).updateStateAsActor(anyLong(), any(), any(), any());
+    }
+
+    // --- notifications (US-013) ---
+
+    @Test
+    void evaluateRules_threshold_fires_broadcastsSuccessNotification() {
+        Rule rule = buildThresholdRule(); // actionValue "true", actionDevice "AC"
+        sensorDevice.setSensorValue(30.0);
+        when(ruleRepository.findByEnabledTrueAndTriggerDevice(sensorDevice)).thenReturn(List.of(rule));
+
+        ruleService.evaluateRulesForDevice(sensorDevice, new DeviceStateRequest(), false);
+
+        ArgumentCaptor<RuleNotificationDto> captor = ArgumentCaptor.forClass(RuleNotificationDto.class);
+        verify(wsHandler).broadcastRuleNotification(eq(EMAIL), captor.capture());
+        assertThat(captor.getValue().isSuccess()).isTrue();
+        assertThat(captor.getValue().getRuleName()).isEqualTo("Cool Down");
+        assertThat(captor.getValue().getMessage()).isEqualTo("AC eingeschaltet");
+        assertThat(captor.getValue().getMessageType()).isEqualTo("ruleNotification");
+    }
+
+    @Test
+    void evaluateRules_event_fires_broadcastsSuccessNotification() {
+        Rule rule = buildEventRule(); // actionValue "true", actionDevice "AC"
+        when(ruleRepository.findByEnabledTrueAndTriggerDevice(switchDevice)).thenReturn(List.of(rule));
+
+        ruleService.evaluateRulesForDevice(switchDevice, new DeviceStateRequest(), true);
+
+        ArgumentCaptor<RuleNotificationDto> captor = ArgumentCaptor.forClass(RuleNotificationDto.class);
+        verify(wsHandler).broadcastRuleNotification(eq(EMAIL), captor.capture());
+        assertThat(captor.getValue().isSuccess()).isTrue();
+    }
+
+    @Test
+    void evaluateTimeRules_fires_broadcastsSuccessNotification() {
+        Rule rule = buildTimeRule(); // actionValue "true", actionDevice "AC"
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        when(ruleRepository.findByEnabledTrueAndTriggerTypeAndTriggerHourAndTriggerMinute(
+                TriggerType.TIME, now.getHour(), now.getMinute()))
+                .thenReturn(List.of(rule));
+
+        ruleService.evaluateTimeRules();
+
+        ArgumentCaptor<RuleNotificationDto> captor = ArgumentCaptor.forClass(RuleNotificationDto.class);
+        verify(wsHandler).broadcastRuleNotification(eq(EMAIL), captor.capture());
+        assertThat(captor.getValue().isSuccess()).isTrue();
+        assertThat(captor.getValue().getRuleName()).isEqualTo("Morning Lights");
+    }
+
+    @Test
+    void evaluateRules_executionFails_broadcastsFailureNotification() {
+        Rule rule = buildThresholdRule();
+        sensorDevice.setSensorValue(30.0);
+        when(ruleRepository.findByEnabledTrueAndTriggerDevice(sensorDevice)).thenReturn(List.of(rule));
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."))
+                .when(deviceService).updateStateAsActor(anyLong(), any(), any(), anyString());
+
+        ruleService.evaluateRulesForDevice(sensorDevice, new DeviceStateRequest(), false);
+
+        ArgumentCaptor<RuleNotificationDto> captor = ArgumentCaptor.forClass(RuleNotificationDto.class);
+        verify(wsHandler).broadcastRuleNotification(eq(EMAIL), captor.capture());
+        assertThat(captor.getValue().isSuccess()).isFalse();
+        assertThat(captor.getValue().getMessage()).isEqualTo("Gerät nicht verfügbar");
+    }
+
+    @Test
+    void evaluateTimeRules_executionFails_broadcastsFailureNotification() {
+        Rule rule = buildTimeRule();
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        when(ruleRepository.findByEnabledTrueAndTriggerTypeAndTriggerHourAndTriggerMinute(
+                TriggerType.TIME, now.getHour(), now.getMinute()))
+                .thenReturn(List.of(rule));
+        doThrow(new RuntimeException("unexpected"))
+                .when(deviceService).updateStateAsActor(anyLong(), any(), any(), anyString());
+
+        ruleService.evaluateTimeRules();
+
+        ArgumentCaptor<RuleNotificationDto> captor = ArgumentCaptor.forClass(RuleNotificationDto.class);
+        verify(wsHandler).broadcastRuleNotification(eq(EMAIL), captor.capture());
+        assertThat(captor.getValue().isSuccess()).isFalse();
+        assertThat(captor.getValue().getMessage()).isEqualTo("Unbekannter Fehler");
     }
 
     // --- Helpers ---

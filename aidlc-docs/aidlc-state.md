@@ -77,10 +77,10 @@
 - [x] Build and Test — COMPLETE (2026-04-25)
 
 ## Current Status
-- **Lifecycle Phase**: CONSTRUCTION (US-012)
-- **Current Stage**: Build and Test complete — 203/203 tests, 0 PMD violations, Javadoc clean
-- **Next Stage**: Ready for merge / Operations
-- **Summary**: aidlc-docs/construction/build-and-test/us012-build-and-test-summary.md
+- **Lifecycle Phase**: INCEPTION (US-013)
+- **Current Stage**: Workflow Planning complete — Requirements + Execution Plan erstellt
+- **Next Stage**: Functional Design (Unit 1: Backend Notification)
+- **Summary**: aidlc-docs/inception/plans/us013-execution-plan.md
 
 ## US-012 Stage Progress (new feature cycle)
 
@@ -101,4 +101,24 @@
 - [x] Code Generation (Unit 1: Backend) — 2026-04-28
 - [x] Code Generation (Unit 2: Frontend) — 2026-04-28
 - [x] Build and Test — COMPLETE (2026-04-29)
+
+## US-013 Stage Progress (new feature cycle)
+
+### 🔵 INCEPTION PHASE — US-013
+- [x] Workspace Detection — reuse existing (2026-04-29)
+- [x] Reverse Engineering — reuse existing (2026-04-29)
+- [x] Requirements Analysis — 2026-04-29
+- [ ] User Stories — SKIP
+- [x] Workflow Planning — 2026-04-29
+- [ ] Application Design — SKIP
+- [ ] Units Generation — EXECUTE
+
+### 🟢 CONSTRUCTION PHASE — US-013
+- [x] Functional Design (Unit 1: Backend Notification) — 2026-04-29
+- [ ] NFR Requirements — SKIP
+- [ ] NFR Design — SKIP
+- [ ] Infrastructure Design — SKIP
+- [x] Code Generation (Unit 1: Backend) — 2026-04-29
+- [ ] Code Generation (Unit 2: Frontend) — EXECUTE
+- [ ] Build and Test — EXECUTE
 
