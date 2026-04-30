@@ -157,6 +157,29 @@ class DeviceWebSocketHandlerTest {
         verify(session2).sendMessage(any(TextMessage.class));
     }
 
+    // --- broadcastRuleNotification ---
+
+    @Test
+    void broadcastRuleNotification_noSessions_doesNotThrow() {
+        at.jku.se.smarthome.dto.RuleNotificationDto dto =
+                new at.jku.se.smarthome.dto.RuleNotificationDto("Night Mode", true, "Lamp ausgeschaltet");
+        assertThatCode(() -> handler.broadcastRuleNotification("nobody@test.com", dto))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void broadcastRuleNotification_openSession_sendsMessage() throws Exception {
+        stubEmail(session, "user@test.com");
+        when(session.isOpen()).thenReturn(true);
+        handler.afterConnectionEstablished(session);
+
+        at.jku.se.smarthome.dto.RuleNotificationDto dto =
+                new at.jku.se.smarthome.dto.RuleNotificationDto("Night Mode", true, "Lamp ausgeschaltet");
+        handler.broadcastRuleNotification("user@test.com", dto);
+
+        verify(session).sendMessage(any(TextMessage.class));
+    }
+
     // --- removeSession ---
 
     @Test

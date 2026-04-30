@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { MatSidenavModule, MatSidenav } from '@angular/material/sidenav';
@@ -6,8 +6,12 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatBadgeModule } from '@angular/material/badge';
 import { BreakpointObserver } from '@angular/cdk/layout';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
+import { RealtimeService } from '../../core/realtime.service';
+import { RuleNotificationDto } from '../../core/models';
 
 interface NavItem {
   label: string;
@@ -31,6 +35,7 @@ interface NavGroup {
     MatIconModule,
     MatButtonModule,
     MatMenuModule,
+    MatBadgeModule,
   ],
   template: `
     <mat-sidenav-container style="height:100vh;background:var(--bg);">
@@ -72,16 +77,39 @@ interface NavGroup {
           <button mat-icon-button style="color:rgba(255,255,255,0.7);">
             <mat-icon>search</mat-icon>
           </button>
-          <button mat-icon-button style="color:rgba(255,255,255,0.7);position:relative;">
-            <mat-icon>notifications</mat-icon>
-            <span style="
-              position:absolute; top:6px; right:6px;
-              width:16px; height:16px; border-radius:50%;
-              background:#EF4444; color:white;
-              font-size:10px; font-weight:700; line-height:16px;
-              text-align:center; pointer-events:none;
-            ">3</span>
+          <button mat-icon-button style="color:rgba(255,255,255,0.7);" [matMenuTriggerFor]="notificationMenu">
+            <mat-icon
+              [matBadge]="notifications.length"
+              [matBadgeHidden]="notifications.length === 0"
+              matBadgeColor="warn"
+              matBadgeSize="small"
+            >notifications</mat-icon>
           </button>
+
+          <mat-menu #notificationMenu="matMenu" xPosition="before" panelClass="notif-menu">
+            <div style="width:100%;box-sizing:border-box;">
+              <div style="padding:14px 16px 10px;border-bottom:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-weight:600;font-size:14px;color:var(--text);">Benachrichtigungen</span>
+                <span style="font-size:12px;color:var(--text-muted);background:#F1F5F9;padding:2px 8px;border-radius:10px;font-weight:500;">{{ notifications.length }} neu</span>
+              </div>
+              <div style="max-height:320px;overflow-y:auto;">
+                <div *ngIf="notifications.length === 0" style="padding:32px 16px;color:var(--text-muted);font-size:13px;text-align:center;">
+                  Keine Benachrichtigungen
+                </div>
+                <div *ngFor="let n of notifications" style="padding:12px 16px;border-bottom:1px solid #F8FAFC;display:flex;gap:12px;align-items:flex-start;">
+                  <mat-icon [style.color]="n.success ? '#22C55E' : '#EF4444'" style="font-size:20px;width:20px;height:20px;flex-shrink:0;margin-top:1px;">{{ n.success ? 'check_circle' : 'error' }}</mat-icon>
+                  <div style="min-width:0;">
+                    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ n.ruleName }}</div>
+                    <div style="font-size:12px;color:var(--text-muted);line-height:1.4;">{{ n.message }}</div>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="notifications.length > 0" style="padding:8px 16px;border-top:1px solid #F1F5F9;display:flex;justify-content:flex-end;">
+                <button mat-button color="primary" style="font-size:12px;min-width:0;" (click)="clearNotifications()">Alle löschen</button>
+              </div>
+            </div>
+          </mat-menu>
+
           <div class="toolbar-avatar" style="margin-left:4px;cursor:pointer;" [matMenuTriggerFor]="userMenu">
             <div class="avatar-sm">{{ auth.currentUser?.avatarInitials || 'A' }}</div>
             <span *ngIf="!isMobile">{{ auth.currentUser?.name || 'User' }}</span>
@@ -105,9 +133,12 @@ interface NavGroup {
     </mat-sidenav-container>
   `,
 })
-export class ShellComponent implements OnInit {
+export class ShellComponent implements OnInit, OnDestroy {
   @ViewChild('sidenav') sidenav!: MatSidenav;
   isMobile = false;
+  notifications: RuleNotificationDto[] = [];
+
+  private notificationSub?: Subscription;
 
   navGroups: NavGroup[] = [
     {
@@ -141,13 +172,31 @@ export class ShellComponent implements OnInit {
     },
   ];
 
-  constructor(private router: Router, private bp: BreakpointObserver, public auth: AuthService) {}
+  constructor(
+    private router: Router,
+    private bp: BreakpointObserver,
+    public auth: AuthService,
+    private realtime: RealtimeService,
+  ) {}
 
   ngOnInit() {
     this.bp.observe(['(max-width: 768px)']).subscribe(result => {
       this.isMobile = result.matches;
     });
+
+    this.notificationSub = this.realtime.ruleNotifications$.subscribe(n => {
+      this.notifications.unshift(n);
+    });
   }
+
+  ngOnDestroy() {
+    this.notificationSub?.unsubscribe();
+  }
+
+  clearNotifications() {
+    this.notifications = [];
+  }
+
 
   logout() {
     this.auth.logout();

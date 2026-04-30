@@ -2,6 +2,7 @@ package at.jku.se.smarthome.websocket;
 
 import at.jku.se.smarthome.dto.ActivityLogResponse;
 import at.jku.se.smarthome.dto.DeviceResponse;
+import at.jku.se.smarthome.dto.RuleNotificationDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -142,6 +143,47 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
             payload = objectMapper.writeValueAsString(node);
         } catch (JsonProcessingException serializationException) {
             throw new IllegalStateException("Failed to serialise ActivityLogResponse for broadcast",
+                    serializationException);
+        }
+        TextMessage message = new TextMessage(payload);
+        for (WebSocketSession session : sessions) {
+            if (!session.isOpen()) {
+                removeSession(session);
+                continue;
+            }
+            try {
+                synchronized (session) {
+                    session.sendMessage(message);
+                }
+            } catch (IOException sendException) {
+                removeSession(session);
+            }
+        }
+    }
+
+    /**
+     * Broadcasts a rule execution notification to all open sessions belonging to the given user.
+     *
+     * <p>The {@link RuleNotificationDto} is serialised directly to JSON; its
+     * {@code messageType} field ({@code "ruleNotification"}) allows the frontend to
+     * distinguish this message from device state updates and activity log entries (FR-US013-06).</p>
+     *
+     * <p>If sending to a single session fails, that session is removed from the
+     * registry and broadcasting continues to the remaining sessions.</p>
+     *
+     * @param userEmail the e-mail of the user whose sessions should receive the notification
+     * @param dto       the rule notification payload to broadcast
+     */
+    public void broadcastRuleNotification(String userEmail, RuleNotificationDto dto) {
+        CopyOnWriteArrayList<WebSocketSession> sessions = sessionMap.get(userEmail);
+        if (sessions == null) {
+            return;
+        }
+        String payload;
+        try {
+            payload = objectMapper.writeValueAsString(dto);
+        } catch (JsonProcessingException serializationException) {
+            throw new IllegalStateException("Failed to serialise RuleNotificationDto for broadcast",
                     serializationException);
         }
         TextMessage message = new TextMessage(payload);

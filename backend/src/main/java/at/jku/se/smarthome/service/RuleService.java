@@ -6,11 +6,13 @@ import at.jku.se.smarthome.domain.Rule;
 import at.jku.se.smarthome.domain.TriggerType;
 import at.jku.se.smarthome.domain.User;
 import at.jku.se.smarthome.dto.DeviceStateRequest;
+import at.jku.se.smarthome.dto.RuleNotificationDto;
 import at.jku.se.smarthome.dto.RuleRequest;
 import at.jku.se.smarthome.dto.RuleResponse;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RuleRepository;
 import at.jku.se.smarthome.repository.UserRepository;
+import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -43,6 +45,7 @@ public class RuleService {
     private final DeviceRepository deviceRepository;
     private final UserRepository userRepository;
     private final DeviceService deviceService;
+    private final DeviceWebSocketHandler wsHandler;
 
     /**
      * Constructs a {@code RuleService} with all required dependencies.
@@ -51,15 +54,18 @@ public class RuleService {
      * @param deviceRepository the repository for device lookups and ownership checks
      * @param userRepository   the repository for user lookups
      * @param deviceService    the service used to apply device state when a rule fires
+     * @param wsHandler        the WebSocket handler used to push rule notifications to the frontend
      */
     public RuleService(RuleRepository ruleRepository,
                        DeviceRepository deviceRepository,
                        UserRepository userRepository,
-                       DeviceService deviceService) {
+                       DeviceService deviceService,
+                       DeviceWebSocketHandler wsHandler) {
         this.ruleRepository = ruleRepository;
         this.deviceRepository = deviceRepository;
         this.userRepository = userRepository;
         this.deviceService = deviceService;
+        this.wsHandler = wsHandler;
     }
 
     /**
@@ -159,6 +165,8 @@ public class RuleService {
                 if (log.isWarnEnabled()) {
                     log.warn("TIME rule {} evaluation failed: {}", rule.getId(), e.getMessage());
                 }
+                wsHandler.broadcastRuleNotification(rule.getUser().getEmail(),
+                        new RuleNotificationDto(rule.getName(), false, toUserMessage(e)));
             }
         }
     }
@@ -227,6 +235,8 @@ public class RuleService {
                 if (log.isWarnEnabled()) {
                     log.warn("Rule {} evaluation failed: {}", rule.getId(), e.getMessage());
                 }
+                wsHandler.broadcastRuleNotification(rule.getUser().getEmail(),
+                        new RuleNotificationDto(rule.getName(), false, toUserMessage(e)));
             }
         }
     }
@@ -255,6 +265,31 @@ public class RuleService {
         if (log.isInfoEnabled()) {
             log.info("Rule {} fired — actor: {}", rule.getId(), actorName);
         }
+        String userEmail = rule.getUser().getEmail();
+        wsHandler.broadcastRuleNotification(userEmail,
+                new RuleNotificationDto(rule.getName(), true, buildSuccessMessage(rule)));
+    }
+
+    private String buildSuccessMessage(Rule rule) {
+        String deviceName = rule.getActionDevice().getName();
+        return switch (rule.getActionValue().toLowerCase()) {
+            case "true"  -> deviceName + " eingeschaltet";
+            case "false" -> deviceName + " ausgeschaltet";
+            case "open"  -> deviceName + " geöffnet";
+            case "close" -> deviceName + " geschlossen";
+            default      -> rule.getActionValue() + ": " + deviceName;
+        };
+    }
+
+    private String toUserMessage(Exception e) {
+        if (e instanceof ResponseStatusException rse
+                && rse.getStatusCode().value() == 404) {
+            return "Gerät nicht verfügbar";
+        }
+        if (e instanceof ResponseStatusException) {
+            return "Regelausführung fehlgeschlagen";
+        }
+        return "Unbekannter Fehler";
     }
 
     private DeviceStateRequest buildActionRequest(Rule rule) {
