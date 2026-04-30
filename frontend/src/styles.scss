@@ -415,6 +415,22 @@ html, body {
 
 .page-loading-bar { position: sticky; top: 64px; z-index: 99; }
 
+// Notification panel (bell icon dropdown)
+.notif-menu {
+  .mat-mdc-menu-panel {
+    width: 340px !important;
+    min-width: 340px !important;
+    max-width: 340px !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-lg) !important;
+    overflow: hidden !important;
+  }
+  .mat-mdc-menu-content {
+    padding: 0 !important;
+    width: 100% !important;
+  }
+}
+
 // Pull notification badge close to the icon
 .notif-btn .mat-badge-content {
   top: 4px !important;

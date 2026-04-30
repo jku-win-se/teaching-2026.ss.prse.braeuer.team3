@@ -7,7 +7,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatBadgeModule } from '@angular/material/badge';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
@@ -37,7 +36,6 @@ interface NavGroup {
     MatButtonModule,
     MatMenuModule,
     MatBadgeModule,
-    MatSnackBarModule,
   ],
   template: `
     <mat-sidenav-container style="height:100vh;background:var(--bg);">
@@ -88,26 +86,26 @@ interface NavGroup {
             >notifications</mat-icon>
           </button>
 
-          <mat-menu #notificationMenu="matMenu" xPosition="before">
-            <div style="min-width:300px;max-width:360px;">
-              <div style="padding:12px 16px 8px;border-bottom:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;pointer-events:none;">
+          <mat-menu #notificationMenu="matMenu" xPosition="before" panelClass="notif-menu">
+            <div style="width:100%;box-sizing:border-box;">
+              <div style="padding:14px 16px 10px;border-bottom:1px solid #F1F5F9;display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-weight:600;font-size:14px;color:var(--text);">Benachrichtigungen</span>
-                <span style="font-size:12px;color:var(--text-muted);">{{ notifications.length }} neu</span>
+                <span style="font-size:12px;color:var(--text-muted);background:#F1F5F9;padding:2px 8px;border-radius:10px;font-weight:500;">{{ notifications.length }} neu</span>
               </div>
               <div style="max-height:320px;overflow-y:auto;">
-                <div *ngIf="notifications.length === 0" style="padding:24px 16px;color:var(--text-muted);font-size:13px;text-align:center;pointer-events:none;">
+                <div *ngIf="notifications.length === 0" style="padding:32px 16px;color:var(--text-muted);font-size:13px;text-align:center;">
                   Keine Benachrichtigungen
                 </div>
-                <div *ngFor="let n of notifications" style="padding:10px 16px;border-bottom:1px solid #F8FAFC;display:flex;gap:10px;align-items:flex-start;pointer-events:none;">
-                  <mat-icon [style.color]="n.success ? '#22C55E' : '#EF4444'" style="font-size:18px;width:18px;height:18px;flex-shrink:0;margin-top:2px;">{{ n.success ? 'check_circle' : 'error' }}</mat-icon>
-                  <div>
-                    <div style="font-size:13px;font-weight:500;color:var(--text);">{{ n.ruleName }}</div>
-                    <div style="font-size:12px;color:var(--text-muted);">{{ n.message }}</div>
+                <div *ngFor="let n of notifications" style="padding:12px 16px;border-bottom:1px solid #F8FAFC;display:flex;gap:12px;align-items:flex-start;">
+                  <mat-icon [style.color]="n.success ? '#22C55E' : '#EF4444'" style="font-size:20px;width:20px;height:20px;flex-shrink:0;margin-top:1px;">{{ n.success ? 'check_circle' : 'error' }}</mat-icon>
+                  <div style="min-width:0;">
+                    <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ n.ruleName }}</div>
+                    <div style="font-size:12px;color:var(--text-muted);line-height:1.4;">{{ n.message }}</div>
                   </div>
                 </div>
               </div>
-              <div *ngIf="notifications.length > 0" style="padding:6px 16px;border-top:1px solid #F1F5F9;">
-                <button mat-button color="primary" style="font-size:12px;" (click)="clearNotifications()">Alle löschen</button>
+              <div *ngIf="notifications.length > 0" style="padding:8px 16px;border-top:1px solid #F1F5F9;display:flex;justify-content:flex-end;">
+                <button mat-button color="primary" style="font-size:12px;min-width:0;" (click)="clearNotifications()">Alle löschen</button>
               </div>
             </div>
           </mat-menu>
@@ -179,7 +177,6 @@ export class ShellComponent implements OnInit, OnDestroy {
     private bp: BreakpointObserver,
     public auth: AuthService,
     private realtime: RealtimeService,
-    private snackBar: MatSnackBar,
   ) {}
 
   ngOnInit() {
@@ -189,10 +186,6 @@ export class ShellComponent implements OnInit, OnDestroy {
 
     this.notificationSub = this.realtime.ruleNotifications$.subscribe(n => {
       this.notifications.unshift(n);
-      const icon = n.success ? '✓' : '✗';
-      this.snackBar.open(`${icon} ${n.ruleName}: ${n.message}`, '', {
-        duration: n.success ? 3000 : 5000,
-      });
     });
   }
 
@@ -203,6 +196,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   clearNotifications() {
     this.notifications = [];
   }
+
 
   logout() {
     this.auth.logout();
