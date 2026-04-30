@@ -77,9 +77,9 @@
 - [x] Build and Test — COMPLETE (2026-04-25)
 
 ## Current Status
-- **Lifecycle Phase**: INCEPTION (US-013)
-- **Current Stage**: Workflow Planning complete — Requirements + Execution Plan erstellt
-- **Next Stage**: Functional Design (Unit 1: Backend Notification)
+- **Lifecycle Phase**: CONSTRUCTION (US-013)
+- **Current Stage**: Build and Test — COMPLETE
+- **Next Stage**: DONE — US-013 vollständig implementiert
 - **Summary**: aidlc-docs/inception/plans/us013-execution-plan.md
 
 ## US-012 Stage Progress (new feature cycle)
@@ -119,6 +119,6 @@
 - [ ] NFR Design — SKIP
 - [ ] Infrastructure Design — SKIP
 - [x] Code Generation (Unit 1: Backend) — 2026-04-29
-- [ ] Code Generation (Unit 2: Frontend) — EXECUTE
-- [ ] Build and Test — EXECUTE
+- [x] Code Generation (Unit 2: Frontend) — 2026-04-29
+- [x] Build and Test — 2026-04-29 (210/210 backend tests, Angular build clean)
 

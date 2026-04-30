@@ -2,7 +2,7 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { AuthService } from './auth.service';
 import { DeviceDto } from './device.service';
-import { ActivityLogDto } from './models';
+import { ActivityLogDto, RuleNotificationDto } from './models';
 
 /** WebSocket connection state. */
 export type ConnectionState = 'connected' | 'disconnected' | 'reconnecting';
@@ -32,6 +32,10 @@ export class RealtimeService implements OnDestroy {
   private readonly activityLogSubject = new Subject<ActivityLogDto>();
   /** Observable stream of new activity log entries received from the backend (FR-08). */
   readonly activityLogUpdates$ = this.activityLogSubject.asObservable();
+
+  private readonly ruleNotificationSubject = new Subject<RuleNotificationDto>();
+  /** Observable stream of rule execution notifications received from the backend (US-013). */
+  readonly ruleNotifications$ = this.ruleNotificationSubject.asObservable();
 
   private webSocket: WebSocket | null = null;
   private reconnectAttempts = 0;
@@ -63,6 +67,8 @@ export class RealtimeService implements OnDestroy {
         const raw = JSON.parse(event.data as string) as { messageType?: string };
         if (raw.messageType === 'activityLog') {
           this.activityLogSubject.next(raw as ActivityLogDto);
+        } else if (raw.messageType === 'ruleNotification') {
+          this.ruleNotificationSubject.next(raw as RuleNotificationDto);
         } else {
           this.deviceSubject.next(raw as DeviceDto);
         }

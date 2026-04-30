@@ -127,6 +127,14 @@ export interface ActivityEntry {
   deviceType: DeviceType;
 }
 
+/** Shape of a rule execution notification received via WebSocket (US-013). */
+export interface RuleNotificationDto {
+  messageType: string;
+  ruleName: string;
+  success: boolean;
+  message: string;
+}
+
 /** Shape of an activity log entry as returned by the backend API (FR-08). */
 export interface ActivityLogDto {
   id: number;
