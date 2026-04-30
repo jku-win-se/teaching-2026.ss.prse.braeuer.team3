@@ -266,7 +266,6 @@ public class RuleService {
             log.info("Rule {} fired — actor: {}", rule.getId(), actorName);
         }
         String userEmail = rule.getUser().getEmail();
-        log.info("Rule {} — broadcasting success notification to {}", rule.getId(), userEmail);
         wsHandler.broadcastRuleNotification(userEmail,
                 new RuleNotificationDto(rule.getName(), true, buildSuccessMessage(rule)));
     }
