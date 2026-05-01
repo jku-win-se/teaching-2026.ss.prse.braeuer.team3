@@ -10,8 +10,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { Device, DeviceType, Room } from '../../core/models';
+import { AuthService } from '../../core/auth.service';
 import { RoomService } from '../../core/room.service';
 import { DeviceService, DeviceDto } from '../../core/device.service';
 import { toRoom, dtoToDevice, DEVICE_ICON } from '../../core/device-utils';
@@ -55,7 +57,7 @@ import { RenameRoomDialogComponent } from './rename-room-dialog.component';
           <mat-icon style="font-size:14px;width:14px;height:14px;vertical-align:middle;margin-right:4px;">{{ room.icon }}</mat-icon>
           {{ room.name }}
           <button
-            *ngIf="selectedRoomId === room.id"
+            *ngIf="isOwner && selectedRoomId === room.id"
             mat-icon-button
             style="width:24px;height:24px;padding:0;margin-left:4px;position:relative;"
             (click)="$event.stopPropagation(); openRenameRoomDialog(room)"
@@ -63,7 +65,7 @@ import { RenameRoomDialogComponent } from './rename-room-dialog.component';
             <mat-icon style="font-size:15px;width:15px;height:15px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;">edit</mat-icon>
           </button>
           <button
-            *ngIf="selectedRoomId === room.id"
+            *ngIf="isOwner && selectedRoomId === room.id"
             mat-icon-button
             style="width:24px;height:24px;padding:0;position:relative;"
             (click)="$event.stopPropagation(); onDeleteRoom(room)"
@@ -71,7 +73,7 @@ import { RenameRoomDialogComponent } from './rename-room-dialog.component';
             <mat-icon style="font-size:15px;width:15px;height:15px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;">delete</mat-icon>
           </button>
         </div>
-        <div class="room-chip room-chip-add" (click)="openAddRoomDialog()">
+        <div class="room-chip room-chip-add" *ngIf="isOwner" (click)="openAddRoomDialog()">
           <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle;">add</mat-icon>
           Add Room
         </div>
@@ -83,6 +85,7 @@ import { RenameRoomDialogComponent } from './rename-room-dialog.component';
           *ngFor="let device of filteredDevices"
           [device]="device"
           [room]="getRoom(device.roomId)"
+          [showMenu]="isOwner"
           (toggled)="onToggle(device, $event)"
           (sliderChanged)="onBrightnessChange(device, $event)"
           (tempChanged)="onTempChange(device, $event)"
@@ -97,15 +100,15 @@ import { RenameRoomDialogComponent } from './rename-room-dialog.component';
         <app-empty-state
           icon="devices_off"
           title="No devices in this room"
-          subtitle="Add your first device to get started."
-          actionLabel="+ Add Device"
+          [subtitle]="isOwner ? 'Add your first device to get started.' : 'Devices added by the owner will appear here.'"
+          [actionLabel]="isOwner ? '+ Add Device' : ''"
           (action)="openAddDialog()">
         </app-empty-state>
       </ng-template>
     </div>
 
     <!-- FAB -->
-    <div class="fab-container">
+    <div class="fab-container" *ngIf="isOwner">
       <button mat-fab color="primary" (click)="openAddDialog()">
         <mat-icon>add</mat-icon>
       </button>
@@ -130,7 +133,12 @@ export class RoomsComponent implements OnInit, OnDestroy {
     private roomService: RoomService,
     private deviceService: DeviceService,
     readonly realtimeService: RealtimeService,
+    private auth: AuthService,
   ) {}
+
+  get isOwner(): boolean {
+    return this.auth.isOwner;
+  }
 
   ngOnInit() {
     this.loadRooms();
@@ -191,7 +199,20 @@ export class RoomsComponent implements OnInit, OnDestroy {
     return this.rooms.find(r => r.id === roomId);
   }
 
-  onSnack(msg: string) { this.snackBar.open(msg, '', { duration: 2000 }); }
+  onSnack(msg: string, duration = 2500) {
+    this.snackBar.open(msg, '', { duration });
+  }
+
+  private ownerOnlyMessage(action: string) {
+    return `Only the owner can ${action}. Members can control devices, but cannot change the home setup.`;
+  }
+
+  private errorMessage(err: HttpErrorResponse, fallback: string) {
+    if (err.status === 403) {
+      return err.error?.message ?? err.error?.detail ?? this.ownerOnlyMessage('change the home setup');
+    }
+    return err.error?.message ?? err.error?.detail ?? fallback;
+  }
 
   onToggle(device: Device, on: boolean) {
     this.deviceService.updateState(Number(device.roomId), Number(device.id), { stateOn: on }).subscribe({
@@ -245,6 +266,10 @@ export class RoomsComponent implements OnInit, OnDestroy {
   }
 
   onRename(device: Device) {
+    if (!this.isOwner) {
+      this.onSnack(this.ownerOnlyMessage('rename devices'), 4000);
+      return;
+    }
     const ref = this.dialog.open(RenameDeviceDialogComponent, {
       width: '400px',
       data: { currentName: device.name }
@@ -256,10 +281,10 @@ export class RoomsComponent implements OnInit, OnDestroy {
           device.name = dto.name;
           this.onSnack(`Device renamed to "${dto.name}" ✓`);
         },
-        error: (err: { status: number }) => {
+        error: (err: HttpErrorResponse) => {
           const msg = err.status === 409
             ? `A device named "${newName}" already exists in this room.`
-            : 'Failed to rename device. Please try again.';
+            : this.errorMessage(err, 'Failed to rename device. Please try again.');
           this.onSnack(msg);
         }
       });
@@ -267,6 +292,10 @@ export class RoomsComponent implements OnInit, OnDestroy {
   }
 
   onRemove(device: Device) {
+    if (!this.isOwner) {
+      this.onSnack(this.ownerOnlyMessage('remove devices'), 4000);
+      return;
+    }
     const ref = this.dialog.open(ConfirmDialogComponent, {
       data: { title: 'Remove Device', message: `Are you sure you want to remove "${device.name}"? This action cannot be undone.` }
     });
@@ -277,13 +306,19 @@ export class RoomsComponent implements OnInit, OnDestroy {
           this.devices = this.devices.filter(d => d.id !== device.id);
           this.onSnack(`${device.name} removed ✓`);
         },
-        error: () => this.onSnack('Failed to remove device. Please try again.')
+        error: (err: HttpErrorResponse) => {
+          this.onSnack(this.errorMessage(err, 'Failed to remove device. Please try again.'));
+        }
       });
     });
   }
 
   /** US-004: Raum mit Name erstellen möglich */
   openAddRoomDialog() {
+    if (!this.isOwner) {
+      this.onSnack(this.ownerOnlyMessage('add rooms'), 4000);
+      return;
+    }
     const ref = this.dialog.open(AddRoomDialogComponent, { width: '480px' });
     ref.afterClosed().subscribe(result => {
       if (!result) return;
@@ -294,10 +329,10 @@ export class RoomsComponent implements OnInit, OnDestroy {
           this.selectedRoomId = newRoom.id;
           this.onSnack(`Room "${result.name}" added ✓`);
         },
-        error: (err: { status: number }) => {
+        error: (err: HttpErrorResponse) => {
           const msg = err.status === 409
             ? 'A room with this name already exists.'
-            : 'Failed to create room. Please try again.';
+            : this.errorMessage(err, 'Failed to create room. Please try again.');
           this.onSnack(msg);
         }
       });
@@ -306,6 +341,10 @@ export class RoomsComponent implements OnInit, OnDestroy {
 
   /** US-004: Raum umbenennen möglich */
   openRenameRoomDialog(room: Room) {
+    if (!this.isOwner) {
+      this.onSnack(this.ownerOnlyMessage('rename rooms'), 4000);
+      return;
+    }
     const ref = this.dialog.open(RenameRoomDialogComponent, {
       width: '400px',
       data: { currentName: room.name }
@@ -318,10 +357,10 @@ export class RoomsComponent implements OnInit, OnDestroy {
           this.rooms = this.rooms.map(r => r.id === room.id ? updated : r);
           this.onSnack(`Room renamed to "${newName}" ✓`);
         },
-        error: (err: { status: number }) => {
+        error: (err: HttpErrorResponse) => {
           const msg = err.status === 409
             ? 'A room with this name already exists.'
-            : 'Failed to rename room. Please try again.';
+            : this.errorMessage(err, 'Failed to rename room. Please try again.');
           this.onSnack(msg);
         }
       });
@@ -330,6 +369,10 @@ export class RoomsComponent implements OnInit, OnDestroy {
 
   /** US-004: Raum löschen möglich (inkl. Hinweis bei vorhandenen Geräten) */
   onDeleteRoom(room: Room) {
+    if (!this.isOwner) {
+      this.onSnack(this.ownerOnlyMessage('delete rooms'), 4000);
+      return;
+    }
     const devicesInRoom = this.devices.filter(d => d.roomId === room.id);
     const hasDevices = devicesInRoom.length > 0;
     const message = hasDevices
@@ -349,10 +392,10 @@ export class RoomsComponent implements OnInit, OnDestroy {
           }
           this.onSnack(`Room "${room.name}" deleted ✓`);
         },
-        error: (err) => {
+        error: (err: HttpErrorResponse) => {
           const msg = err.status === 409
             ? `Room "${room.name}" cannot be deleted because it still has devices.`
-            : 'Failed to delete room. Please try again.';
+            : this.errorMessage(err, 'Failed to delete room. Please try again.');
           this.onSnack(msg);
         }
       });
@@ -360,6 +403,10 @@ export class RoomsComponent implements OnInit, OnDestroy {
   }
 
   openAddDialog() {
+    if (!this.isOwner) {
+      this.onSnack(this.ownerOnlyMessage('add devices'), 4000);
+      return;
+    }
     const ref = this.dialog.open(AddDeviceDialogComponent, {
       width: '480px',
       data: { rooms: this.rooms, defaultRoomId: this.selectedRoomId }
@@ -374,10 +421,10 @@ export class RoomsComponent implements OnInit, OnDestroy {
           this.onSnack(`${result.name} added ✓`);
           this.selectRoom(result.roomId);
         },
-        error: (err: { status: number }) => {
+        error: (err: HttpErrorResponse) => {
           const msg = err.status === 409
             ? `A device named "${result.name}" already exists in this room.`
-            : 'Failed to add device. Please try again.';
+            : this.errorMessage(err, 'Failed to add device. Please try again.');
           this.onSnack(msg);
         }
       });

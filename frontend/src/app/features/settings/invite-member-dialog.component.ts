@@ -4,7 +4,6 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Component({
@@ -12,7 +11,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
   standalone: true,
   imports: [
     CommonModule, MatDialogModule, MatButtonModule, MatFormFieldModule,
-    MatInputModule, MatSelectModule, FormsModule, ReactiveFormsModule,
+    MatInputModule, FormsModule, ReactiveFormsModule,
   ],
   template: `
     <h2 mat-dialog-title>Invite a Member</h2>
@@ -21,16 +20,9 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
         <mat-form-field appearance="outline">
           <mat-label>Email address</mat-label>
           <input matInput type="email" formControlName="email" placeholder="name@example.com">
-          <mat-hint>They will receive an invite via email</mat-hint>
+          <mat-hint>The account must already be registered</mat-hint>
           <mat-error *ngIf="form.get('email')?.hasError('required')">Email is required</mat-error>
           <mat-error *ngIf="form.get('email')?.hasError('email')">Enter a valid email address</mat-error>
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Role</mat-label>
-          <mat-select formControlName="role">
-            <mat-option value="Member">Member — can control devices</mat-option>
-          </mat-select>
-          <mat-hint>Only owners can invite new members</mat-hint>
         </mat-form-field>
       </form>
     </mat-dialog-content>
@@ -46,7 +38,6 @@ export class InviteMemberDialogComponent {
   constructor(private fb: FormBuilder, private dialogRef: MatDialogRef<InviteMemberDialogComponent>) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      role: ['Member', Validators.required],
     });
   }
 

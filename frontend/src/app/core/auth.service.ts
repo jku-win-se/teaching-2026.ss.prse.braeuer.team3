@@ -3,10 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, tap, catchError, throwError } from 'rxjs';
 
+export type UserRole = 'OWNER' | 'MEMBER';
+
 export interface AuthUser {
   name: string;
   email: string;
   avatarInitials: string;
+  role: UserRole;
 }
 
 interface LoginRequest {
@@ -24,6 +27,7 @@ interface AuthResponse {
   token: string;
   name: string;
   email: string;
+  role: UserRole;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -34,12 +38,20 @@ export class AuthService {
 
   get isLoggedIn() { return this._user.value !== null; }
   get currentUser() { return this._user.value; }
+  get isOwner() { return this._user.value?.role === 'OWNER'; }
+  get isMember() { return this._user.value?.role === 'MEMBER'; }
 
   constructor(private http: HttpClient, private router: Router) {
     const stored = sessionStorage.getItem('smarthome_user');
     if (stored) {
       try {
-        this._user.next(JSON.parse(stored));
+        const parsed = JSON.parse(stored) as Partial<AuthUser>;
+        this._user.next({
+          name: parsed.name ?? '',
+          email: parsed.email ?? '',
+          avatarInitials: parsed.avatarInitials ?? (parsed.name?.charAt(0).toUpperCase() || 'U'),
+          role: parsed.role === 'MEMBER' ? 'MEMBER' : 'OWNER',
+        });
       } catch {
         sessionStorage.removeItem('smarthome_user');
       }
@@ -101,6 +113,7 @@ export class AuthService {
       name,
       email: res.email,
       avatarInitials: name.charAt(0).toUpperCase(),
+      role: res.role ?? 'OWNER',
     };
     this._user.next(user);
     sessionStorage.setItem('smarthome_user', JSON.stringify(user));
