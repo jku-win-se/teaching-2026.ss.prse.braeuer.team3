@@ -23,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
  *   <li>US-001: Passwort wird mit bcrypt gehasht gespeichert</li>
  *   <li>US-002: Login mit korrekten Zugangsdaten erfolgreich</li>
  *   <li>US-002: Fehlermeldung bei falschen Zugangsdaten</li>
+ *   <li>FR-13: Rolle (OWNER/MEMBER) wird in der AuthResponse zurückgegeben</li>
  * </ul>
  */
 @Service
@@ -31,6 +32,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final MemberService memberService;
 
     /**
      * Constructs an AuthService with required dependencies.
@@ -38,13 +40,16 @@ public class AuthService {
      * @param userRepository  the repository for user persistence
      * @param passwordEncoder the BCrypt password encoder
      * @param jwtUtil         the JWT utility for token generation
+     * @param memberService   the service used to resolve the user's role (FR-13)
      */
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtUtil jwtUtil) {
+                       JwtUtil jwtUtil,
+                       MemberService memberService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.memberService = memberService;
     }
 
     /**
@@ -52,10 +57,11 @@ public class AuthService {
      *
      * <p>US-001: Validates that the email is unique and hashes the password
      * using BCrypt before persisting the user. The email is normalized to
-     * lowercase before storage to ensure case-insensitive uniqueness.</p>
+     * lowercase before storage to ensure case-insensitive uniqueness.
+     * New users always receive the OWNER role (FR-13).</p>
      *
      * @param request the registration data (name, email, password)
-     * @return an {@link AuthResponse} containing the JWT token and user details
+     * @return an {@link AuthResponse} containing the JWT token, user details, and role
      * @throws ResponseStatusException with status 409 if the email is already in use
      */
     @Transactional
@@ -69,7 +75,7 @@ public class AuthService {
         User user = new User(request.getName(), email, hash);
         userRepository.save(user);
         String token = jwtUtil.generateToken(user.getEmail());
-        return new AuthResponse(token, user.getName(), user.getEmail());
+        return new AuthResponse(token, user.getName(), user.getEmail(), "OWNER");
     }
 
     /**
@@ -77,10 +83,12 @@ public class AuthService {
      *
      * <p>US-002: Returns a JWT token on success, or throws an exception
      * when the credentials are invalid. The email is normalized to lowercase
-     * before lookup to support case-insensitive login.</p>
+     * before lookup to support case-insensitive login.
+     * FR-13: The current role (OWNER/MEMBER) is resolved from the database
+     * and included in the response.</p>
      *
      * @param request the login credentials (email, password)
-     * @return an {@link AuthResponse} containing the JWT token and user details
+     * @return an {@link AuthResponse} containing the JWT token, user details, and role
      * @throws ResponseStatusException with status 401 if the credentials are invalid
      */
     public AuthResponse login(LoginRequest request) {
@@ -93,6 +101,7 @@ public class AuthService {
                     "Invalid email or password.");
         }
         String token = jwtUtil.generateToken(user.getEmail());
-        return new AuthResponse(token, user.getName(), user.getEmail());
+        String role = memberService.resolveRole(user);
+        return new AuthResponse(token, user.getName(), user.getEmail(), role);
     }
 }

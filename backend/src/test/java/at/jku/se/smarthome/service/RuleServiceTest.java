@@ -47,6 +47,7 @@ class RuleServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private DeviceService deviceService;
     @Mock private DeviceWebSocketHandler wsHandler;
+    @Mock private MemberService memberService;
 
     private RuleService ruleService;
 
@@ -60,7 +61,8 @@ class RuleServiceTest {
 
     @BeforeEach
     void setUp() {
-        ruleService = new RuleService(ruleRepository, deviceRepository, userRepository, deviceService, wsHandler);
+        ruleService = new RuleService(ruleRepository, deviceRepository, userRepository, deviceService, wsHandler,
+                memberService);
 
         user = new User("Test User", EMAIL, "hashed");
         ReflectionTestUtils.setField(user, "id", 1L);
@@ -137,6 +139,17 @@ class RuleServiceTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getName()).isEqualTo("Cool Down");
+    }
+
+    @Test
+    void getRules_memberCaller_throwsForbidden() {
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: Owner role required."))
+                .when(memberService).requireOwnerRole(EMAIL);
+
+        assertThatThrownBy(() -> ruleService.getRules(EMAIL, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
     }
 
     // --- updateRule ---

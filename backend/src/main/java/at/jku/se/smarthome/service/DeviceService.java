@@ -30,8 +30,8 @@ import java.util.List;
  * FR-08: logs every manual state change via {@link ActivityLogService}.
  * FR-10: triggers IF-THEN rule evaluation after every user-initiated state update.</p>
  *
- * <p>All operations are scoped to the authenticated user — the target room
- * must be owned by that user.</p>
+ * <p>FR-13: Members may read devices and update device state in their owner's
+ * home. Device management operations remain owner-only.</p>
  */
 @Service
 public class DeviceService {
@@ -42,6 +42,7 @@ public class DeviceService {
     private final DeviceWebSocketHandler webSocketHandler;
     private final ActivityLogService activityLogService;
     private final RuleService ruleService;
+    private final MemberService memberService;
 
     /**
      * Constructs a DeviceService with the required repositories, WebSocket handler,
@@ -53,23 +54,28 @@ public class DeviceService {
      * @param webSocketHandler   the handler used to push real-time state updates to WebSocket clients
      * @param activityLogService the service used to record activity log entries (FR-08)
      * @param ruleService        the service used to evaluate IF-THEN rules after state changes (FR-10)
+     * @param memberService      the service used for role checks and owner resolution (FR-13)
      */
     public DeviceService(DeviceRepository deviceRepository,
                          RoomRepository roomRepository,
                          UserRepository userRepository,
                          DeviceWebSocketHandler webSocketHandler,
                          ActivityLogService activityLogService,
-                         @Lazy RuleService ruleService) {
+                         @Lazy RuleService ruleService,
+                         MemberService memberService) {
         this.deviceRepository = deviceRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
         this.webSocketHandler = webSocketHandler;
         this.activityLogService = activityLogService;
         this.ruleService = ruleService;
+        this.memberService = memberService;
     }
 
     /**
-     * Returns all devices in a room owned by the authenticated user.
+     * Returns all devices in a room visible to the authenticated user.
+     *
+     * <p>FR-13: Members read devices from their owner's home.</p>
      *
      * @param email  the email of the authenticated user
      * @param roomId the room's primary key
@@ -78,7 +84,7 @@ public class DeviceService {
      *                                 or belongs to another user
      */
     public List<DeviceResponse> getDevices(String email, Long roomId) {
-        Room room = getOwnedRoom(email, roomId);
+        Room room = getEffectiveRoom(email, roomId);
         return deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())
                 .stream()
                 .map(DeviceService::toResponse)
@@ -100,6 +106,7 @@ public class DeviceService {
      */
     @Transactional
     public DeviceResponse addDevice(String email, Long roomId, DeviceRequest request) {
+        memberService.requireOwnerRole(email, "add devices");
         Room room = getOwnedRoom(email, roomId);
         if (deviceRepository.existsByRoomIdAndName(room.getId(), request.getName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -125,6 +132,7 @@ public class DeviceService {
      */
     @Transactional
     public DeviceResponse renameDevice(String email, Long roomId, Long deviceId, RenameDeviceRequest request) {
+        memberService.requireOwnerRole(email, "rename devices");
         Room room = getOwnedRoom(email, roomId);
         Device device = deviceRepository.findByIdAndRoomId(deviceId, room.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
@@ -148,6 +156,7 @@ public class DeviceService {
      */
     @Transactional
     public void deleteDevice(String email, Long roomId, Long deviceId) {
+        memberService.requireOwnerRole(email, "remove devices");
         Room room = getOwnedRoom(email, roomId);
         Device device = deviceRepository.findByIdAndRoomId(deviceId, room.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
@@ -165,6 +174,9 @@ public class DeviceService {
      * Additionally, a new activity log entry is created and broadcast via
      * {@link DeviceWebSocketHandler#broadcastActivityLog}.</p>
      *
+     * <p>FR-13: Members may control devices in the owner's home. Activity log
+     * entries are scoped to the owner, while the actor name records the caller.</p>
+     *
      * @param email    the email of the authenticated user
      * @param roomId   the room's primary key
      * @param deviceId the device's primary key
@@ -174,19 +186,20 @@ public class DeviceService {
      */
     @Transactional
     public DeviceResponse updateState(String email, Long roomId, Long deviceId, DeviceStateRequest request) {
-        Room room = getOwnedRoom(email, roomId);
-        User resolvedUser = userRepository.findByEmail(email)
+        Room room = getEffectiveRoom(email, roomId);
+        User effectiveOwner = room.getUser();
+        User caller = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found."));
         Device device = deviceRepository.findByIdAndRoomId(deviceId, room.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
         boolean stateOnChanged = request.getStateOn() != null && request.getStateOn() != device.isStateOn();
         applyStateFields(device, request);
         DeviceResponse response = toResponse(deviceRepository.save(device));
-        webSocketHandler.broadcast(email, response);
+        webSocketHandler.broadcast(effectiveOwner.getEmail(), response);
 
         String action = activityLogService.buildActionDescription(device, request);
-        ActivityLogResponse logEntry = activityLogService.log(device, resolvedUser, resolvedUser.getName(), action);
-        webSocketHandler.broadcastActivityLog(email, logEntry);
+        ActivityLogResponse logEntry = activityLogService.log(device, effectiveOwner, caller.getName(), action);
+        webSocketHandler.broadcastActivityLog(effectiveOwner.getEmail(), logEntry);
 
         ruleService.evaluateRulesForDevice(device, request, stateOnChanged);
         return response;
@@ -287,6 +300,12 @@ public class DeviceService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found."));
         return roomRepository.findByIdAndUserId(roomId, user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found."));
+    }
+
+    private Room getEffectiveRoom(String email, Long roomId) {
+        User effectiveOwner = memberService.resolveEffectiveOwner(email);
+        return roomRepository.findByIdAndUserId(roomId, effectiveOwner.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found."));
     }
 }

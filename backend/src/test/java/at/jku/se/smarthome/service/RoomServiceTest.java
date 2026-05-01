@@ -44,6 +44,9 @@ class RoomServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private MemberService memberService;
+
     @InjectMocks
     private RoomService roomService;
 
@@ -65,7 +68,7 @@ class RoomServiceTest {
     @Test
     @DisplayName("getRooms: gibt alle Räume des Benutzers zurück")
     void getRooms_returnsAllRoomsForUser() {
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.findByUserIdOrderByCreatedAtAsc(user.getId()))
                 .thenReturn(List.of(room));
 
@@ -78,7 +81,7 @@ class RoomServiceTest {
     @Test
     @DisplayName("getRooms: gibt leere Liste zurück wenn keine Räume vorhanden")
     void getRooms_returnsEmptyListWhenNoRooms() {
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.findByUserIdOrderByCreatedAtAsc(user.getId()))
                 .thenReturn(List.of());
 

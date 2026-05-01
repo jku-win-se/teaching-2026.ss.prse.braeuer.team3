@@ -6,12 +6,11 @@ import at.jku.se.smarthome.dto.RoomRequest;
 import at.jku.se.smarthome.dto.RoomResponse;
 import at.jku.se.smarthome.repository.RoomRepository;
 import at.jku.se.smarthome.repository.UserRepository;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.List;
 
 /**
  * Service for managing rooms in the SmartHome Orchestrator.
@@ -23,50 +22,63 @@ import java.util.List;
  *   <li>US-004: Raum löschen möglich (inkl. Hinweis bei vorhandenen Geräten)</li>
  * </ul>
  *
- * <p>All operations are scoped to the authenticated user identified by their email.</p>
+ * <p>FR-13: Read operations (getRooms) are available to members and resolve against
+ * the effective owner's home. Write operations (create, rename, delete) are
+ * restricted to owners only (403 Forbidden for members).</p>
  */
 @Service
 public class RoomService {
 
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final MemberService memberService;
 
     /**
-     * Constructs a RoomService with the required repositories.
+     * Constructs a RoomService with the required repositories and member service.
      *
      * @param roomRepository the repository for room persistence
      * @param userRepository the repository for resolving the current user
+     * @param memberService  the service for role resolution and owner context (FR-13)
      */
-    public RoomService(RoomRepository roomRepository, UserRepository userRepository) {
+    public RoomService(RoomRepository roomRepository,
+                       UserRepository userRepository,
+                       MemberService memberService) {
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
+        this.memberService = memberService;
     }
 
     /**
-     * Returns all rooms belonging to the authenticated user.
+     * Returns all rooms belonging to the effective owner's home.
      *
-     * @param email the email of the authenticated user
+     * <p>FR-13: Members see the owner's rooms instead of their own.</p>
+     *
+     * @param email the email of the authenticated user (owner or member)
      * @return list of room responses ordered by creation date
      */
     public List<RoomResponse> getRooms(String email) {
-        User user = getUser(email);
-        return roomRepository.findByUserIdOrderByCreatedAtAsc(user.getId())
+        User effectiveOwner = memberService.resolveEffectiveOwner(email);
+        return roomRepository.findByUserIdOrderByCreatedAtAsc(effectiveOwner.getId())
                 .stream()
                 .map(r -> new RoomResponse(r.getId(), r.getName(), r.getIcon()))
                 .toList();
     }
 
     /**
-     * Creates a new room for the authenticated user.
+     * Creates a new room for the authenticated owner.
      * US-004: Raum mit Name erstellen möglich.
      *
-     * @param email   the email of the authenticated user
+     * <p>FR-13: Only owners may create rooms (403 for members).</p>
+     *
+     * @param email   the email of the authenticated owner
      * @param request the room creation request
      * @return the newly created room
+     * @throws ResponseStatusException with status 403 if the caller is a member
      * @throws ResponseStatusException with status 409 if a room with the same name already exists
      */
     @Transactional
     public RoomResponse createRoom(String email, RoomRequest request) {
+        memberService.requireOwnerRole(email, "add rooms");
         User user = getUser(email);
         if (roomRepository.existsByUserIdAndName(user.getId(), request.getName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -81,15 +93,19 @@ public class RoomService {
      * Renames an existing room.
      * US-004: Raum umbenennen möglich.
      *
-     * @param email   the email of the authenticated user
+     * <p>FR-13: Only owners may rename rooms (403 for members).</p>
+     *
+     * @param email   the email of the authenticated owner
      * @param id      the room id to rename
      * @param request the rename request containing the new name
      * @return the updated room
+     * @throws ResponseStatusException with status 403 if the caller is a member
      * @throws ResponseStatusException with status 404 if the room is not found or belongs to another user
      * @throws ResponseStatusException with status 409 if a room with the new name already exists
      */
     @Transactional
     public RoomResponse renameRoom(String email, Long id, RoomRequest request) {
+        memberService.requireOwnerRole(email, "rename rooms");
         User user = getUser(email);
         Room room = roomRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found."));
@@ -109,15 +125,17 @@ public class RoomService {
     /**
      * Deletes a room.
      * US-004: Raum löschen möglich.
-     * Note: Device-existence warnings are handled at the frontend level.
-     * The backend enforces integrity through cascade configuration.
      *
-     * @param email the email of the authenticated user
+     * <p>FR-13: Only owners may delete rooms (403 for members).</p>
+     *
+     * @param email the email of the authenticated owner
      * @param id    the room id to delete
+     * @throws ResponseStatusException with status 403 if the caller is a member
      * @throws ResponseStatusException with status 404 if the room is not found or belongs to another user
      */
     @Transactional
     public void deleteRoom(String email, Long id) {
+        memberService.requireOwnerRole(email, "delete rooms");
         User user = getUser(email);
         Room room = roomRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found."));

@@ -35,6 +35,9 @@ import java.util.Objects;
  * {@link DeviceService#updateStateAsActor} to prevent infinite trigger chains.</p>
  *
  * <p>Implements FR-10: Rule Engine (IF-THEN).</p>
+ *
+ * <p>FR-13: Rule management is owner-only. Members can control devices manually,
+ * but cannot view or change automation rules.</p>
  */
 @Service
 public class RuleService {
@@ -46,6 +49,7 @@ public class RuleService {
     private final UserRepository userRepository;
     private final DeviceService deviceService;
     private final DeviceWebSocketHandler wsHandler;
+    private final MemberService memberService;
 
     /**
      * Constructs a {@code RuleService} with all required dependencies.
@@ -55,17 +59,20 @@ public class RuleService {
      * @param userRepository   the repository for user lookups
      * @param deviceService    the service used to apply device state when a rule fires
      * @param wsHandler        the WebSocket handler used to push rule notifications to the frontend
+     * @param memberService    the service used for owner-only authorization (FR-13)
      */
     public RuleService(RuleRepository ruleRepository,
                        DeviceRepository deviceRepository,
                        UserRepository userRepository,
                        DeviceService deviceService,
-                       DeviceWebSocketHandler wsHandler) {
+                       DeviceWebSocketHandler wsHandler,
+                       MemberService memberService) {
         this.ruleRepository = ruleRepository;
         this.deviceRepository = deviceRepository;
         this.userRepository = userRepository;
         this.deviceService = deviceService;
         this.wsHandler = wsHandler;
+        this.memberService = memberService;
     }
 
     /**
@@ -80,6 +87,7 @@ public class RuleService {
      */
     @Transactional(readOnly = true)
     public List<RuleResponse> getRules(String email, Long deviceId) {
+        memberService.requireOwnerRole(email);
         User user = resolveUser(email);
         List<Rule> rules;
         if (deviceId != null) {
@@ -103,6 +111,7 @@ public class RuleService {
      */
     @Transactional
     public RuleResponse createRule(String email, RuleRequest request) {
+        memberService.requireOwnerRole(email);
         User user = resolveUser(email);
         Device triggerDevice = resolveTriggerDevice(user, request);
         Device actionDevice = resolveOwnedDevice(user, request.getActionDeviceId());
@@ -132,6 +141,7 @@ public class RuleService {
      */
     @Transactional
     public RuleResponse updateRule(String email, Long ruleId, RuleRequest request) {
+        memberService.requireOwnerRole(email);
         User user = resolveUser(email);
         Rule rule = resolveOwnedRule(user, ruleId);
         Device triggerDevice = resolveTriggerDevice(user, request);
@@ -183,6 +193,7 @@ public class RuleService {
      */
     @Transactional
     public RuleResponse setEnabled(String email, Long ruleId, boolean enabled) {
+        memberService.requireOwnerRole(email);
         User user = resolveUser(email);
         Rule rule = resolveOwnedRule(user, ruleId);
         rule.setEnabled(enabled);
@@ -199,6 +210,7 @@ public class RuleService {
      */
     @Transactional
     public void deleteRule(String email, Long ruleId) {
+        memberService.requireOwnerRole(email);
         User user = resolveUser(email);
         Rule rule = resolveOwnedRule(user, ruleId);
         ruleRepository.delete(rule);

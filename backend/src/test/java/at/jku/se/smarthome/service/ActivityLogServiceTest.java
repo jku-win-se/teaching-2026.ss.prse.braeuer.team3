@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +42,8 @@ class ActivityLogServiceTest {
     private UserRepository userRepository;
     @Mock
     private DeviceRepository deviceRepository;
+    @Mock
+    private MemberService memberService;
 
     private ActivityLogService activityLogService;
 
@@ -50,7 +53,8 @@ class ActivityLogServiceTest {
 
     @BeforeEach
     void setUp() {
-        activityLogService = new ActivityLogService(activityLogRepository, userRepository, deviceRepository);
+        activityLogService = new ActivityLogService(activityLogRepository, userRepository, deviceRepository,
+                memberService);
         user = new User("Test User", "user@test.com", "hashed");
         room = new Room(user, "Living Room", "weekend");
         device = new Device(room, "Lamp", DeviceType.SWITCH);
@@ -139,6 +143,17 @@ class ActivityLogServiceTest {
         assertThat(result.getTotalElements()).isEqualTo(1);
         verify(activityLogRepository).findByUserAndTimestampBetweenAndDevice(
                 eq(user), any(Instant.class), any(Instant.class), eq(device), any(Pageable.class));
+    }
+
+    @Test
+    void getLogs_memberCaller_throwsForbidden() {
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: Owner role required."))
+                .when(memberService).requireOwnerRole("user@test.com");
+
+        assertThatThrownBy(() -> activityLogService.getLogs("user@test.com", 0, 20, null, null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
     }
 
     // --- deleteLog ---

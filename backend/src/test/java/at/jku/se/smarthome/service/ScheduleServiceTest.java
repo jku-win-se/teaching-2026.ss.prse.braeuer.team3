@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,6 +43,7 @@ class ScheduleServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private DeviceService deviceService;
     @Mock private ActivityLogService activityLogService;
+    @Mock private MemberService memberService;
 
     private ScheduleService scheduleService;
     private ObjectMapper objectMapper;
@@ -58,7 +60,7 @@ class ScheduleServiceTest {
         objectMapper = new ObjectMapper();
         scheduleService = new ScheduleService(
                 scheduleRepository, deviceRepository, userRepository,
-                deviceService, activityLogService, objectMapper);
+                deviceService, activityLogService, objectMapper, memberService);
 
         user = new User("Test User", EMAIL, "hashed");
         ReflectionTestUtils.setField(user, "id", 1L);
@@ -93,6 +95,17 @@ class ScheduleServiceTest {
         List<ScheduleResponse> result = scheduleService.getSchedules(EMAIL, device.getId());
 
         assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getSchedules_memberCaller_throwsForbidden() {
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: Owner role required."))
+                .when(memberService).requireOwnerRole(EMAIL);
+
+        assertThatThrownBy(() -> scheduleService.getSchedules(EMAIL, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
     }
 
     // --- createSchedule ---
