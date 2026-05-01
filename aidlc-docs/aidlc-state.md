@@ -122,3 +122,29 @@
 - [x] Code Generation (Unit 2: Frontend) — 2026-04-29
 - [x] Build and Test — 2026-04-29 (210/210 backend tests, Angular build clean)
 
+## FR-13 + FR-20 Stage Progress (new feature cycle)
+
+### 🔵 INCEPTION PHASE — FR-13/FR-20
+- [x] Workspace Detection — reuse existing (2026-05-01)
+- [x] Reverse Engineering — reuse existing (2026-05-01)
+- [x] Requirements Analysis — 2026-05-01
+- [ ] User Stories — SKIP
+- [x] Workflow Planning — 2026-05-01
+- [ ] Application Design — SKIP
+- [ ] Units Generation — EXECUTE
+
+### 🟢 CONSTRUCTION PHASE — FR-13/FR-20
+- [x] Functional Design (Unit 1: Backend Roles & Members) — 2026-05-01
+- [ ] NFR Requirements — SKIP
+- [ ] NFR Design — SKIP
+- [ ] Infrastructure Design — SKIP
+- [x] Code Generation (Unit 1: Backend) — 2026-05-01
+- [x] Code Generation (Unit 2: Frontend) — 2026-05-01
+- [x] Build and Test (Unit 1: Backend) — 2026-05-01 (230/230 backend tests)
+- [x] Build and Test (Unit 2: Frontend) — 2026-05-01 (Angular build success, budget warning unchanged)
+
+## Current Status
+- **Lifecycle Phase**: CONSTRUCTION (FR-13/FR-20)
+- **Current Stage**: Build and Test — COMPLETE
+- **Next Stage**: DONE — FR-13/FR-20 Backend + Frontend implemented
+- **Summary**: aidlc-docs/inception/plans/fr13-fr20-execution-plan.md
