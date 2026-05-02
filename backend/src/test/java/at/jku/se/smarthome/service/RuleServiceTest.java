@@ -47,6 +47,7 @@ class RuleServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private DeviceService deviceService;
     @Mock private DeviceWebSocketHandler wsHandler;
+    @Mock private MemberService memberService;
 
     private RuleService ruleService;
 
@@ -60,7 +61,8 @@ class RuleServiceTest {
 
     @BeforeEach
     void setUp() {
-        ruleService = new RuleService(ruleRepository, deviceRepository, userRepository, deviceService, wsHandler);
+        ruleService = new RuleService(ruleRepository, deviceRepository, userRepository, deviceService, wsHandler,
+                memberService);
 
         user = new User("Test User", EMAIL, "hashed");
         ReflectionTestUtils.setField(user, "id", 1L);
@@ -84,7 +86,7 @@ class RuleServiceTest {
         RuleRequest req = buildThresholdRequest();
         Rule saved = buildThresholdRule();
 
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(deviceRepository.findById(10L)).thenReturn(Optional.of(sensorDevice));
         when(deviceRepository.findById(11L)).thenReturn(Optional.of(switchDevice));
         when(ruleRepository.save(any(Rule.class))).thenReturn(saved);
@@ -102,7 +104,7 @@ class RuleServiceTest {
         Device otherDevice = new Device(new Room(new User("Other", "other@test.com", "x"), "Room", "icon"), "Sensor", DeviceType.SENSOR);
         ReflectionTestUtils.setField(otherDevice, "id", 10L);
 
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(deviceRepository.findById(10L)).thenReturn(Optional.of(otherDevice));
 
         assertThatThrownBy(() -> ruleService.createRule(EMAIL, req))
@@ -116,7 +118,7 @@ class RuleServiceTest {
         Device otherSwitch = new Device(new Room(new User("Other", "other@test.com", "x"), "Room", "icon"), "Switch", DeviceType.SWITCH);
         ReflectionTestUtils.setField(otherSwitch, "id", 11L);
 
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(deviceRepository.findById(10L)).thenReturn(Optional.of(sensorDevice));
         when(deviceRepository.findById(11L)).thenReturn(Optional.of(otherSwitch));
 
@@ -130,13 +132,24 @@ class RuleServiceTest {
     @Test
     void getRules_noFilter_returnsAllForUser() {
         Rule rule = buildThresholdRule();
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(ruleRepository.findByUser(user)).thenReturn(List.of(rule));
 
         List<RuleResponse> result = ruleService.getRules(EMAIL, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getName()).isEqualTo("Cool Down");
+    }
+
+    @Test
+    void getRules_memberCaller_throwsForbidden() {
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: Owner role required."))
+                .when(memberService).requireOwnerRole(EMAIL);
+
+        assertThatThrownBy(() -> ruleService.getRules(EMAIL, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
     }
 
     // --- updateRule ---
@@ -147,7 +160,7 @@ class RuleServiceTest {
         RuleRequest req = buildThresholdRequest();
         req.setName("Updated Rule");
 
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(ruleRepository.findByIdAndUser(1L, user)).thenReturn(Optional.of(existing));
         when(deviceRepository.findById(10L)).thenReturn(Optional.of(sensorDevice));
         when(deviceRepository.findById(11L)).thenReturn(Optional.of(switchDevice));
@@ -160,7 +173,7 @@ class RuleServiceTest {
 
     @Test
     void updateRule_notFound_throws404() {
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(ruleRepository.findByIdAndUser(99L, user)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> ruleService.updateRule(EMAIL, 99L, buildThresholdRequest()))
@@ -173,7 +186,7 @@ class RuleServiceTest {
     @Test
     void setEnabled_disablesRule() {
         Rule rule = buildThresholdRule();
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(ruleRepository.findByIdAndUser(1L, user)).thenReturn(Optional.of(rule));
         when(ruleRepository.save(rule)).thenReturn(rule);
 
@@ -187,7 +200,7 @@ class RuleServiceTest {
     @Test
     void deleteRule_success_callsRepositoryDelete() {
         Rule rule = buildThresholdRule();
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(ruleRepository.findByIdAndUser(1L, user)).thenReturn(Optional.of(rule));
 
         ruleService.deleteRule(EMAIL, 1L);
@@ -278,7 +291,7 @@ class RuleServiceTest {
         RuleRequest req = buildTimeRequest();
         Rule saved = buildTimeRule();
 
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(deviceRepository.findById(11L)).thenReturn(Optional.of(switchDevice));
         when(ruleRepository.save(any(Rule.class))).thenReturn(saved);
 
@@ -296,7 +309,7 @@ class RuleServiceTest {
         RuleRequest req = buildTimeRequest();
         req.setTriggerHour(null);
 
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
 
         assertThatThrownBy(() -> ruleService.createRule(EMAIL, req))
                 .isInstanceOf(ResponseStatusException.class)
@@ -308,7 +321,7 @@ class RuleServiceTest {
         RuleRequest req = buildTimeRequest();
         req.setTriggerDaysOfWeek(null);
 
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
 
         assertThatThrownBy(() -> ruleService.createRule(EMAIL, req))
                 .isInstanceOf(ResponseStatusException.class)

@@ -50,6 +50,9 @@ class AuthServiceTest {
     @Mock
     private JwtUtil jwtUtil;
 
+    @Mock
+    private MemberService memberService;
+
     @InjectMocks
     private AuthService authService;
 
@@ -86,6 +89,7 @@ class AuthServiceTest {
         assertThat(response.getToken()).isEqualTo("jwt-token");
         assertThat(response.getName()).isEqualTo("Alice");
         assertThat(response.getEmail()).isEqualTo("alice@example.com");
+        assertThat(response.getRole()).isEqualTo("OWNER");
         verify(userRepository).save(any(User.class));
     }
 
@@ -138,11 +142,13 @@ class AuthServiceTest {
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(savedUser));
         when(passwordEncoder.matches("password123", "hashed-password")).thenReturn(true);
         when(jwtUtil.generateToken("alice@example.com")).thenReturn("jwt-token");
+        when(memberService.resolveRole(savedUser)).thenReturn("OWNER");
 
         AuthResponse response = authService.login(loginRequest);
 
         assertThat(response.getToken()).isEqualTo("jwt-token");
         assertThat(response.getEmail()).isEqualTo("alice@example.com");
+        assertThat(response.getRole()).isEqualTo("OWNER");
     }
 
     @Test
@@ -172,11 +178,13 @@ class AuthServiceTest {
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(savedUser));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
         when(jwtUtil.generateToken(anyString())).thenReturn("token");
+        when(memberService.resolveRole(savedUser)).thenReturn("MEMBER");
 
         AuthResponse response = authService.login(loginRequest);
 
         assertThat(response.getName()).isEqualTo("Alice");
         assertThat(response.getEmail()).isEqualTo("alice@example.com");
+        assertThat(response.getRole()).isEqualTo("MEMBER");
     }
 
     // ── Bugfix #63: Email case-insensitivity ──────────────────────────────────
@@ -227,6 +235,7 @@ class AuthServiceTest {
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(savedUser));
         when(passwordEncoder.matches("password123", "hashed-password")).thenReturn(true);
         when(jwtUtil.generateToken("alice@example.com")).thenReturn("jwt-token");
+        when(memberService.resolveRole(savedUser)).thenReturn("OWNER");
 
         AuthResponse response = authService.login(upperCaseLogin);
 

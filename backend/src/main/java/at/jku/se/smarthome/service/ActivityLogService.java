@@ -28,6 +28,10 @@ import java.time.Instant;
  * of activity log entries. All operations are scoped to the authenticated user.</p>
  *
  * <p>Implements FR-08: Aktivitätsprotokoll.</p>
+ *
+ * <p>FR-13: Reading or deleting the activity log is owner-only. Member actions
+ * are still recorded through {@link #log(Device, User, String, String)} using
+ * the owner for scoping and the member name as actor.</p>
  */
 @Service
 public class ActivityLogService {
@@ -35,6 +39,7 @@ public class ActivityLogService {
     private final ActivityLogRepository activityLogRepository;
     private final UserRepository userRepository;
     private final DeviceRepository deviceRepository;
+    private final MemberService memberService;
 
     /**
      * Constructs an ActivityLogService with the required repositories.
@@ -42,13 +47,16 @@ public class ActivityLogService {
      * @param activityLogRepository the repository for activity log persistence
      * @param userRepository        the repository for resolving users
      * @param deviceRepository      the repository for resolving devices
+     * @param memberService         the service used for owner-only authorization (FR-13)
      */
     public ActivityLogService(ActivityLogRepository activityLogRepository,
                               UserRepository userRepository,
-                              DeviceRepository deviceRepository) {
+                              DeviceRepository deviceRepository,
+                              MemberService memberService) {
         this.activityLogRepository = activityLogRepository;
         this.userRepository = userRepository;
         this.deviceRepository = deviceRepository;
+        this.memberService = memberService;
     }
 
     /**
@@ -85,7 +93,8 @@ public class ActivityLogService {
     @Transactional(readOnly = true)
     public Page<ActivityLogResponse> getLogs(String email, int page, int size,
                                              Instant from, Instant to, Long deviceId) {
-        User user = resolveUser(email);
+        memberService.requireOwnerRole(email);
+        User user = memberService.resolveEffectiveOwner(email);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "timestamp"));
 
         boolean hasDate = from != null || to != null;
@@ -123,7 +132,8 @@ public class ActivityLogService {
      */
     @Transactional
     public void deleteLog(String email, Long logId) {
-        User user = resolveUser(email);
+        memberService.requireOwnerRole(email);
+        User user = memberService.resolveEffectiveOwner(email);
         ActivityLog entry = activityLogRepository.findByIdAndUser(logId, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Activity log entry not found."));

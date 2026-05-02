@@ -33,6 +33,9 @@ import java.util.stream.Collectors;
  * caught and recorded in the activity log rather than propagated to the caller.</p>
  *
  * <p>Implements FR-09: Zeitpläne konfigurieren.</p>
+ *
+ * <p>FR-13: Schedule management endpoints are owner-only. Scheduled execution
+ * itself remains internal and continues to run for owner-owned devices.</p>
  */
 @Service
 public class ScheduleService {
@@ -45,6 +48,7 @@ public class ScheduleService {
     private final DeviceService deviceService;
     private final ActivityLogService activityLogService;
     private final ObjectMapper objectMapper;
+    private final MemberService memberService;
 
     /**
      * Constructs a {@code ScheduleService} with all required dependencies.
@@ -55,19 +59,22 @@ public class ScheduleService {
      * @param deviceService       the service used to apply device state on execution
      * @param activityLogService  the service used to log execution results
      * @param objectMapper        the Jackson mapper for action payload deserialization
+     * @param memberService       the service used for owner-only authorization (FR-13)
      */
     public ScheduleService(ScheduleRepository scheduleRepository,
                            DeviceRepository deviceRepository,
                            UserRepository userRepository,
                            DeviceService deviceService,
                            ActivityLogService activityLogService,
-                           ObjectMapper objectMapper) {
+                           ObjectMapper objectMapper,
+                           MemberService memberService) {
         this.scheduleRepository = scheduleRepository;
         this.deviceRepository = deviceRepository;
         this.userRepository = userRepository;
         this.deviceService = deviceService;
         this.activityLogService = activityLogService;
         this.objectMapper = objectMapper;
+        this.memberService = memberService;
     }
 
     /**
@@ -105,7 +112,8 @@ public class ScheduleService {
      */
     @Transactional(readOnly = true)
     public List<ScheduleResponse> getSchedules(String userEmail, Long deviceId) {
-        User user = resolveUser(userEmail);
+        memberService.requireOwnerRole(userEmail);
+        User user = memberService.resolveEffectiveOwner(userEmail);
         List<Schedule> schedules;
         if (deviceId != null) {
             Device device = resolveOwnedDevice(user, deviceId);
@@ -129,7 +137,8 @@ public class ScheduleService {
      */
     @Transactional
     public ScheduleResponse createSchedule(String userEmail, ScheduleRequest request) {
-        User user = resolveUser(userEmail);
+        memberService.requireOwnerRole(userEmail);
+        User user = memberService.resolveEffectiveOwner(userEmail);
         Device device = resolveOwnedDevice(user, request.getDeviceId());
         validateRequest(request);
 
@@ -161,7 +170,8 @@ public class ScheduleService {
      */
     @Transactional
     public ScheduleResponse updateSchedule(String userEmail, Long scheduleId, ScheduleRequest request) {
-        User user = resolveUser(userEmail);
+        memberService.requireOwnerRole(userEmail);
+        User user = memberService.resolveEffectiveOwner(userEmail);
         Schedule schedule = resolveOwnedSchedule(user, scheduleId);
         validateRequest(request);
 
@@ -194,7 +204,8 @@ public class ScheduleService {
      */
     @Transactional
     public ScheduleResponse setEnabled(String userEmail, Long scheduleId, boolean enabled) {
-        User user = resolveUser(userEmail);
+        memberService.requireOwnerRole(userEmail);
+        User user = memberService.resolveEffectiveOwner(userEmail);
         Schedule schedule = resolveOwnedSchedule(user, scheduleId);
         schedule.setEnabled(enabled);
         return toResponse(scheduleRepository.save(schedule));
@@ -209,7 +220,8 @@ public class ScheduleService {
      */
     @Transactional
     public void deleteSchedule(String userEmail, Long scheduleId) {
-        User user = resolveUser(userEmail);
+        memberService.requireOwnerRole(userEmail);
+        User user = memberService.resolveEffectiveOwner(userEmail);
         Schedule schedule = resolveOwnedSchedule(user, scheduleId);
         scheduleRepository.delete(schedule);
         if (log.isInfoEnabled()) {

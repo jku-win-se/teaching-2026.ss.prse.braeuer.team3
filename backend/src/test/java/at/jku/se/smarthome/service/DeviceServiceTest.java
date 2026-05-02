@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -28,6 +29,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +45,8 @@ class DeviceServiceTest {
     private UserRepository userRepository;
     @Mock
     private ActivityLogService activityLogService;
+    @Mock
+    private MemberService memberService;
 
     private DeviceService deviceService;
 
@@ -65,7 +70,7 @@ class DeviceServiceTest {
                 // no-op: WebSocket activity log broadcast is tested separately
             }
         };
-        RuleService noOpRuleService = new RuleService(null, null, null, null, null) {
+        RuleService noOpRuleService = new RuleService(null, null, null, null, null, null) {
             @Override
             public void evaluateRulesForDevice(at.jku.se.smarthome.domain.Device device,
                                                at.jku.se.smarthome.dto.DeviceStateRequest request,
@@ -73,7 +78,8 @@ class DeviceServiceTest {
                 // no-op: rule evaluation is tested separately in RuleServiceTest
             }
         };
-        deviceService = new DeviceService(deviceRepository, roomRepository, userRepository, noOpWs, activityLogService, noOpRuleService);
+        deviceService = new DeviceService(deviceRepository, roomRepository, userRepository, noOpWs, activityLogService,
+                noOpRuleService, memberService);
     }
 
     // --- getDevices ---
@@ -81,7 +87,7 @@ class DeviceServiceTest {
     @Test
     void getDevices_returnsListForOwnedRoom() {
         Device device = new Device(room, "Lamp", DeviceType.SWITCH);
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())).thenReturn(List.of(device));
 
@@ -94,7 +100,7 @@ class DeviceServiceTest {
 
     @Test
     void getDevices_throwsNotFound_whenRoomBelongsToOtherUser() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> deviceService.getDevices("user@test.com", 1L))
@@ -110,7 +116,7 @@ class DeviceServiceTest {
         DeviceRequest request = buildRequest("Lamp", DeviceType.SWITCH);
         Device saved = new Device(room, "Lamp", DeviceType.SWITCH);
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.existsByRoomIdAndName(room.getId(), "Lamp")).thenReturn(false);
         when(deviceRepository.save(any(Device.class))).thenReturn(saved);
@@ -126,7 +132,7 @@ class DeviceServiceTest {
     void addDevice_throwsConflict_whenNameAlreadyExists() {
         DeviceRequest request = buildRequest("Lamp", DeviceType.SWITCH);
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.existsByRoomIdAndName(room.getId(), "Lamp")).thenReturn(true);
 
@@ -140,13 +146,26 @@ class DeviceServiceTest {
     void addDevice_throwsNotFound_whenRoomNotOwned() {
         DeviceRequest request = buildRequest("Lamp", DeviceType.SWITCH);
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> deviceService.addDevice("user@test.com", 1L, request))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void addDevice_memberCaller_throwsForbidden() {
+        DeviceRequest request = buildRequest("Lamp", DeviceType.SWITCH);
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Only the home owner can add devices."))
+                .when(memberService).requireOwnerRole("user@test.com", "add devices");
+
+        assertThatThrownBy(() -> deviceService.addDevice("user@test.com", 1L, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
     }
 
     // --- renameDevice ---
@@ -156,7 +175,7 @@ class DeviceServiceTest {
         Device device = new Device(room, "Lamp", DeviceType.SWITCH);
         RenameDeviceRequest request = buildRenameRequest("Smart Lamp");
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
         when(deviceRepository.existsByRoomIdAndNameAndIdNot(room.getId(), "Smart Lamp", 10L)).thenReturn(false);
@@ -169,11 +188,33 @@ class DeviceServiceTest {
     }
 
     @Test
+    void renameDevice_coOwner_updatesDeviceInSharedOwnerHome() {
+        User owner = new User("Owner", "owner@gmail.com", "hashed");
+        ReflectionTestUtils.setField(owner, "id", 42L);
+        Room sharedRoom = new Room(owner, "Garden", "yard");
+        ReflectionTestUtils.setField(sharedRoom, "id", 7L);
+        Device device = new Device(sharedRoom, "Garten Switch", DeviceType.SWITCH);
+        RenameDeviceRequest request = buildRenameRequest("Garden Switch");
+
+        when(memberService.resolveEffectiveOwner("testowner@gmail.com")).thenReturn(owner);
+        when(roomRepository.findByIdAndUserId(1L, owner.getId())).thenReturn(Optional.of(sharedRoom));
+        when(deviceRepository.findByIdAndRoomId(10L, sharedRoom.getId())).thenReturn(Optional.of(device));
+        when(deviceRepository.existsByRoomIdAndNameAndIdNot(sharedRoom.getId(), "Garden Switch", 10L))
+                .thenReturn(false);
+        when(deviceRepository.save(device)).thenReturn(device);
+
+        DeviceResponse response = deviceService.renameDevice("testowner@gmail.com", 1L, 10L, request);
+
+        assertThat(response.getName()).isEqualTo("Garden Switch");
+        verify(roomRepository).findByIdAndUserId(1L, 42L);
+    }
+
+    @Test
     void renameDevice_throwsConflict_whenNameTaken() {
         Device device = new Device(room, "Lamp", DeviceType.SWITCH);
         RenameDeviceRequest request = buildRenameRequest("Thermostat");
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
         when(deviceRepository.existsByRoomIdAndNameAndIdNot(room.getId(), "Thermostat", 10L)).thenReturn(true);
@@ -188,7 +229,7 @@ class DeviceServiceTest {
     void renameDevice_throwsNotFound_whenDeviceNotInRoom() {
         RenameDeviceRequest request = buildRenameRequest("Smart Lamp");
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.empty());
 
@@ -204,7 +245,7 @@ class DeviceServiceTest {
     void deleteDevice_removesDevice() {
         Device device = new Device(room, "Lamp", DeviceType.SWITCH);
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
 
@@ -215,7 +256,7 @@ class DeviceServiceTest {
 
     @Test
     void deleteDevice_throwsNotFound_whenDeviceNotInRoom() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.empty());
 
@@ -240,6 +281,7 @@ class DeviceServiceTest {
         DeviceStateRequest request = new DeviceStateRequest();
         request.setStateOn(true);
 
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
@@ -260,6 +302,7 @@ class DeviceServiceTest {
         DeviceStateRequest request = new DeviceStateRequest();
         request.setBrightness(75);
 
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
@@ -274,10 +317,32 @@ class DeviceServiceTest {
     }
 
     @Test
+    void updateState_memberCaller_logsAgainstOwnerWithMemberActor() {
+        User memberUser = new User("Member", "member@test.com", "hashed");
+        Device device = new Device(room, "Lamp", DeviceType.SWITCH);
+        DeviceStateRequest request = new DeviceStateRequest();
+        request.setStateOn(true);
+
+        when(memberService.resolveEffectiveOwner("member@test.com")).thenReturn(user);
+        when(userRepository.findByEmail("member@test.com")).thenReturn(Optional.of(memberUser));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
+        when(deviceRepository.save(device)).thenReturn(device);
+        when(activityLogService.buildActionDescription(any(), any())).thenReturn("Turned on");
+        when(activityLogService.log(any(), any(), any(), any())).thenReturn(
+                new ActivityLogResponse(1L, Instant.now(), null, "Lamp", "Living Room", "Member", "Turned on"));
+
+        deviceService.updateState("member@test.com", 1L, 10L, request);
+
+        verify(activityLogService).log(eq(device), eq(user), eq("Member"), eq("Turned on"));
+    }
+
+    @Test
     void updateState_throwsNotFound_whenDeviceNotInRoom() {
         DeviceStateRequest request = new DeviceStateRequest();
         request.setStateOn(true);
 
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.empty());
@@ -299,7 +364,7 @@ class DeviceServiceTest {
     @Test
     void toResponse_switch_onlyStateOnIsNonNull() {
         Device device = new Device(room, "Switch", DeviceType.SWITCH);
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())).thenReturn(List.of(device));
 
@@ -315,7 +380,7 @@ class DeviceServiceTest {
     @Test
     void toResponse_dimmer_onlyStateOnAndBrightnessAreNonNull() {
         Device device = new Device(room, "Dimmer", DeviceType.DIMMER);
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())).thenReturn(List.of(device));
 
@@ -331,7 +396,7 @@ class DeviceServiceTest {
     @Test
     void toResponse_thermostat_onlyStateOnAndTemperatureAreNonNull() {
         Device device = new Device(room, "Thermostat", DeviceType.THERMOSTAT);
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())).thenReturn(List.of(device));
 
@@ -347,7 +412,7 @@ class DeviceServiceTest {
     @Test
     void toResponse_sensor_onlyTemperatureAndSensorValueAreNonNull() {
         Device device = new Device(room, "Sensor", DeviceType.SENSOR);
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())).thenReturn(List.of(device));
 
@@ -363,7 +428,7 @@ class DeviceServiceTest {
     @Test
     void toResponse_cover_onlyStateOnAndCoverPositionAreNonNull() {
         Device device = new Device(room, "Cover", DeviceType.COVER);
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())).thenReturn(List.of(device));
 

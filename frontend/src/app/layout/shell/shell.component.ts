@@ -17,6 +17,7 @@ interface NavItem {
   label: string;
   icon: string;
   route: string;
+  ownerOnly?: boolean;
 }
 
 interface NavGroup {
@@ -45,10 +46,10 @@ interface NavGroup {
           <span>SmartHome</span>
         </div>
 
-        <div *ngFor="let group of navGroups">
+        <div *ngFor="let group of navGroups" [hidden]="visibleItems(group).length === 0">
           <div class="nav-group-label">{{ group.label }}</div>
           <a
-            *ngFor="let item of group.items"
+            *ngFor="let item of visibleItems(group)"
             class="nav-link"
             [routerLink]="item.route"
             routerLinkActive="active"
@@ -118,6 +119,7 @@ interface NavGroup {
             <div style="padding:12px 16px 8px;border-bottom:1px solid #F1F5F9;margin-bottom:4px;pointer-events:none;">
               <div style="font-weight:600;font-size:14px;color:var(--text);">{{ auth.currentUser?.name }}</div>
               <div style="font-size:12px;color:var(--text-muted);">{{ auth.currentUser?.email }}</div>
+              <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-top:2px;">{{ auth.currentUser?.role }}</div>
             </div>
             <button mat-menu-item routerLink="/settings">
               <mat-icon>settings</mat-icon> Settings
@@ -155,15 +157,15 @@ export class ShellComponent implements OnInit, OnDestroy {
     {
       label: 'Automation',
       items: [
-        { label: 'Rules', icon: 'rule', route: '/rules' },
-        { label: 'Schedules', icon: 'schedule', route: '/schedules' },
+        { label: 'Rules', icon: 'rule', route: '/rules', ownerOnly: true },
+        { label: 'Schedules', icon: 'schedule', route: '/schedules', ownerOnly: true },
       ]
     },
     {
       label: 'Insights',
       items: [
         { label: 'Energy', icon: 'bolt', route: '/energy' },
-        { label: 'Activity Log', icon: 'history', route: '/log' },
+        { label: 'Activity Log', icon: 'history', route: '/log', ownerOnly: true },
       ]
     },
     {
@@ -197,6 +199,9 @@ export class ShellComponent implements OnInit, OnDestroy {
     this.notifications = [];
   }
 
+  visibleItems(group: NavGroup): NavItem[] {
+    return group.items.filter(item => !item.ownerOnly || this.auth.isOwner);
+  }
 
   logout() {
     this.auth.logout();

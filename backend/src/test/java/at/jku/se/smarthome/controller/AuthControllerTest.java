@@ -2,18 +2,12 @@ package at.jku.se.smarthome.controller;
 
 import at.jku.se.smarthome.dto.AuthResponse;
 import at.jku.se.smarthome.repository.UserRepository;
-import at.jku.se.smarthome.security.JwtAuthFilter;
 import at.jku.se.smarthome.security.JwtUtil;
 import at.jku.se.smarthome.security.SecurityConfig;
 import at.jku.se.smarthome.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -51,33 +45,18 @@ class AuthControllerTest {
     @MockBean
     private AuthService authService;
 
-    // Required by SecurityConfig / JwtAuthFilter even in slice tests
-    @MockBean
-    private JwtAuthFilter jwtAuthFilter;
-
     @MockBean
     private JwtUtil jwtUtil;
 
     @MockBean
     private UserRepository userRepository;
 
-    @BeforeEach
-    void setUpFilter() throws Exception {
-        Mockito.doAnswer(invocation -> {
-            FilterChain chain = invocation.getArgument(2);
-            chain.doFilter(
-                    (ServletRequest) invocation.getArgument(0),
-                    (ServletResponse) invocation.getArgument(1));
-            return null;
-        }).when(jwtAuthFilter).doFilter(any(), any(), any());
-    }
-
     // ── POST /api/auth/register ───────────────────────────────────────────────
 
     @Test
     @DisplayName("US-001: POST /api/auth/register → 201 Created mit Token")
     void register_withValidData_returns201() throws Exception {
-        AuthResponse authResponse = new AuthResponse("jwt-token", "Alice", "alice@example.com");
+        AuthResponse authResponse = new AuthResponse("jwt-token", "Alice", "alice@example.com", "OWNER");
         when(authService.register(any())).thenReturn(authResponse);
 
         String body = """
@@ -176,7 +155,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("US-002: POST /api/auth/login - Korrekte Zugangsdaten → 200 OK mit Token")
     void login_withCorrectCredentials_returns200() throws Exception {
-        AuthResponse authResponse = new AuthResponse("jwt-token", "Alice", "alice@example.com");
+        AuthResponse authResponse = new AuthResponse("jwt-token", "Alice", "alice@example.com", "OWNER");
         when(authService.login(any())).thenReturn(authResponse);
 
         String body = """

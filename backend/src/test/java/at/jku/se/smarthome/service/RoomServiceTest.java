@@ -44,6 +44,9 @@ class RoomServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private MemberService memberService;
+
     @InjectMocks
     private RoomService roomService;
 
@@ -65,7 +68,7 @@ class RoomServiceTest {
     @Test
     @DisplayName("getRooms: gibt alle Räume des Benutzers zurück")
     void getRooms_returnsAllRoomsForUser() {
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.findByUserIdOrderByCreatedAtAsc(user.getId()))
                 .thenReturn(List.of(room));
 
@@ -78,7 +81,7 @@ class RoomServiceTest {
     @Test
     @DisplayName("getRooms: gibt leere Liste zurück wenn keine Räume vorhanden")
     void getRooms_returnsEmptyListWhenNoRooms() {
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.findByUserIdOrderByCreatedAtAsc(user.getId()))
                 .thenReturn(List.of());
 
@@ -92,7 +95,7 @@ class RoomServiceTest {
     @Test
     @DisplayName("US-004: Raum mit Name erstellen möglich")
     void createRoom_withValidData_returnsCreatedRoom() {
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.existsByUserIdAndName(user.getId(), "Living Room")).thenReturn(false);
         when(roomRepository.save(any(Room.class))).thenReturn(room);
 
@@ -106,7 +109,7 @@ class RoomServiceTest {
     @Test
     @DisplayName("US-004: Raum erstellen - Duplikat-Name wird abgelehnt (409)")
     void createRoom_withDuplicateName_throwsConflict() {
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.existsByUserIdAndName(user.getId(), "Living Room")).thenReturn(true);
 
         assertThatThrownBy(() -> roomService.createRoom("alice@example.com", roomRequest))
@@ -121,7 +124,7 @@ class RoomServiceTest {
     void createRoom_savesIconCorrectly() {
         roomRequest.setIcon("kitchen");
         Room kitchenRoom = new Room(user, "Living Room", "kitchen");
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.existsByUserIdAndName(any(), any())).thenReturn(false);
         when(roomRepository.save(any(Room.class))).thenReturn(kitchenRoom);
 
@@ -140,7 +143,7 @@ class RoomServiceTest {
         renameRequest.setIcon("kitchen");
         Room renamedRoom = new Room(user, "Kitchen", "kitchen");
 
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(roomRepository.existsByUserIdAndName(user.getId(), "Kitchen")).thenReturn(false);
         when(roomRepository.save(any(Room.class))).thenReturn(renamedRoom);
@@ -156,7 +159,7 @@ class RoomServiceTest {
         RoomRequest renameRequest = new RoomRequest();
         renameRequest.setName("Kitchen");
 
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(99L, user.getId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> roomService.renameRoom("alice@example.com", 99L, renameRequest))
@@ -170,7 +173,7 @@ class RoomServiceTest {
         RoomRequest renameRequest = new RoomRequest();
         renameRequest.setName("Bedroom");
 
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(roomRepository.existsByUserIdAndName(user.getId(), "Bedroom")).thenReturn(true);
 
@@ -185,7 +188,7 @@ class RoomServiceTest {
         RoomRequest renameRequest = new RoomRequest();
         renameRequest.setName("Living Room"); // same name as current
 
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(roomRepository.save(any(Room.class))).thenReturn(room);
 
@@ -199,7 +202,7 @@ class RoomServiceTest {
     @Test
     @DisplayName("US-004: Raum löschen möglich")
     void deleteRoom_withValidId_deletesRoom() {
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
 
         roomService.deleteRoom("alice@example.com", 1L);
@@ -210,7 +213,7 @@ class RoomServiceTest {
     @Test
     @DisplayName("US-004: Raum löschen - Raum nicht gefunden (404)")
     void deleteRoom_whenNotFound_throwsNotFound() {
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(99L, user.getId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> roomService.deleteRoom("alice@example.com", 99L))
@@ -223,7 +226,7 @@ class RoomServiceTest {
     @Test
     @DisplayName("US-004: Raum löschen - fremder Raum nicht löschbar (404)")
     void deleteRoom_whenRoomBelongsToOtherUser_throwsNotFound() {
-        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("alice@example.com")).thenReturn(user);
         // findByIdAndUserId returns empty because the room belongs to another user
         when(roomRepository.findByIdAndUserId(5L, user.getId())).thenReturn(Optional.empty());
 

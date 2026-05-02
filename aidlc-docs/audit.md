@@ -1,5 +1,50 @@
 # AI-DLC Audit Log
 
+## Build and Test — FR-13/FR-20 Frontend: Roles UI & Members
+**Timestamp**: 2026-05-01T14:45:00+02:00
+**Build Status**: SUCCESS
+**Type Check**: PASS — `npx tsc -p tsconfig.app.json --noEmit`
+**Angular Build**: PASS — `npm run build` (unsandboxed due native Angular bundler process); existing bundle budget warning remains
+**Implementation Summary**: Added frontend role storage, owner route guard, real `/api/members` HTTP service, Settings member management integration, Owner-only navigation visibility, and Rooms UI management hiding for Members while retaining device control.
+**Status**: Complete
+
+---
+
+## Code Generation — FR-13/FR-20 Frontend: Roles UI & Members
+**Timestamp**: 2026-05-01T14:43:00+02:00
+**Plan**: `aidlc-docs/inception/plans/fr13-fr20-execution-plan.md`
+**Files Generated/Modified**: `auth.service.ts`, `owner.guard.ts`, `member.service.ts`, `app.routes.ts`, `shell.component.ts`, `rooms.component.ts`, `settings.component.ts`, `invite-member-dialog.component.ts`
+**Status**: Complete
+
+---
+
+## Build and Test — FR-13/FR-20 Backend: Roles & Members
+**Timestamp**: 2026-05-01T14:36:10+02:00
+**Branch**: current workspace
+**Build Status**: SUCCESS
+**Test Status**: PASS — 230/230 backend tests
+**Implementation Summary**: Completed backend role model and member management follow-up work: DeviceService owner resolution/member control path, owner-only guards for device management/rules/schedules/activity logs, MemberService and MemberController tests, existing role-change test updates, and Mockito test runtime stabilization via subclass mock maker.
+**Status**: Complete — ready for Unit 2 Frontend code generation
+
+---
+
+## Code Generation — FR-13/FR-20 Backend: Roles & Members
+**Timestamp**: 2026-05-01T14:20:00+02:00
+**Plan**: `aidlc-docs/inception/plans/fr13-fr20-execution-plan.md`
+**Files Generated/Modified**: V9 migration, HomeMember entity/repository, member DTOs/controller/service, AuthResponse/AuthService role population, role-aware RoomService/DeviceService/RuleService/ScheduleService/ActivityLogService, backend unit/controller tests.
+**Status**: Complete
+
+---
+
+## Workflow Planning — FR-13/FR-20: Benutzerrollen & Mitgliederverwaltung
+**Timestamp**: 2026-05-01T00:00:00
+**AI Prompt**: "Approve requirements and execution plan for FR-13/FR-20?"
+**User Response**: Questions answered, clarification answered (A: exklusiv model)
+**Status**: Approved
+**Context**: Requirements + Execution Plan erstellt; 2 Units (Backend + Frontend); Functional Design als nächstes
+
+---
+
 ## Build and Test — FR-10: Rule Engine (IF-THEN)
 **Timestamp**: 2026-04-25T14:30:00
 **Branch**: `main` (FR-10 implementation)

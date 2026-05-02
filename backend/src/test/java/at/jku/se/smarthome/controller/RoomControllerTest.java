@@ -2,17 +2,12 @@ package at.jku.se.smarthome.controller;
 
 import at.jku.se.smarthome.dto.RoomResponse;
 import at.jku.se.smarthome.repository.UserRepository;
-import at.jku.se.smarthome.security.JwtAuthFilter;
 import at.jku.se.smarthome.security.JwtUtil;
 import at.jku.se.smarthome.service.RoomService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -58,9 +53,6 @@ class RoomControllerTest {
     private RoomService roomService;
 
     @MockBean
-    private JwtAuthFilter jwtAuthFilter;
-
-    @MockBean
     private JwtUtil jwtUtil;
 
     @MockBean
@@ -71,14 +63,6 @@ class RoomControllerTest {
     @BeforeEach
     void setUp() throws Exception {
         roomResponse = new RoomResponse(1L, "Living Room", "weekend");
-
-        Mockito.doAnswer(invocation -> {
-            FilterChain chain = invocation.getArgument(2);
-            chain.doFilter(
-                    (ServletRequest) invocation.getArgument(0),
-                    (ServletResponse) invocation.getArgument(1));
-            return null;
-        }).when(jwtAuthFilter).doFilter(any(), any(), any());
     }
 
     // ── GET /api/rooms ────────────────────────────────────────────────────────

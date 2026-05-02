@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,6 +42,8 @@ class ActivityLogServiceTest {
     private UserRepository userRepository;
     @Mock
     private DeviceRepository deviceRepository;
+    @Mock
+    private MemberService memberService;
 
     private ActivityLogService activityLogService;
 
@@ -50,7 +53,8 @@ class ActivityLogServiceTest {
 
     @BeforeEach
     void setUp() {
-        activityLogService = new ActivityLogService(activityLogRepository, userRepository, deviceRepository);
+        activityLogService = new ActivityLogService(activityLogRepository, userRepository, deviceRepository,
+                memberService);
         user = new User("Test User", "user@test.com", "hashed");
         room = new Room(user, "Living Room", "weekend");
         device = new Device(room, "Lamp", DeviceType.SWITCH);
@@ -79,7 +83,7 @@ class ActivityLogServiceTest {
         ActivityLog entry = new ActivityLog(Instant.now(), device, user, "Test User", "Turned on");
         Page<ActivityLog> page = new PageImpl<>(List.of(entry));
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(activityLogRepository.findByUser(eq(user), any(Pageable.class))).thenReturn(page);
 
         Page<ActivityLogResponse> result = activityLogService.getLogs("user@test.com", 0, 20, null, null, null);
@@ -95,7 +99,7 @@ class ActivityLogServiceTest {
         ActivityLog entry = new ActivityLog(Instant.now().minusSeconds(1800), device, user, "Test User", "Turned on");
         Page<ActivityLog> page = new PageImpl<>(List.of(entry));
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(activityLogRepository.findByUserAndTimestampBetween(eq(user), any(Instant.class), any(Instant.class), any(Pageable.class)))
                 .thenReturn(page);
 
@@ -110,7 +114,7 @@ class ActivityLogServiceTest {
         ActivityLog entry = new ActivityLog(Instant.now(), device, user, "Test User", "Turned on");
         Page<ActivityLog> page = new PageImpl<>(List.of(entry));
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(deviceRepository.findById(10L)).thenReturn(Optional.of(device));
         when(activityLogRepository.findByUserAndDevice(eq(user), eq(device), any(Pageable.class)))
                 .thenReturn(page);
@@ -128,7 +132,7 @@ class ActivityLogServiceTest {
         ActivityLog entry = new ActivityLog(Instant.now().minusSeconds(1800), device, user, "Test User", "Turned on");
         Page<ActivityLog> page = new PageImpl<>(List.of(entry));
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(deviceRepository.findById(10L)).thenReturn(Optional.of(device));
         when(activityLogRepository.findByUserAndTimestampBetweenAndDevice(
                 eq(user), any(Instant.class), any(Instant.class), eq(device), any(Pageable.class)))
@@ -141,13 +145,24 @@ class ActivityLogServiceTest {
                 eq(user), any(Instant.class), any(Instant.class), eq(device), any(Pageable.class));
     }
 
+    @Test
+    void getLogs_memberCaller_throwsForbidden() {
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: Owner role required."))
+                .when(memberService).requireOwnerRole("user@test.com");
+
+        assertThatThrownBy(() -> activityLogService.getLogs("user@test.com", 0, 20, null, null, null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+    }
+
     // --- deleteLog ---
 
     @Test
     void deleteLog_removesEntry() {
         ActivityLog entry = new ActivityLog(Instant.now(), device, user, "Test User", "Turned on");
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(activityLogRepository.findByIdAndUser(1L, user)).thenReturn(Optional.of(entry));
 
         activityLogService.deleteLog("user@test.com", 1L);
@@ -157,7 +172,7 @@ class ActivityLogServiceTest {
 
     @Test
     void deleteLog_throwsNotFound_whenEntryNotOwned() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(activityLogRepository.findByIdAndUser(99L, user)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> activityLogService.deleteLog("user@test.com", 99L))
