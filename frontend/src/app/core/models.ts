@@ -157,11 +157,12 @@ export interface SpringPage<T> {
 }
 
 export interface EnergyDevice {
-  deviceId: string;
+  deviceId: number;
   deviceName: string;
   room: string;
   wattage: number;
   todayKwh: number;
+  weekKwh: number;
 }
 
 export interface EnergyRoom {
