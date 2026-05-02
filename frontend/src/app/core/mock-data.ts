@@ -1,4 +1,4 @@
-import { Room, Device, Scene, Schedule, ActivityEntry, EnergyDevice, EnergyRoom, Member } from './models';
+import { Room, Device, Scene, Schedule, ActivityEntry, Member } from './models';
 
 export const ROOMS: Room[] = [
   { id: 'r1', name: 'Living Room', icon: 'weekend' },
@@ -85,25 +85,6 @@ export const ACTIVITY_LOG: ActivityEntry[] = [
   { id: 'a18', timestamp: hoursAgo(18), deviceName: 'Air Quality Sensor', room: 'Living Room', description: 'Air quality reading: 42 AQI (Good)', triggeredBy: 'Sensor', deviceType: 'sensor' },
   { id: 'a19', timestamp: hoursAgo(22), deviceName: 'Garage Door', room: 'Garage', description: 'Garage Door closed by Away Mode scene', triggeredBy: 'Sarah', deviceType: 'cover' },
   { id: 'a20', timestamp: hoursAgo(24), deviceName: 'Bedside Lamp', room: 'Bedroom', description: 'Bedside Lamp turned off by Goodnight scene', triggeredBy: 'Alex', deviceType: 'dimmer' },
-];
-
-export const ENERGY_DEVICES: EnergyDevice[] = [
-  { deviceId: 'd1', deviceName: 'Ceiling Light', room: 'Living Room', wattage: 12, todayKwh: 0.18 },
-  { deviceId: 'd2', deviceName: 'TV', room: 'Living Room', wattage: 85, todayKwh: 0.51 },
-  { deviceId: 'd5', deviceName: 'Counter Light', room: 'Kitchen', wattage: 8, todayKwh: 0.04 },
-  { deviceId: 'd6', deviceName: 'Dishwasher', room: 'Kitchen', wattage: 1200, todayKwh: 0.60 },
-  { deviceId: 'd8', deviceName: 'Bedside Lamp', room: 'Bedroom', wattage: 6, todayKwh: 0.06 },
-  { deviceId: 'd9', deviceName: 'AC Unit', room: 'Bedroom', wattage: 900, todayKwh: 0.27 },
-  { deviceId: 'd11', deviceName: 'Hallway Light', room: 'Hallway', wattage: 5, todayKwh: 0.02 },
-  { deviceId: 'd12', deviceName: 'Garage Door', room: 'Garage', wattage: 350, todayKwh: 0.12 },
-];
-
-export const ENERGY_ROOMS: EnergyRoom[] = [
-  { roomName: 'Living Room', todayKwh: 0.69, weekKwh: 4.8 },
-  { roomName: 'Kitchen', todayKwh: 0.64, weekKwh: 4.5 },
-  { roomName: 'Bedroom', todayKwh: 0.33, weekKwh: 2.3 },
-  { roomName: 'Hallway', todayKwh: 0.02, weekKwh: 0.14 },
-  { roomName: 'Garage', todayKwh: 0.12, weekKwh: 0.66 },
 ];
 
 export const MEMBERS: Member[] = [
