@@ -22,6 +22,9 @@ public class MemberResponse {
     /** Timestamp when the membership was created. */
     private LocalDateTime joinedAt;
 
+    /** Role granted to the user inside the home. */
+    private String role;
+
     /**
      * Creates a new MemberResponse.
      *
@@ -29,12 +32,14 @@ public class MemberResponse {
      * @param name     the member's display name
      * @param email    the member's email address
      * @param joinedAt the timestamp when the membership was created
+     * @param role     the user's role in the home
      */
-    public MemberResponse(Long id, String name, String email, LocalDateTime joinedAt) {
+    public MemberResponse(Long id, String name, String email, LocalDateTime joinedAt, String role) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.joinedAt = joinedAt;
+        this.role = role;
     }
 
     /**
@@ -71,5 +76,14 @@ public class MemberResponse {
      */
     public LocalDateTime getJoinedAt() {
         return joinedAt;
+    }
+
+    /**
+     * Returns the user's role inside the home.
+     *
+     * @return {@code "OWNER"} or {@code "MEMBER"}
+     */
+    public String getRole() {
+        return role;
     }
 }

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -115,7 +116,7 @@ class DeviceServiceTest {
         DeviceRequest request = buildRequest("Lamp", DeviceType.SWITCH);
         Device saved = new Device(room, "Lamp", DeviceType.SWITCH);
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.existsByRoomIdAndName(room.getId(), "Lamp")).thenReturn(false);
         when(deviceRepository.save(any(Device.class))).thenReturn(saved);
@@ -131,7 +132,7 @@ class DeviceServiceTest {
     void addDevice_throwsConflict_whenNameAlreadyExists() {
         DeviceRequest request = buildRequest("Lamp", DeviceType.SWITCH);
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.existsByRoomIdAndName(room.getId(), "Lamp")).thenReturn(true);
 
@@ -145,7 +146,7 @@ class DeviceServiceTest {
     void addDevice_throwsNotFound_whenRoomNotOwned() {
         DeviceRequest request = buildRequest("Lamp", DeviceType.SWITCH);
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> deviceService.addDevice("user@test.com", 1L, request))
@@ -174,7 +175,7 @@ class DeviceServiceTest {
         Device device = new Device(room, "Lamp", DeviceType.SWITCH);
         RenameDeviceRequest request = buildRenameRequest("Smart Lamp");
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
         when(deviceRepository.existsByRoomIdAndNameAndIdNot(room.getId(), "Smart Lamp", 10L)).thenReturn(false);
@@ -187,11 +188,33 @@ class DeviceServiceTest {
     }
 
     @Test
+    void renameDevice_coOwner_updatesDeviceInSharedOwnerHome() {
+        User owner = new User("Owner", "owner@gmail.com", "hashed");
+        ReflectionTestUtils.setField(owner, "id", 42L);
+        Room sharedRoom = new Room(owner, "Garden", "yard");
+        ReflectionTestUtils.setField(sharedRoom, "id", 7L);
+        Device device = new Device(sharedRoom, "Garten Switch", DeviceType.SWITCH);
+        RenameDeviceRequest request = buildRenameRequest("Garden Switch");
+
+        when(memberService.resolveEffectiveOwner("testowner@gmail.com")).thenReturn(owner);
+        when(roomRepository.findByIdAndUserId(1L, owner.getId())).thenReturn(Optional.of(sharedRoom));
+        when(deviceRepository.findByIdAndRoomId(10L, sharedRoom.getId())).thenReturn(Optional.of(device));
+        when(deviceRepository.existsByRoomIdAndNameAndIdNot(sharedRoom.getId(), "Garden Switch", 10L))
+                .thenReturn(false);
+        when(deviceRepository.save(device)).thenReturn(device);
+
+        DeviceResponse response = deviceService.renameDevice("testowner@gmail.com", 1L, 10L, request);
+
+        assertThat(response.getName()).isEqualTo("Garden Switch");
+        verify(roomRepository).findByIdAndUserId(1L, 42L);
+    }
+
+    @Test
     void renameDevice_throwsConflict_whenNameTaken() {
         Device device = new Device(room, "Lamp", DeviceType.SWITCH);
         RenameDeviceRequest request = buildRenameRequest("Thermostat");
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
         when(deviceRepository.existsByRoomIdAndNameAndIdNot(room.getId(), "Thermostat", 10L)).thenReturn(true);
@@ -206,7 +229,7 @@ class DeviceServiceTest {
     void renameDevice_throwsNotFound_whenDeviceNotInRoom() {
         RenameDeviceRequest request = buildRenameRequest("Smart Lamp");
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.empty());
 
@@ -222,7 +245,7 @@ class DeviceServiceTest {
     void deleteDevice_removesDevice() {
         Device device = new Device(room, "Lamp", DeviceType.SWITCH);
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
 
@@ -233,7 +256,7 @@ class DeviceServiceTest {
 
     @Test
     void deleteDevice_throwsNotFound_whenDeviceNotInRoom() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
         when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.empty());
 

@@ -126,6 +126,7 @@ class MemberControllerTest {
     }
 
     private static MemberResponse response() {
-        return new MemberResponse(2L, "Member", "member@test.com", LocalDateTime.of(2026, 5, 1, 12, 0));
+        return new MemberResponse(2L, "Member", "member@test.com", LocalDateTime.of(2026, 5, 1, 12, 0),
+                "MEMBER");
     }
 }

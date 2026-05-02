@@ -14,9 +14,9 @@ import java.time.LocalDateTime;
 /**
  * JPA entity representing a home membership in the SmartHome Orchestrator.
  *
- * <p>A {@link HomeMember} record links a member {@link User} to an owner {@link User}.
- * The {@code member} side has a UNIQUE constraint, enforcing the exclusive role model:
- * each user can be a member of at most one home at a time.</p>
+ * <p>A {@link HomeMember} record links an invited {@link User} to the primary owner
+ * of a shared home. The invited user can be either {@code OWNER} or {@code MEMBER}
+ * inside that home.</p>
  *
  * <p>Implements FR-13 (role model) and FR-20 (invite/revoke members).
  * Maps to the {@code home_members} table created by Flyway migration V11.</p>
@@ -44,6 +44,10 @@ public class HomeMember {
     @Column(name = "joined_at", nullable = false)
     private LocalDateTime joinedAt = LocalDateTime.now();
 
+    /** Role of the invited user inside the owner's home: OWNER or MEMBER. */
+    @Column(name = "role", nullable = false)
+    private String role = "MEMBER";
+
     /** Default constructor required by JPA. */
     public HomeMember() {
     }
@@ -55,8 +59,20 @@ public class HomeMember {
      * @param member the user being invited as a member
      */
     public HomeMember(User owner, User member) {
+        this(owner, member, "MEMBER");
+    }
+
+    /**
+     * Creates a new HomeMember record with the given role.
+     *
+     * @param owner  the primary user whose home is shared
+     * @param member the invited user
+     * @param role   the invited user's role in the shared home
+     */
+    public HomeMember(User owner, User member, String role) {
         this.owner = owner;
         this.member = member;
+        this.role = role;
     }
 
     /**
@@ -93,5 +109,14 @@ public class HomeMember {
      */
     public LocalDateTime getJoinedAt() {
         return joinedAt;
+    }
+
+    /**
+     * Returns the invited user's role in the shared home.
+     *
+     * @return {@code "OWNER"} or {@code "MEMBER"}
+     */
+    public String getRole() {
+        return role;
     }
 }

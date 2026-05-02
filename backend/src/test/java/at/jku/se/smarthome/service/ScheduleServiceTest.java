@@ -75,7 +75,7 @@ class ScheduleServiceTest {
     @Test
     void getSchedules_noFilter_returnsAllForUser() {
         Schedule s = buildSchedule();
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(deviceRepository.findAllByRoomUserId(user.getId())).thenReturn(List.of(device));
         when(scheduleRepository.findByDeviceIn(List.of(device))).thenReturn(List.of(s));
 
@@ -88,7 +88,7 @@ class ScheduleServiceTest {
     @Test
     void getSchedules_withDeviceFilter_returnsOnlyForDevice() {
         Schedule s = buildSchedule();
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(deviceRepository.findById(device.getId())).thenReturn(Optional.of(device));
         when(scheduleRepository.findByDevice(device)).thenReturn(List.of(s));
 
@@ -115,7 +115,7 @@ class ScheduleServiceTest {
         ScheduleRequest req = buildRequest();
         Schedule saved = buildSchedule();
 
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(deviceRepository.findById(device.getId())).thenReturn(Optional.of(device));
         when(scheduleRepository.save(any(Schedule.class))).thenReturn(saved);
 
@@ -129,7 +129,7 @@ class ScheduleServiceTest {
     void createSchedule_throwsBadRequest_whenNameBlank() {
         ScheduleRequest req = buildRequest();
         req.setName("  ");
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(deviceRepository.findById(device.getId())).thenReturn(Optional.of(device));
 
         assertThatThrownBy(() -> scheduleService.createSchedule(EMAIL, req))
@@ -142,7 +142,7 @@ class ScheduleServiceTest {
     void createSchedule_throwsBadRequest_whenNoDaysSelected() {
         ScheduleRequest req = buildRequest();
         req.setDaysOfWeek(List.of());
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(deviceRepository.findById(device.getId())).thenReturn(Optional.of(device));
 
         assertThatThrownBy(() -> scheduleService.createSchedule(EMAIL, req))
@@ -154,7 +154,7 @@ class ScheduleServiceTest {
     @Test
     void createSchedule_throwsNotFound_whenDeviceNotOwned() {
         ScheduleRequest req = buildRequest();
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(deviceRepository.findById(device.getId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> scheduleService.createSchedule(EMAIL, req))
@@ -169,7 +169,7 @@ class ScheduleServiceTest {
     void setEnabled_false_disablesSchedule() {
         Schedule s = buildSchedule();
         s.setEnabled(true);
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(scheduleRepository.findByIdAndDeviceRoomUser(s.getId(), user)).thenReturn(Optional.of(s));
         when(scheduleRepository.save(any())).thenReturn(s);
 
@@ -183,7 +183,7 @@ class ScheduleServiceTest {
     void setEnabled_true_enablesSchedule() {
         Schedule s = buildSchedule();
         s.setEnabled(false);
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(scheduleRepository.findByIdAndDeviceRoomUser(s.getId(), user)).thenReturn(Optional.of(s));
         when(scheduleRepository.save(any())).thenReturn(s);
 
@@ -198,7 +198,7 @@ class ScheduleServiceTest {
     @Test
     void deleteSchedule_removesEntity() {
         Schedule s = buildSchedule();
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(scheduleRepository.findByIdAndDeviceRoomUser(s.getId(), user)).thenReturn(Optional.of(s));
 
         scheduleService.deleteSchedule(EMAIL, s.getId());
@@ -208,7 +208,7 @@ class ScheduleServiceTest {
 
     @Test
     void deleteSchedule_throwsNotFound_whenNotOwned() {
-        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
         when(scheduleRepository.findByIdAndDeviceRoomUser(99L, user)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> scheduleService.deleteSchedule(EMAIL, 99L))

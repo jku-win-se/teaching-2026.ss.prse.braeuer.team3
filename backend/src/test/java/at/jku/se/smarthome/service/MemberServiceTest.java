@@ -32,7 +32,9 @@ class MemberServiceTest {
     private MemberService memberService;
     private User owner;
     private User member;
+    private User coOwner;
     private HomeMember membership;
+    private HomeMember coOwnerMembership;
 
     @BeforeEach
     void setUp() {
@@ -41,7 +43,10 @@ class MemberServiceTest {
         ReflectionTestUtils.setField(owner, "id", 1L);
         member = new User("Member", "member@test.com", "hash");
         ReflectionTestUtils.setField(member, "id", 2L);
+        coOwner = new User("Co Owner", "co-owner@test.com", "hash");
+        ReflectionTestUtils.setField(coOwner, "id", 3L);
         membership = new HomeMember(owner, member);
+        coOwnerMembership = new HomeMember(owner, coOwner, "OWNER");
     }
 
     @Test
@@ -57,7 +62,37 @@ class MemberServiceTest {
 
         assertThat(response.getId()).isEqualTo(2L);
         assertThat(response.getEmail()).isEqualTo("member@test.com");
+        assertThat(response.getRole()).isEqualTo("MEMBER");
         verify(homeMemberRepository).save(any(HomeMember.class));
+    }
+
+    @Test
+    void inviteMember_canGrantOwnerRole() {
+        MemberInviteRequest request = invite("member@test.com", "OWNER");
+        HomeMember ownerInvite = new HomeMember(owner, member, "OWNER");
+        when(userRepository.findByEmail("owner@test.com")).thenReturn(Optional.of(owner));
+        when(homeMemberRepository.findByMember(owner)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(homeMemberRepository.findByMember(member)).thenReturn(Optional.empty());
+        when(homeMemberRepository.save(any(HomeMember.class))).thenReturn(ownerInvite);
+
+        MemberResponse response = memberService.inviteMember("owner@test.com", request);
+
+        assertThat(response.getRole()).isEqualTo("OWNER");
+    }
+
+    @Test
+    void inviteMember_allowsCoOwnerCaller() {
+        MemberInviteRequest request = invite("member@test.com", "MEMBER");
+        when(userRepository.findByEmail("co-owner@test.com")).thenReturn(Optional.of(coOwner));
+        when(homeMemberRepository.findByMember(coOwner)).thenReturn(Optional.of(coOwnerMembership));
+        when(userRepository.findByEmail("member@test.com")).thenReturn(Optional.of(member));
+        when(homeMemberRepository.findByMember(member)).thenReturn(Optional.empty());
+        when(homeMemberRepository.save(any(HomeMember.class))).thenReturn(membership);
+
+        MemberResponse response = memberService.inviteMember("co-owner@test.com", request);
+
+        assertThat(response.getEmail()).isEqualTo("member@test.com");
     }
 
     @Test
@@ -108,6 +143,17 @@ class MemberServiceTest {
     }
 
     @Test
+    void getMembers_allowsCoOwnerAndUsesPrimaryOwnerHome() {
+        when(userRepository.findByEmail("co-owner@test.com")).thenReturn(Optional.of(coOwner));
+        when(homeMemberRepository.findByMember(coOwner)).thenReturn(Optional.of(coOwnerMembership));
+        when(homeMemberRepository.findByOwner(owner)).thenReturn(List.of(coOwnerMembership, membership));
+
+        List<MemberResponse> result = memberService.getMembers("co-owner@test.com");
+
+        assertThat(result).extracting(MemberResponse::getRole).containsExactly("OWNER", "MEMBER");
+    }
+
+    @Test
     void removeMember_deletesOwnedMembership() {
         when(userRepository.findByEmail("owner@test.com")).thenReturn(Optional.of(owner));
         when(homeMemberRepository.findByMember(owner)).thenReturn(Optional.empty());
@@ -137,9 +183,21 @@ class MemberServiceTest {
         assertThat(memberService.resolveRole(member)).isEqualTo("MEMBER");
     }
 
+    @Test
+    void resolveRole_returnsOwnerForOwnerMembership() {
+        when(homeMemberRepository.findByMember(coOwner)).thenReturn(Optional.of(coOwnerMembership));
+
+        assertThat(memberService.resolveRole(coOwner)).isEqualTo("OWNER");
+    }
+
     private static MemberInviteRequest invite(String email) {
+        return invite(email, null);
+    }
+
+    private static MemberInviteRequest invite(String email, String role) {
         MemberInviteRequest request = new MemberInviteRequest();
         request.setEmail(email);
+        request.setRole(role);
         return request;
     }
 }

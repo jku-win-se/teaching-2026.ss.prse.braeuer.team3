@@ -88,7 +88,7 @@ public class RuleService {
     @Transactional(readOnly = true)
     public List<RuleResponse> getRules(String email, Long deviceId) {
         memberService.requireOwnerRole(email);
-        User user = resolveUser(email);
+        User user = memberService.resolveEffectiveOwner(email);
         List<Rule> rules;
         if (deviceId != null) {
             Device device = resolveOwnedDevice(user, deviceId);
@@ -112,7 +112,7 @@ public class RuleService {
     @Transactional
     public RuleResponse createRule(String email, RuleRequest request) {
         memberService.requireOwnerRole(email);
-        User user = resolveUser(email);
+        User user = memberService.resolveEffectiveOwner(email);
         Device triggerDevice = resolveTriggerDevice(user, request);
         Device actionDevice = resolveOwnedDevice(user, request.getActionDeviceId());
 
@@ -142,7 +142,7 @@ public class RuleService {
     @Transactional
     public RuleResponse updateRule(String email, Long ruleId, RuleRequest request) {
         memberService.requireOwnerRole(email);
-        User user = resolveUser(email);
+        User user = memberService.resolveEffectiveOwner(email);
         Rule rule = resolveOwnedRule(user, ruleId);
         Device triggerDevice = resolveTriggerDevice(user, request);
         Device actionDevice = resolveOwnedDevice(user, request.getActionDeviceId());
@@ -194,7 +194,7 @@ public class RuleService {
     @Transactional
     public RuleResponse setEnabled(String email, Long ruleId, boolean enabled) {
         memberService.requireOwnerRole(email);
-        User user = resolveUser(email);
+        User user = memberService.resolveEffectiveOwner(email);
         Rule rule = resolveOwnedRule(user, ruleId);
         rule.setEnabled(enabled);
         return toResponse(ruleRepository.save(rule));
@@ -211,7 +211,7 @@ public class RuleService {
     @Transactional
     public void deleteRule(String email, Long ruleId) {
         memberService.requireOwnerRole(email);
-        User user = resolveUser(email);
+        User user = memberService.resolveEffectiveOwner(email);
         Rule rule = resolveOwnedRule(user, ruleId);
         ruleRepository.delete(rule);
         if (log.isInfoEnabled()) {

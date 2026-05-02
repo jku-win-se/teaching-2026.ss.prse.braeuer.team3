@@ -113,7 +113,7 @@ public class ScheduleService {
     @Transactional(readOnly = true)
     public List<ScheduleResponse> getSchedules(String userEmail, Long deviceId) {
         memberService.requireOwnerRole(userEmail);
-        User user = resolveUser(userEmail);
+        User user = memberService.resolveEffectiveOwner(userEmail);
         List<Schedule> schedules;
         if (deviceId != null) {
             Device device = resolveOwnedDevice(user, deviceId);
@@ -138,7 +138,7 @@ public class ScheduleService {
     @Transactional
     public ScheduleResponse createSchedule(String userEmail, ScheduleRequest request) {
         memberService.requireOwnerRole(userEmail);
-        User user = resolveUser(userEmail);
+        User user = memberService.resolveEffectiveOwner(userEmail);
         Device device = resolveOwnedDevice(user, request.getDeviceId());
         validateRequest(request);
 
@@ -171,7 +171,7 @@ public class ScheduleService {
     @Transactional
     public ScheduleResponse updateSchedule(String userEmail, Long scheduleId, ScheduleRequest request) {
         memberService.requireOwnerRole(userEmail);
-        User user = resolveUser(userEmail);
+        User user = memberService.resolveEffectiveOwner(userEmail);
         Schedule schedule = resolveOwnedSchedule(user, scheduleId);
         validateRequest(request);
 
@@ -205,7 +205,7 @@ public class ScheduleService {
     @Transactional
     public ScheduleResponse setEnabled(String userEmail, Long scheduleId, boolean enabled) {
         memberService.requireOwnerRole(userEmail);
-        User user = resolveUser(userEmail);
+        User user = memberService.resolveEffectiveOwner(userEmail);
         Schedule schedule = resolveOwnedSchedule(user, scheduleId);
         schedule.setEnabled(enabled);
         return toResponse(scheduleRepository.save(schedule));
@@ -221,7 +221,7 @@ public class ScheduleService {
     @Transactional
     public void deleteSchedule(String userEmail, Long scheduleId) {
         memberService.requireOwnerRole(userEmail);
-        User user = resolveUser(userEmail);
+        User user = memberService.resolveEffectiveOwner(userEmail);
         Schedule schedule = resolveOwnedSchedule(user, scheduleId);
         scheduleRepository.delete(schedule);
         if (log.isInfoEnabled()) {

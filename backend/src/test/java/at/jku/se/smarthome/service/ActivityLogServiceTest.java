@@ -83,7 +83,7 @@ class ActivityLogServiceTest {
         ActivityLog entry = new ActivityLog(Instant.now(), device, user, "Test User", "Turned on");
         Page<ActivityLog> page = new PageImpl<>(List.of(entry));
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(activityLogRepository.findByUser(eq(user), any(Pageable.class))).thenReturn(page);
 
         Page<ActivityLogResponse> result = activityLogService.getLogs("user@test.com", 0, 20, null, null, null);
@@ -99,7 +99,7 @@ class ActivityLogServiceTest {
         ActivityLog entry = new ActivityLog(Instant.now().minusSeconds(1800), device, user, "Test User", "Turned on");
         Page<ActivityLog> page = new PageImpl<>(List.of(entry));
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(activityLogRepository.findByUserAndTimestampBetween(eq(user), any(Instant.class), any(Instant.class), any(Pageable.class)))
                 .thenReturn(page);
 
@@ -114,7 +114,7 @@ class ActivityLogServiceTest {
         ActivityLog entry = new ActivityLog(Instant.now(), device, user, "Test User", "Turned on");
         Page<ActivityLog> page = new PageImpl<>(List.of(entry));
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(deviceRepository.findById(10L)).thenReturn(Optional.of(device));
         when(activityLogRepository.findByUserAndDevice(eq(user), eq(device), any(Pageable.class)))
                 .thenReturn(page);
@@ -132,7 +132,7 @@ class ActivityLogServiceTest {
         ActivityLog entry = new ActivityLog(Instant.now().minusSeconds(1800), device, user, "Test User", "Turned on");
         Page<ActivityLog> page = new PageImpl<>(List.of(entry));
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(deviceRepository.findById(10L)).thenReturn(Optional.of(device));
         when(activityLogRepository.findByUserAndTimestampBetweenAndDevice(
                 eq(user), any(Instant.class), any(Instant.class), eq(device), any(Pageable.class)))
@@ -162,7 +162,7 @@ class ActivityLogServiceTest {
     void deleteLog_removesEntry() {
         ActivityLog entry = new ActivityLog(Instant.now(), device, user, "Test User", "Turned on");
 
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(activityLogRepository.findByIdAndUser(1L, user)).thenReturn(Optional.of(entry));
 
         activityLogService.deleteLog("user@test.com", 1L);
@@ -172,7 +172,7 @@ class ActivityLogServiceTest {
 
     @Test
     void deleteLog_throwsNotFound_whenEntryNotOwned() {
-        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(memberService.resolveEffectiveOwner("user@test.com")).thenReturn(user);
         when(activityLogRepository.findByIdAndUser(99L, user)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> activityLogService.deleteLog("user@test.com", 99L))

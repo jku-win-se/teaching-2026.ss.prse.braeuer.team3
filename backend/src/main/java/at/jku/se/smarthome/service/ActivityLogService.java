@@ -94,7 +94,7 @@ public class ActivityLogService {
     public Page<ActivityLogResponse> getLogs(String email, int page, int size,
                                              Instant from, Instant to, Long deviceId) {
         memberService.requireOwnerRole(email);
-        User user = resolveUser(email);
+        User user = memberService.resolveEffectiveOwner(email);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "timestamp"));
 
         boolean hasDate = from != null || to != null;
@@ -133,7 +133,7 @@ public class ActivityLogService {
     @Transactional
     public void deleteLog(String email, Long logId) {
         memberService.requireOwnerRole(email);
-        User user = resolveUser(email);
+        User user = memberService.resolveEffectiveOwner(email);
         ActivityLog entry = activityLogRepository.findByIdAndUser(logId, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Activity log entry not found."));

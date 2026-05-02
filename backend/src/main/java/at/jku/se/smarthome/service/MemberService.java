@@ -20,8 +20,8 @@ import org.springframework.web.server.ResponseStatusException;
  * and shared helpers used by all other services for role resolution (FR-13).</p>
  *
  * <p>Role model: a user is an OWNER if no {@link HomeMember} record exists with
- * that user as the {@code member}. Otherwise they are a MEMBER scoped to the
- * corresponding owner's home.</p>
+ * that user as the {@code member}, or if their membership row grants the OWNER role.
+ * A MEMBER is scoped to the corresponding owner's home but cannot change setup.</p>
  */
 @Service
 public class MemberService {
@@ -41,7 +41,7 @@ public class MemberService {
     }
 
     /**
-     * Invites a user to become a member of the caller's home (FR-20).
+     * Invites a user to the caller's home as OWNER or MEMBER (FR-20).
      *
      * <p>Validates that the caller is an owner, the invitee is registered,
      * the invitee is not the caller themselves, and the invitee is not already
@@ -58,20 +58,22 @@ public class MemberService {
      */
     @Transactional
     public MemberResponse inviteMember(String ownerEmail, MemberInviteRequest request) {
-        User owner = resolveUser(ownerEmail);
-        requireOwnerRole(owner);
+        User caller = resolveUser(ownerEmail);
+        requireOwnerRole(caller);
+        User owner = resolveEffectiveOwner(caller);
         String inviteEmail = request.getEmail().toLowerCase(Locale.ROOT).strip();
+        String role = resolveInviteRole(request);
         User invitee = userRepository.findByEmail(inviteEmail)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "User not found."));
-        if (invitee.getId().equals(owner.getId())) {
+        if (invitee.getId().equals(caller.getId()) || invitee.getId().equals(owner.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot invite yourself.");
         }
         if (homeMemberRepository.findByMember(invitee).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "User is already a member of a home.");
+                    "User already belongs to a home.");
         }
-        HomeMember membership = homeMemberRepository.save(new HomeMember(owner, invitee));
+        HomeMember membership = homeMemberRepository.save(new HomeMember(owner, invitee, role));
         return toResponse(membership);
     }
 
@@ -85,8 +87,9 @@ public class MemberService {
      */
     @Transactional(readOnly = true)
     public List<MemberResponse> getMembers(String ownerEmail) {
-        User owner = resolveUser(ownerEmail);
-        requireOwnerRole(owner);
+        User caller = resolveUser(ownerEmail);
+        requireOwnerRole(caller);
+        User owner = resolveEffectiveOwner(caller);
         return homeMemberRepository.findByOwner(owner).stream()
                 .map(MemberService::toResponse)
                 .toList();
@@ -105,8 +108,9 @@ public class MemberService {
      */
     @Transactional
     public void removeMember(String ownerEmail, Long memberId) {
-        User owner = resolveUser(ownerEmail);
-        requireOwnerRole(owner);
+        User caller = resolveUser(ownerEmail);
+        requireOwnerRole(caller);
+        User owner = resolveEffectiveOwner(caller);
         HomeMember membership = homeMemberRepository.findByOwnerAndMemberId(owner, memberId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Member not found."));
@@ -127,6 +131,10 @@ public class MemberService {
     @Transactional(readOnly = true)
     public User resolveEffectiveOwner(String callerEmail) {
         User caller = resolveUser(callerEmail);
+        return resolveEffectiveOwner(caller);
+    }
+
+    private User resolveEffectiveOwner(User caller) {
         return homeMemberRepository.findByMember(caller)
                 .map(HomeMember::getOwner)
                 .orElse(caller);
@@ -169,7 +177,9 @@ public class MemberService {
      */
     @Transactional(readOnly = true)
     public String resolveRole(User user) {
-        return homeMemberRepository.findByMember(user).isPresent() ? "MEMBER" : "OWNER";
+        return homeMemberRepository.findByMember(user)
+                .map(HomeMember::getRole)
+                .orElse("OWNER");
     }
 
     private void requireOwnerRole(User caller) {
@@ -177,11 +187,22 @@ public class MemberService {
     }
 
     private void requireOwnerRole(User caller, String action) {
-        if (homeMemberRepository.findByMember(caller).isPresent()) {
+        boolean isMember = homeMemberRepository.findByMember(caller)
+                .map(membership -> "MEMBER".equals(membership.getRole()))
+                .orElse(false);
+        if (isMember) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Only the home owner can " + action
                             + ". Members can view rooms and control devices, but cannot change the home setup.");
         }
+    }
+
+    private static String resolveInviteRole(MemberInviteRequest request) {
+        String role = request.getRole();
+        if (role == null || role.isBlank()) {
+            return "MEMBER";
+        }
+        return role.toUpperCase(Locale.ROOT).strip();
     }
 
     private User resolveUser(String email) {
@@ -195,6 +216,7 @@ public class MemberService {
                 m.getMember().getId(),
                 m.getMember().getName(),
                 m.getMember().getEmail(),
-                m.getJoinedAt());
+                m.getJoinedAt(),
+                m.getRole());
     }
 }

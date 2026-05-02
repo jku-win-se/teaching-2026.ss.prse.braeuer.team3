@@ -107,7 +107,7 @@ public class DeviceService {
     @Transactional
     public DeviceResponse addDevice(String email, Long roomId, DeviceRequest request) {
         memberService.requireOwnerRole(email, "add devices");
-        Room room = getOwnedRoom(email, roomId);
+        Room room = getEffectiveRoom(email, roomId);
         if (deviceRepository.existsByRoomIdAndName(room.getId(), request.getName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "A device named '" + request.getName() + "' already exists in this room.");
@@ -133,7 +133,7 @@ public class DeviceService {
     @Transactional
     public DeviceResponse renameDevice(String email, Long roomId, Long deviceId, RenameDeviceRequest request) {
         memberService.requireOwnerRole(email, "rename devices");
-        Room room = getOwnedRoom(email, roomId);
+        Room room = getEffectiveRoom(email, roomId);
         Device device = deviceRepository.findByIdAndRoomId(deviceId, room.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
         if (deviceRepository.existsByRoomIdAndNameAndIdNot(room.getId(), request.getName(), deviceId)) {
@@ -157,7 +157,7 @@ public class DeviceService {
     @Transactional
     public void deleteDevice(String email, Long roomId, Long deviceId) {
         memberService.requireOwnerRole(email, "remove devices");
-        Room room = getOwnedRoom(email, roomId);
+        Room room = getEffectiveRoom(email, roomId);
         Device device = deviceRepository.findByIdAndRoomId(deviceId, room.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
         deviceRepository.delete(device);
@@ -294,13 +294,6 @@ public class DeviceService {
         return new DeviceResponse(
                 d.getId(), d.getName(), d.getType(),
                 stateOn, brightness, temperature, sensorValue, coverPosition);
-    }
-
-    private Room getOwnedRoom(String email, Long roomId) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found."));
-        return roomRepository.findByIdAndUserId(roomId, user.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found."));
     }
 
     private Room getEffectiveRoom(String email, Long roomId) {

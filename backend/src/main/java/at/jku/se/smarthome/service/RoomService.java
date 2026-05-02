@@ -79,12 +79,12 @@ public class RoomService {
     @Transactional
     public RoomResponse createRoom(String email, RoomRequest request) {
         memberService.requireOwnerRole(email, "add rooms");
-        User user = getUser(email);
-        if (roomRepository.existsByUserIdAndName(user.getId(), request.getName())) {
+        User effectiveOwner = memberService.resolveEffectiveOwner(email);
+        if (roomRepository.existsByUserIdAndName(effectiveOwner.getId(), request.getName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "A room named '" + request.getName() + "' already exists.");
         }
-        Room room = new Room(user, request.getName(), request.getIcon());
+        Room room = new Room(effectiveOwner, request.getName(), request.getIcon());
         Room saved = roomRepository.save(room);
         return new RoomResponse(saved.getId(), saved.getName(), saved.getIcon());
     }
@@ -106,11 +106,11 @@ public class RoomService {
     @Transactional
     public RoomResponse renameRoom(String email, Long id, RoomRequest request) {
         memberService.requireOwnerRole(email, "rename rooms");
-        User user = getUser(email);
-        Room room = roomRepository.findByIdAndUserId(id, user.getId())
+        User effectiveOwner = memberService.resolveEffectiveOwner(email);
+        Room room = roomRepository.findByIdAndUserId(id, effectiveOwner.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found."));
         if (!room.getName().equals(request.getName())
-                && roomRepository.existsByUserIdAndName(user.getId(), request.getName())) {
+                && roomRepository.existsByUserIdAndName(effectiveOwner.getId(), request.getName())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "A room named '" + request.getName() + "' already exists.");
         }
@@ -136,8 +136,8 @@ public class RoomService {
     @Transactional
     public void deleteRoom(String email, Long id) {
         memberService.requireOwnerRole(email, "delete rooms");
-        User user = getUser(email);
-        Room room = roomRepository.findByIdAndUserId(id, user.getId())
+        User effectiveOwner = memberService.resolveEffectiveOwner(email);
+        Room room = roomRepository.findByIdAndUserId(id, effectiveOwner.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found."));
         roomRepository.delete(room);
     }
