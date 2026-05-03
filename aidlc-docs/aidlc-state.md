@@ -174,3 +174,30 @@
 - **Current Stage**: Build and Test — COMPLETE
 - **Next Stage**: DONE — US-016 Backend + Frontend implemented
 - **Summary**: aidlc-docs/inception/plans/us016-execution-plan.md
+
+## FR-16 Stage Progress (new feature cycle)
+
+### 🔵 INCEPTION PHASE — FR-16
+- [x] Workspace Detection — reuse existing (2026-05-03)
+- [x] Reverse Engineering — reuse existing (2026-05-03)
+- [x] Requirements Analysis — 2026-05-03
+- [ ] User Stories — SKIP
+- [x] Workflow Planning — 2026-05-03
+- [ ] Application Design — SKIP
+- [ ] Units Generation — SKIP
+
+### 🟢 CONSTRUCTION PHASE — FR-16
+- [ ] Functional Design — SKIP
+- [ ] NFR Requirements — SKIP
+- [ ] NFR Design — SKIP
+- [ ] Infrastructure Design — SKIP
+- [x] Code Generation Plan — 2026-05-03
+- [x] Code Generation (Unit 1: Backend CSV endpoints + tests) — 2026-05-03
+- [x] Code Generation (Unit 2: Frontend CSV download wiring) — 2026-05-03
+- [x] Build and Test — 2026-05-03 (TypeScript PASS; backend static review PASS; constructor fixes applied)
+
+## Current Status (FR-16)
+- **Lifecycle Phase**: CONSTRUCTION (FR-16)
+- **Current Stage**: Build and Test — COMPLETE
+- **Next Stage**: DONE — FR-16 Backend + Frontend implemented
+- **Summary**: aidlc-docs/inception/plans/fr16-execution-plan.md

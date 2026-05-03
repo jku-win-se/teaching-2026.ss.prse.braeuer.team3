@@ -13,8 +13,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -56,6 +60,28 @@ class EnergyControllerTest {
     @Test
     void getDeviceEnergy_returns401_whenNotAuthenticated() throws Exception {
         mockMvc.perform(get("/api/energy/devices"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // --- GET /api/energy/export ---
+
+    @Test
+    @WithMockUser(username = "alice@example.com")
+    void exportCsv_returns200WithCsvContentType() throws Exception {
+        when(energyService.exportEnergyCsv(any()))
+                .thenReturn("Device,Room,Wattage (W),Today (kWh),Week (kWh)\r\nCeiling Light,Living Room,12,0.04,0.29\r\n");
+
+        mockMvc.perform(get("/api/energy/export"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(header().string("Content-Disposition", containsString("attachment")))
+                .andExpect(header().string("Content-Disposition", containsString("energy-summary.csv")))
+                .andExpect(content().string(containsString("Device,Room,Wattage (W),Today (kWh),Week (kWh)")));
+    }
+
+    @Test
+    void exportCsv_returns401_whenNotAuthenticated() throws Exception {
+        mockMvc.perform(get("/api/energy/export"))
                 .andExpect(status().isUnauthorized());
     }
 }

@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>US-016: Consumption is estimated from each device's type and current state.
  * The application does not yet persist historical metering samples, so weekly
  * values are projected from the current daily estimate.</p>
+ *
+ * <p>FR-16: CSV export via {@link #exportEnergyCsv(String)}.</p>
  */
 @Service
 public class EnergyService {
@@ -35,16 +37,21 @@ public class EnergyService {
 
     private final DeviceRepository deviceRepository;
     private final MemberService memberService;
+    private final CsvExportService csvExportService;
 
     /**
      * Constructs an EnergyService with the required collaborators.
      *
      * @param deviceRepository repository for device lookups
      * @param memberService    service for resolving the effective home owner
+     * @param csvExportService service for building CSV output (FR-16)
      */
-    public EnergyService(DeviceRepository deviceRepository, MemberService memberService) {
+    public EnergyService(DeviceRepository deviceRepository,
+                         MemberService memberService,
+                         CsvExportService csvExportService) {
         this.deviceRepository = deviceRepository;
         this.memberService = memberService;
+        this.csvExportService = csvExportService;
     }
 
     /**
@@ -56,6 +63,24 @@ public class EnergyService {
      */
     @Transactional(readOnly = true)
     public List<EnergyDeviceResponse> getDeviceEnergy(String email) {
+        return getDeviceEnergyList(email);
+    }
+
+    /**
+     * Exports energy usage data for the caller's household as a CSV string (FR-16).
+     *
+     * <p>Accessible to all authenticated users (Owner and Member alike),
+     * consistent with the energy dashboard visibility.</p>
+     *
+     * @param email authenticated user's email address
+     * @return RFC-4180 CSV content with header row; columns: Device, Room, Wattage (W), Today (kWh), Week (kWh)
+     */
+    @Transactional(readOnly = true)
+    public String exportEnergyCsv(String email) {
+        return csvExportService.buildEnergyCsv(getDeviceEnergyList(email));
+    }
+
+    private List<EnergyDeviceResponse> getDeviceEnergyList(String email) {
         User effectiveOwner = memberService.resolveEffectiveOwner(email);
         return deviceRepository.findAllByRoomUserId(effectiveOwner.getId())
                 .stream()

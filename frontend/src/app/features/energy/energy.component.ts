@@ -195,8 +195,8 @@ export class EnergyComponent implements OnInit {
     return value.toFixed(value >= 10 ? 1 : 2).replace(/\.?0+$/, '');
   }
 
-  exportCsv() {
-    this.snackBar.open('Energy data exported', '', { duration: 2000 });
+  exportCsv(): void {
+    this.energyService.exportCsv();
   }
 
   private aggregateRooms(devices: EnergyDevice[]): RoomEnergySummary[] {

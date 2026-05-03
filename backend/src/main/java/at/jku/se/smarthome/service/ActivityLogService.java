@@ -9,6 +9,7 @@ import at.jku.se.smarthome.repository.ActivityLogRepository;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.UserRepository;
 
+import java.util.List;
 import java.util.Objects;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +33,8 @@ import java.time.Instant;
  * <p>FR-13: Reading or deleting the activity log is owner-only. Member actions
  * are still recorded through {@link #log(Device, User, String, String)} using
  * the owner for scoping and the member name as actor.</p>
+ *
+ * <p>FR-16: CSV export via {@link #exportActivityLogCsv(String)}.</p>
  */
 @Service
 public class ActivityLogService {
@@ -40,6 +43,7 @@ public class ActivityLogService {
     private final UserRepository userRepository;
     private final DeviceRepository deviceRepository;
     private final MemberService memberService;
+    private final CsvExportService csvExportService;
 
     /**
      * Constructs an ActivityLogService with the required repositories.
@@ -48,15 +52,18 @@ public class ActivityLogService {
      * @param userRepository        the repository for resolving users
      * @param deviceRepository      the repository for resolving devices
      * @param memberService         the service used for owner-only authorization (FR-13)
+     * @param csvExportService      the service used to build CSV output (FR-16)
      */
     public ActivityLogService(ActivityLogRepository activityLogRepository,
                               UserRepository userRepository,
                               DeviceRepository deviceRepository,
-                              MemberService memberService) {
+                              MemberService memberService,
+                              CsvExportService csvExportService) {
         this.activityLogRepository = activityLogRepository;
         this.userRepository = userRepository;
         this.deviceRepository = deviceRepository;
         this.memberService = memberService;
+        this.csvExportService = csvExportService;
     }
 
     /**
@@ -191,6 +198,25 @@ public class ActivityLogService {
             default:
                 return "State updated";
         }
+    }
+
+    /**
+     * Exports the complete activity log for the authenticated user as a CSV string.
+     *
+     * <p>Owner-only (FR-13): a Member caller receives 403 Forbidden.</p>
+     * <p>All entries are included without pagination, ordered by timestamp ascending.</p>
+     *
+     * @param email the email of the authenticated user
+     * @return RFC-4180 CSV content with header row; columns: Timestamp, Device, Room, Actor, Action
+     * @throws ResponseStatusException with status 403 if the caller is not the home Owner
+     */
+    @Transactional(readOnly = true)
+    public String exportActivityLogCsv(String email) {
+        memberService.requireOwnerRole(email);
+        User user = memberService.resolveEffectiveOwner(email);
+        List<ActivityLog> entries = activityLogRepository.findAllByUser(
+                user, Sort.by(Sort.Direction.ASC, "timestamp"));
+        return csvExportService.buildActivityLogCsv(entries);
     }
 
     /**

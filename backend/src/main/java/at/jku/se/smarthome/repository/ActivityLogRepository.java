@@ -5,9 +5,11 @@ import at.jku.se.smarthome.domain.Device;
 import at.jku.se.smarthome.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -72,4 +74,14 @@ public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> 
      * @return an optional containing the entry if found and owned by the user
      */
     Optional<ActivityLog> findByIdAndUser(Long id, User user);
+
+    /**
+     * Returns all log entries for a user without pagination, ordered by the given sort.
+     * Used for CSV export (FR-16) to fetch the complete dataset in one query.
+     *
+     * @param user the owning user
+     * @param sort the sort order (typically timestamp ASC)
+     * @return all log entries belonging to the user
+     */
+    List<ActivityLog> findAllByUser(User user, Sort sort);
 }

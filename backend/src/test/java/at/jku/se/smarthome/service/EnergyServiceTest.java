@@ -34,7 +34,7 @@ class EnergyServiceTest {
     void setUp() {
         user = new User("Alice", "alice@example.com", "hashed");
         ReflectionTestUtils.setField(user, "id", 42L);
-        energyService = new EnergyService(deviceRepository, memberService);
+        energyService = new EnergyService(deviceRepository, memberService, new CsvExportService());
     }
 
     @Test

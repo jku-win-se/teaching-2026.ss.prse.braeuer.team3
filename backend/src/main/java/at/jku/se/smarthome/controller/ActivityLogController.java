@@ -3,6 +3,8 @@ package at.jku.se.smarthome.controller;
 import at.jku.se.smarthome.dto.ActivityLogResponse;
 import at.jku.se.smarthome.service.ActivityLogService;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 /**
@@ -21,10 +24,11 @@ import java.time.Instant;
  * <p>All endpoints require a valid JWT Bearer token. Log entries are always
  * scoped to the authenticated user.</p>
  *
- * <p>Implements FR-08: Aktivitätsprotokoll.</p>
+ * <p>Implements FR-08: Aktivitätsprotokoll and FR-16: CSV Export.</p>
  *
  * <pre>
  * GET    /api/activity-log?page=0&amp;size=20&amp;from={ISO}&amp;to={ISO}&amp;deviceId={id}
+ * GET    /api/activity-log/export
  * DELETE /api/activity-log/{id}
  * </pre>
  */
@@ -68,6 +72,26 @@ public class ActivityLogController {
         Page<ActivityLogResponse> result = activityLogService.getLogs(
                 principal.getUsername(), page, size, fromInstant, toInstant, deviceId);
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Exports the complete activity log for the authenticated user as a CSV file download.
+     *
+     * <p>Owner-only (FR-13): Members receive 403 Forbidden.</p>
+     *
+     * @param principal the authenticated user injected by Spring Security
+     * @return 200 OK with {@code Content-Type: text/csv} and
+     *         {@code Content-Disposition: attachment; filename="activity-log.csv"}
+     */
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportCsv(
+            @AuthenticationPrincipal UserDetails principal) {
+        String csv = activityLogService.exportActivityLogCsv(principal.getUsername());
+        byte[] bytes = csv.getBytes(StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"activity-log.csv\"")
+                .body(bytes);
     }
 
     /**

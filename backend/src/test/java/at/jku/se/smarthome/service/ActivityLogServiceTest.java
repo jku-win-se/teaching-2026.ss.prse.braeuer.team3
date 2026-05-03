@@ -54,7 +54,7 @@ class ActivityLogServiceTest {
     @BeforeEach
     void setUp() {
         activityLogService = new ActivityLogService(activityLogRepository, userRepository, deviceRepository,
-                memberService);
+                memberService, new CsvExportService());
         user = new User("Test User", "user@test.com", "hashed");
         room = new Room(user, "Living Room", "weekend");
         device = new Device(room, "Lamp", DeviceType.SWITCH);

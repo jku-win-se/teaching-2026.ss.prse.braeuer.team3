@@ -35,6 +35,10 @@ import { ActivityLogDto } from '../../core/models';
           <h1>Activity Log</h1>
           <p class="subtitle">A full history of everything that happened in your home.</p>
         </div>
+        <button mat-stroked-button data-testid="btn-export-csv"
+                (click)="exportCsv()">
+          <mat-icon>download</mat-icon> Export CSV
+        </button>
       </div>
 
       <!-- Filter bar -->
@@ -229,5 +233,9 @@ export class LogComponent implements OnInit, OnDestroy {
         this.snackBar.open('Failed to delete entry.', '', { duration: 3000 });
       },
     });
+  }
+
+  exportCsv(): void {
+    this.activityLogService.exportCsv();
   }
 }

@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.util.List;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -29,6 +30,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -102,6 +105,28 @@ class ActivityLogControllerTest {
     @Test
     void deleteActivityLog_returns401_whenNotAuthenticated() throws Exception {
         mockMvc.perform(delete("/api/activity-log/1").with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // --- GET /api/activity-log/export ---
+
+    @Test
+    @WithMockUser
+    void exportCsv_returns200WithCsvContentType() throws Exception {
+        when(activityLogService.exportActivityLogCsv(any()))
+                .thenReturn("Timestamp,Device,Room,Actor,Action\r\n2026-05-01T08:00:00Z,Lamp,Living Room,Alice,Turned on\r\n");
+
+        mockMvc.perform(get("/api/activity-log/export"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(header().string("Content-Disposition", containsString("attachment")))
+                .andExpect(header().string("Content-Disposition", containsString("activity-log.csv")))
+                .andExpect(content().string(containsString("Timestamp,Device,Room,Actor,Action")));
+    }
+
+    @Test
+    void exportCsv_returns401_whenNotAuthenticated() throws Exception {
+        mockMvc.perform(get("/api/activity-log/export"))
                 .andExpect(status().isUnauthorized());
     }
 }
