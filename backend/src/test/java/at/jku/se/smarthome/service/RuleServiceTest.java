@@ -439,6 +439,90 @@ class RuleServiceTest {
         assertThat(captor.getValue().getMessage()).isEqualTo("Unbekannter Fehler");
     }
 
+    // --- checkConflicts ---
+
+    @Test
+    void checkConflicts_oppositeActionValue_returnsConflict() {
+        Rule existingRule = buildThresholdRule(); // actionDevice = switchDevice (id=11), actionValue = "true"
+
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
+        when(deviceRepository.findById(11L)).thenReturn(Optional.of(switchDevice));
+        when(ruleRepository.findByEnabledTrueAndUserAndActionDevice(user, switchDevice))
+                .thenReturn(List.of(existingRule));
+
+        // Checking for "false" → opposite of existing "true" → conflict
+        List<RuleResponse> conflicts = ruleService.checkConflicts(EMAIL, 11L, "false", null);
+
+        assertThat(conflicts).hasSize(1);
+        assertThat(conflicts.get(0).getName()).isEqualTo("Cool Down");
+    }
+
+    @Test
+    void checkConflicts_sameActionValue_returnsEmpty() {
+        Rule existingRule = buildThresholdRule(); // actionValue = "true"
+
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
+        when(deviceRepository.findById(11L)).thenReturn(Optional.of(switchDevice));
+        when(ruleRepository.findByEnabledTrueAndUserAndActionDevice(user, switchDevice))
+                .thenReturn(List.of(existingRule));
+
+        // Checking for "true" → same as existing "true" → no conflict
+        List<RuleResponse> conflicts = ruleService.checkConflicts(EMAIL, 11L, "true", null);
+
+        assertThat(conflicts).isEmpty();
+    }
+
+    @Test
+    void checkConflicts_noRulesForDevice_returnsEmpty() {
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
+        when(deviceRepository.findById(11L)).thenReturn(Optional.of(switchDevice));
+        when(ruleRepository.findByEnabledTrueAndUserAndActionDevice(user, switchDevice))
+                .thenReturn(List.of());
+
+        List<RuleResponse> conflicts = ruleService.checkConflicts(EMAIL, 11L, "false", null);
+
+        assertThat(conflicts).isEmpty();
+    }
+
+    @Test
+    void checkConflicts_excludesEditedRule() {
+        Rule existingRule = buildThresholdRule(); // id=1, actionValue = "true"
+
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
+        when(deviceRepository.findById(11L)).thenReturn(Optional.of(switchDevice));
+        when(ruleRepository.findByEnabledTrueAndUserAndActionDevice(user, switchDevice))
+                .thenReturn(List.of(existingRule));
+
+        // Editing rule id=1 itself, should be excluded even though action value is opposite
+        List<RuleResponse> conflicts = ruleService.checkConflicts(EMAIL, 11L, "false", 1L);
+
+        assertThat(conflicts).isEmpty();
+    }
+
+    @Test
+    void checkConflicts_coverDevice_detectsOpenCloseConflict() {
+        Rule existingRule = new Rule();
+        ReflectionTestUtils.setField(existingRule, "id", 5L);
+        existingRule.setName("Open Blind");
+        existingRule.setUser(user);
+        existingRule.setTriggerType(TriggerType.EVENT);
+        existingRule.setTriggerDevice(switchDevice);
+        existingRule.setActionDevice(coverDevice);
+        existingRule.setActionValue("open");
+        existingRule.setEnabled(true);
+
+        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
+        when(deviceRepository.findById(12L)).thenReturn(Optional.of(coverDevice));
+        when(ruleRepository.findByEnabledTrueAndUserAndActionDevice(user, coverDevice))
+                .thenReturn(List.of(existingRule));
+
+        // Checking for "close" → conflicts with existing "open"
+        List<RuleResponse> conflicts = ruleService.checkConflicts(EMAIL, 12L, "close", null);
+
+        assertThat(conflicts).hasSize(1);
+        assertThat(conflicts.get(0).getName()).isEqualTo("Open Blind");
+    }
+
     // --- Helpers ---
 
     private RuleRequest buildThresholdRequest() {

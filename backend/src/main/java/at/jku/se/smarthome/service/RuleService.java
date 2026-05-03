@@ -201,6 +201,41 @@ public class RuleService {
     }
 
     /**
+     * Detects rules that conflict with the given action device and action value (US-014).
+     *
+     * <p>A conflict exists when an existing enabled rule targets the same {@code actionDeviceId}
+     * but applies the opposite action value — e.g. one rule turns a switch on while another
+     * turns it off, or one opens a shutter while another closes it.</p>
+     *
+     * <p>When the caller is editing an existing rule, {@code excludeRuleId} should be set to
+     * that rule's id so the rule does not conflict with itself.</p>
+     *
+     * @param email          the email of the authenticated user
+     * @param actionDeviceId the primary key of the device the new rule will control
+     * @param actionValue    the action the new rule will apply ({@code "true"}, {@code "false"},
+     *                       {@code "open"}, or {@code "close"})
+     * @param excludeRuleId  optional id of the rule being edited; {@code null} when creating
+     * @return list of existing rules that conflict with the given parameters (may be empty)
+     * @throws ResponseStatusException with status 404 if the action device is not found or not owned
+     */
+    @Transactional(readOnly = true)
+    public List<RuleResponse> checkConflicts(String email, Long actionDeviceId,
+                                             String actionValue, Long excludeRuleId) {
+        memberService.requireOwnerRole(email);
+        User user = memberService.resolveEffectiveOwner(email);
+        Device actionDevice = resolveOwnedDevice(user, actionDeviceId);
+
+        List<Rule> candidates = ruleRepository.findByEnabledTrueAndUserAndActionDevice(user, actionDevice);
+        String opposite = oppositeActionValue(actionValue);
+
+        return candidates.stream()
+                .filter(r -> !r.getId().equals(excludeRuleId))
+                .filter(r -> opposite != null && opposite.equalsIgnoreCase(r.getActionValue()))
+                .map(RuleService::toResponse)
+                .toList();
+    }
+
+    /**
      * Deletes a rule.
      *
      * @param email  the email of the authenticated user
@@ -350,6 +385,27 @@ public class RuleService {
         rule.setActionDevice(actionDevice);
         rule.setActionValue(request.getActionValue());
         rule.setEnabled(request.getEnabled() == null || request.getEnabled());
+    }
+
+    /**
+     * Returns the action value that is the logical opposite of the given one, or {@code null}
+     * if the value has no known opposite.
+     *
+     * @param actionValue the action value to invert ({@code "true"}, {@code "false"},
+     *                    {@code "open"}, or {@code "close"})
+     * @return the opposite value, or {@code null} if unrecognised
+     */
+    private static String oppositeActionValue(String actionValue) {
+        if (actionValue == null) {
+            return null;
+        }
+        return switch (actionValue.toLowerCase()) {
+            case "true"  -> "false";
+            case "false" -> "true";
+            case "open"  -> "close";
+            case "close" -> "open";
+            default      -> null;
+        };
     }
 
     private User resolveUser(String email) {

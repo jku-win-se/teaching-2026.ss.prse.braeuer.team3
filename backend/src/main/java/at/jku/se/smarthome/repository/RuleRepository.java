@@ -54,4 +54,14 @@ public interface RuleRepository extends JpaRepository<Rule, Long> {
      */
     List<Rule> findByEnabledTrueAndTriggerTypeAndTriggerHourAndTriggerMinute(
             TriggerType triggerType, int triggerHour, int triggerMinute);
+
+    /**
+     * Returns all enabled rules owned by the given user that target the given action device.
+     * Used by conflict detection (US-014) to find rules that compete for the same device.
+     *
+     * @param user         the owning user
+     * @param actionDevice the device being controlled by the rule's action
+     * @return list of enabled rules targeting that action device for that user
+     */
+    List<Rule> findByEnabledTrueAndUserAndActionDevice(User user, Device actionDevice);
 }

@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -180,6 +181,57 @@ class RuleControllerTest {
 
         mockMvc.perform(delete("/api/rules/99").with(csrf()))
                 .andExpect(status().isNotFound());
+    }
+
+    // --- GET /api/rules/conflicts ---
+
+    @Test
+    @WithMockUser(username = "user@test.com")
+    void checkConflicts_withConflicts_returns200WithList() throws Exception {
+        when(ruleService.checkConflicts(anyString(), eq(11L), eq("false"), isNull()))
+                .thenReturn(List.of(buildResponse()));
+
+        mockMvc.perform(get("/api/rules/conflicts")
+                        .param("actionDeviceId", "11")
+                        .param("actionValue", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Cool Down"))
+                .andExpect(jsonPath("$[0].actionValue").value("true"));
+    }
+
+    @Test
+    @WithMockUser(username = "user@test.com")
+    void checkConflicts_noConflicts_returns200EmptyList() throws Exception {
+        when(ruleService.checkConflicts(anyString(), eq(11L), eq("true"), isNull()))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/rules/conflicts")
+                        .param("actionDeviceId", "11")
+                        .param("actionValue", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    @WithMockUser(username = "user@test.com")
+    void checkConflicts_withExcludeRuleId_passesExcludeToService() throws Exception {
+        when(ruleService.checkConflicts(anyString(), eq(11L), eq("false"), eq(1L)))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/rules/conflicts")
+                        .param("actionDeviceId", "11")
+                        .param("actionValue", "false")
+                        .param("excludeRuleId", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void checkConflicts_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/rules/conflicts")
+                        .param("actionDeviceId", "11")
+                        .param("actionValue", "false"))
+                .andExpect(status().isUnauthorized());
     }
 
     // --- Helpers ---

@@ -32,6 +32,7 @@ import java.util.Map;
  *
  * <pre>
  * GET    /api/rules[?deviceId={id}]
+ * GET    /api/rules/conflicts?actionDeviceId={id}&amp;actionValue={v}[&amp;excludeRuleId={id}]
  * POST   /api/rules
  * PUT    /api/rules/{id}
  * PATCH  /api/rules/{id}/enabled
@@ -66,6 +67,32 @@ public class RuleController {
             @RequestParam(required = false) Long deviceId) {
         List<RuleResponse> result = ruleService.getRules(principal.getUsername(), deviceId);
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Returns all enabled rules that conflict with a proposed action on a given device (US-014).
+     *
+     * <p>Two rules conflict when they target the same action device with opposite action values
+     * (e.g. one turns a switch on while another turns it off). An empty list means no conflicts.</p>
+     *
+     * <p>Pass {@code excludeRuleId} when checking during a rule edit so the rule being
+     * edited does not flag itself as a conflict.</p>
+     *
+     * @param principal      the authenticated user injected by Spring Security
+     * @param actionDeviceId the primary key of the device the new rule will control (required)
+     * @param actionValue    the action value the new rule will apply, e.g. {@code "true"} (required)
+     * @param excludeRuleId  id of the rule being edited; omit when creating a new rule
+     * @return 200 OK with a (possibly empty) list of conflicting {@link RuleResponse} DTOs
+     */
+    @GetMapping("/conflicts")
+    public ResponseEntity<List<RuleResponse>> checkConflicts(
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam Long actionDeviceId,
+            @RequestParam String actionValue,
+            @RequestParam(required = false) Long excludeRuleId) {
+        List<RuleResponse> conflicts = ruleService.checkConflicts(
+                principal.getUsername(), actionDeviceId, actionValue, excludeRuleId);
+        return ResponseEntity.ok(conflicts);
     }
 
     /**
