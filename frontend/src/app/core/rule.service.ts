@@ -6,6 +6,7 @@ import { RuleDto, RuleRequest } from './models';
 /**
  * HTTP client service for IF-THEN rule management.
  * Covers US-012: zeitbasierte, schwellenwertbasierte und ereignisbasierte Trigger.
+ * Covers US-014: Regelkonflikt-Erkennung.
  */
 @Injectable({ providedIn: 'root' })
 export class RuleService {
@@ -62,5 +63,28 @@ export class RuleService {
    */
   deleteRule(id: number): Observable<void> {
     return this.http.delete<void>(`${this.BASE}/${id}`);
+  }
+
+  /**
+   * Checks whether any existing enabled rules conflict with a proposed action (US-014).
+   *
+   * A conflict exists when another enabled rule targets the same action device with
+   * the opposite action value (e.g. one turns a switch on, another turns it off).
+   *
+   * @param actionDeviceId  primary key of the device the new rule will control
+   * @param actionValue     action the new rule will apply ("true", "false", "open", "close")
+   * @param excludeRuleId   id of the rule being edited; omit when creating a new rule
+   * @returns observable list of conflicting rules (empty = no conflicts)
+   */
+  checkConflicts(
+    actionDeviceId: number,
+    actionValue: string,
+    excludeRuleId?: number,
+  ): Observable<RuleDto[]> {
+    let params = `actionDeviceId=${actionDeviceId}&actionValue=${encodeURIComponent(actionValue)}`;
+    if (excludeRuleId != null) {
+      params += `&excludeRuleId=${excludeRuleId}`;
+    }
+    return this.http.get<RuleDto[]>(`${this.BASE}/conflicts?${params}`);
   }
 }

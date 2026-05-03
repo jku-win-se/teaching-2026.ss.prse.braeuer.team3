@@ -1,8 +1,8 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatStepperModule } from '@angular/material/stepper';
+import { MatStepperModule, MatStepper } from '@angular/material/stepper';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -57,6 +57,14 @@ interface DeviceOption { id: number; name: string; type: string; }
     .review-row mat-icon { font-size: 18px; width: 18px; height: 18px; color: #00897B; }
     .step-content { padding: 12px 0 4px; }
     .step-actions { display: flex; justify-content: space-between; margin-top: 16px; }
+    .conflict-warning {
+      margin-top: 14px; padding: 12px 14px;
+      border: 1.5px solid #ffcc02; border-radius: 8px; background: #fff8e1;
+    }
+    .conflict-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 0; border-top: 1px solid #ffe082;
+    }
   `],
   template: `
     <h2 mat-dialog-title>{{ editMode ? 'Edit Rule' : 'Create New Rule' }}</h2>
@@ -210,7 +218,8 @@ interface DeviceOption { id: number; name: string; type: string; }
           </div>
           <div class="step-actions">
             <button mat-button matStepperPrevious>Back</button>
-            <button mat-flat-button color="primary" matStepperNext [disabled]="!actionForm.valid" data-testid="action-next">Next</button>
+            <button mat-flat-button color="primary" [disabled]="!actionForm.valid"
+                    (click)="goToReview()" data-testid="action-next">Next</button>
           </div>
         </mat-step>
 
@@ -233,10 +242,43 @@ interface DeviceOption { id: number; name: string; type: string; }
                 <span>{{ actionLabel }}</span>
               </div>
             </div>
+
+            <!-- Conflict warning (US-014) -->
+            <div *ngIf="checkingConflicts" style="display:flex;align-items:center;gap:8px;margin-top:14px;color:#757575;font-size:13px;">
+              <mat-spinner diameter="18"></mat-spinner>
+              <span>Checking for rule conflicts…</span>
+            </div>
+
+            <div *ngIf="conflictCheckError"
+                 style="margin-top:14px;padding:10px 14px;border:1.5px solid #ef9a9a;border-radius:8px;background:#ffebee;font-size:13px;color:#c62828;"
+                 data-testid="conflict-check-error">
+              <mat-icon style="font-size:16px;width:16px;height:16px;vertical-align:middle;">error_outline</mat-icon>
+              Conflict check failed — {{ conflictCheckErrorDetail }}
+            </div>
+
+            <div *ngIf="!checkingConflicts && conflictingRules.length > 0"
+                 class="conflict-warning"
+                 data-testid="conflict-warning-panel">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <mat-icon style="color:#e65100;font-size:20px;width:20px;height:20px;">warning</mat-icon>
+                <strong style="color:#e65100;font-size:13px;">
+                  Conflict detected — {{ conflictingRules.length }} existing rule{{ conflictingRules.length > 1 ? 's' : '' }} control{{ conflictingRules.length === 1 ? 's' : '' }} this device with the opposite action
+                </strong>
+              </div>
+              <div *ngFor="let r of conflictingRules" class="conflict-item" [attr.data-testid]="'conflict-item-' + r.id">
+                <mat-icon style="font-size:16px;width:16px;height:16px;color:#9e9e9e;">rule</mat-icon>
+                <span style="font-size:13px;color:#424242;">
+                  <strong>{{ r.name }}</strong> — {{ buildConflictSummary(r) }}
+                </span>
+              </div>
+              <p style="font-size:12px;color:#757575;margin:8px 0 0;">
+                You can still save this rule. The conflicting rules may run at different times or under different conditions.
+              </p>
+            </div>
           </div>
           <div class="step-actions">
             <button mat-button matStepperPrevious>Back</button>
-            <button mat-flat-button color="primary" (click)="save()" [disabled]="saving" data-testid="rule-save-btn">
+            <button mat-flat-button color="primary" (click)="save()" [disabled]="saving || checkingConflicts" data-testid="rule-save-btn">
               {{ saving ? 'Saving…' : (editMode ? 'Update Rule' : 'Save Rule') }}
             </button>
           </div>
@@ -250,9 +292,15 @@ export class NewRuleDialogComponent implements OnInit {
   nameForm: FormGroup;
   actionForm: FormGroup;
 
+  @ViewChild('stepper') stepper!: MatStepper;
+
   editMode = false;
   saving = false;
   loadingDevices = true;
+  checkingConflicts = false;
+  conflictingRules: RuleDto[] = [];
+  conflictCheckError = false;
+  conflictCheckErrorDetail = '';
 
   selectedTrigger: TriggerType | null = null;
 
@@ -346,13 +394,14 @@ export class NewRuleDialogComponent implements OnInit {
 
     const actionRoomId = this.findRoomForDevice(rule.actionDeviceId);
     if (actionRoomId) {
-      this.actionDevices = this.devicesForRoom(actionRoomId, null, true);
-      this.actionOptionsList = this.computeActionOptions(rule.actionDeviceId);
+      // patchValue first so that actionForm.value.room is set before computeActionOptions reads it
       this.actionForm.patchValue({
         room: actionRoomId,
         device: rule.actionDeviceId,
         action: rule.actionValue,
       });
+      this.actionDevices = this.devicesForRoom(actionRoomId, null, true);
+      this.actionOptionsList = this.computeActionOptions(rule.actionDeviceId);
     }
   }
 
@@ -461,6 +510,60 @@ export class NewRuleDialogComponent implements OnInit {
     const action = this.actionOptionsList.find(o => o.value === this.actionForm.value.action);
     if (!device || !action) return '—';
     return `${action.label} → ${device.name}`;
+  }
+
+  /**
+   * Advances the stepper to the Review step and immediately triggers the conflict check.
+   * Using an explicit stepper.next() call is more reliable than relying on
+   * the selectionChange event together with the matStepperNext directive.
+   */
+  goToReview() {
+    this.conflictingRules = [];
+    this.conflictCheckError = false;
+    this.stepper.next();
+    this.runConflictCheck();
+  }
+
+  /** Runs the backend conflict check for the currently selected action device and value. */
+  private runConflictCheck() {
+    const deviceId = this.actionForm.value.device as number | null;
+    const actionValue = this.actionForm.value.action as string | null;
+    if (!deviceId || !actionValue) {
+      return;
+    }
+
+    this.checkingConflicts = true;
+    this.conflictingRules = [];
+    this.conflictCheckError = false;
+    const excludeId = this.editMode && this.data ? this.data.id : undefined;
+    this.ruleService.checkConflicts(deviceId, actionValue, excludeId).subscribe({
+      next: conflicts => {
+        this.conflictingRules = conflicts;
+        this.checkingConflicts = false;
+      },
+      error: err => {
+        this.conflictCheckError = true;
+        this.conflictCheckErrorDetail = `HTTP ${err?.status ?? '?'}: ${err?.error?.message ?? err?.message ?? 'unknown'}`;
+        this.checkingConflicts = false;
+      },
+    });
+  }
+
+  /** @deprecated Kept for selectionChange binding compatibility — delegates to runConflictCheck. */
+  onStepChange(selectedIndex: number) {
+    if (selectedIndex === 3) {
+      this.runConflictCheck();
+    }
+  }
+
+  /** Builds a short human-readable summary of a conflicting rule's action for display. */
+  buildConflictSummary(rule: RuleDto): string {
+    const actionText = rule.actionValue === 'true' ? 'turns ON'
+      : rule.actionValue === 'false' ? 'turns OFF'
+      : rule.actionValue === 'open' ? 'opens'
+      : rule.actionValue === 'close' ? 'closes'
+      : rule.actionValue;
+    return `${actionText} ${rule.actionDeviceName}`;
   }
 
   save() {
