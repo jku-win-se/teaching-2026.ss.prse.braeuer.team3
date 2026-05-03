@@ -32,6 +32,34 @@ export interface Scene {
   deviceActions: { deviceId: string; action: string }[];
 }
 
+/** Shape of a scene entry as returned by the backend API (US-018). */
+export interface SceneEntryDto {
+  deviceId: number;
+  deviceName: string;
+  actionValue: string;
+}
+
+/** Shape of a scene as returned by the backend API (US-018). */
+export interface SceneDto {
+  id: number;
+  name: string;
+  icon: string;
+  entries: SceneEntryDto[];
+}
+
+/** Request body for creating or updating a scene (US-018). */
+export interface SceneEntryRequest {
+  deviceId: number;
+  actionValue: string;
+}
+
+/** Request body for creating or updating a scene (US-018). */
+export interface SceneCreateRequest {
+  name: string;
+  icon: string;
+  entries: SceneEntryRequest[];
+}
+
 export type TriggerType = 'TIME' | 'THRESHOLD' | 'EVENT';
 
 /** Shape of a rule as returned by the backend API (US-012). */
