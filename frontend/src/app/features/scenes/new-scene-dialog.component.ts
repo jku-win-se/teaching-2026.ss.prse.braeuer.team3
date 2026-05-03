@@ -12,7 +12,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { SceneDto, SceneEntryDto } from '../../core/models';
 import { RoomService } from '../../core/room.service';
-import { DeviceService } from '../../core/device.service';
+import { DeviceService, DeviceDto } from '../../core/device.service';
 
 const SCENE_ICONS = [
   'wb_sunny', 'bedtime', 'movie', 'flight_takeoff', 'celebration',
@@ -213,22 +213,22 @@ export class NewSceneDialogComponent implements OnInit {
     this.roomService.getRooms().pipe(
       switchMap(rooms => {
         if (rooms.length === 0) {
-          return of([] as any[][]);
+          return of([] as DeviceDto[][]);
         }
         // catchError per room so one failing room doesn't block the rest
         return forkJoin(
-          rooms.map(r => this.deviceService.getDevices(r.id).pipe(catchError(() => of([]))))
+          rooms.map(r => this.deviceService.getDevices(r.id).pipe(catchError(() => of([] as DeviceDto[]))))
         );
       }),
       catchError(() => {
         this.loadError = true;
-        return of([] as any[][]);
+        return of([] as DeviceDto[][]);
       }),
     ).subscribe({
       next: deviceLists => {
-        this.allDevices = (deviceLists as any[][])
+        this.allDevices = deviceLists
           .flat()
-          .map((d: any) => ({ id: d.id, name: d.name, type: d.type }));
+          .map((d: DeviceDto) => ({ id: d.id, name: d.name, type: d.type }));
         this.prefillEntries();
         this.loadingDevices = false;
       },
