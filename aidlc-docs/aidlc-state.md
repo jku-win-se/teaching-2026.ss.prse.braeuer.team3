@@ -228,3 +228,31 @@
 - **Current Stage**: Build and Test — COMPLETE
 - **Next Stage**: DONE — US-014 Backend + Frontend implemented
 - **Summary**: aidlc-docs/construction/plans/us014-conflict-detection-code-generation-plan.md
+
+## DOC-01 Stage Progress (Projektdokumentation)
+
+### 🔵 INCEPTION PHASE — DOC-01
+- [x] Workspace Detection — reuse existing (2026-05-03)
+- [x] Reverse Engineering — reuse existing (2026-05-03)
+- [x] Requirements Analysis — 2026-05-03
+- [ ] User Stories — SKIP
+- [x] Workflow Planning — 2026-05-03
+- [ ] Application Design — SKIP
+- [ ] Units Generation — SKIP
+
+### 🟢 CONSTRUCTION PHASE — DOC-01
+- [ ] Functional Design — SKIP
+- [ ] NFR Requirements — SKIP
+- [ ] NFR Design — SKIP
+- [ ] Infrastructure Design — SKIP
+- [x] Unit 1: ARCHITECTURE_UML.md aktualisiert — 2026-05-03
+- [x] Unit 2a: docs/system-architecture.md erstellt — 2026-05-03
+- [x] Unit 2b: docs/user-handbook.md erstellt — 2026-05-03
+- [x] Unit 3: README.md (Umgesetzte Anforderungen) + SETUP.md (Frontend-Fix) — 2026-05-03
+- [x] Build and Test — 2026-05-03 (alle Features abgedeckt, alle Endpunkte dokumentiert)
+
+## Current Status (DOC-01)
+- **Lifecycle Phase**: CONSTRUCTION (DOC-01)
+- **Current Stage**: Build and Test — COMPLETE
+- **Next Stage**: DONE — Projektdokumentation vollständig erstellt
+- **Summary**: aidlc-docs/inception/plans/doc01-execution-plan.md

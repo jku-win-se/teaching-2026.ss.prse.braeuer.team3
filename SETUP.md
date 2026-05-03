@@ -122,12 +122,10 @@ mvn test
 
 ---
 
-## 6. Start the Frontend (UI Prototype)
-
-> **Note:** The `frontend/` folder is currently empty. Use the Angular prototype under `prototype/smarthome-orchestrator/` instead.
+## 6. Start the Frontend
 
 ```bash
-cd prototype/smarthome-orchestrator
+cd frontend
 npm install
 npm start
 ```
@@ -154,23 +152,24 @@ smarthome-orchestrator/
 │   ├── src/main/java/        # Application source code
 │   ├── src/main/resources/
 │   │   ├── application.yml   # App configuration (reads from .env)
-│   │   └── db/migration/     # Flyway SQL migrations (versioned schema)
+│   │   └── db/migration/     # Flyway SQL migrations (versioned schema, V1–V13)
 │   ├── src/test/             # Unit and integration tests
 │   └── pom.xml
-├── frontend/                 # Angular SPA (currently empty — not yet implemented)
-├── prototype/
-│   └── smarthome-orchestrator/  # Angular UI prototype (used in place of frontend for now)
-│       ├── src/
-│       ├── package.json
-│       └── package-lock.json
+├── frontend/                 # Angular 19 SPA
+│   ├── src/app/
+│   │   ├── features/         # Pages: auth, dashboard, rooms, rules, schedules, scenes, energy, log, settings
+│   │   ├── core/             # Services, guards, interceptors, models
+│   │   └── shared/           # Reusable components (device-card, confirm-dialog, etc.)
+│   └── package.json
+├── docs/                     # Project documentation
+│   ├── system-architecture.md   # Technical documentation (developer-facing)
+│   └── user-handbook.md         # User manual (German)
 ├── docker-compose.yml        # PostgreSQL for local development
 ├── docker-compose.test.yml   # PostgreSQL for testing/CI
 ├── .env.example              # Environment variable template (commit this)
 ├── .env                      # Your local secrets (never commit)
 ├── ruleset.xml               # PMD rules for code quality
-└── backend/src/main/resources/
-    ├── application.yml           # Shared config (commit this)
-    └── application-local.yml     # Your local values (never commit)
+└── ARCHITECTURE_UML.md       # Architecture diagrams (Mermaid)
 ```
 
 ---
