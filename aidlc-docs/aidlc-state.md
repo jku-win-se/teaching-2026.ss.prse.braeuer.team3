@@ -201,3 +201,30 @@
 - **Current Stage**: Build and Test — COMPLETE
 - **Next Stage**: DONE — FR-16 Backend + Frontend implemented
 - **Summary**: aidlc-docs/inception/plans/fr16-execution-plan.md
+
+## US-014 Stage Progress (new feature cycle)
+
+### 🔵 INCEPTION PHASE — US-014
+- [x] Workspace Detection — reuse existing (2026-05-03)
+- [x] Reverse Engineering — reuse existing (2026-05-03)
+- [x] Requirements Analysis — 2026-05-03
+- [ ] User Stories — SKIP
+- [x] Workflow Planning — 2026-05-03
+- [ ] Application Design — SKIP
+- [ ] Units Generation — SKIP
+
+### 🟢 CONSTRUCTION PHASE — US-014
+- [ ] Functional Design — SKIP
+- [ ] NFR Requirements — SKIP
+- [ ] NFR Design — SKIP
+- [ ] Infrastructure Design — SKIP
+- [x] Code Generation Plan — 2026-05-03
+- [x] Code Generation (Unit 1: Backend conflict endpoint + tests) — 2026-05-03
+- [x] Code Generation (Unit 2: Frontend conflict warning in rule dialog) — 2026-05-03
+- [x] Build and Test — 2026-05-03 (static review PASS; PMD clean; Javadoc complete)
+
+## Current Status (US-014)
+- **Lifecycle Phase**: CONSTRUCTION (US-014)
+- **Current Stage**: Build and Test — COMPLETE
+- **Next Stage**: DONE — US-014 Backend + Frontend implemented
+- **Summary**: aidlc-docs/construction/plans/us014-conflict-detection-code-generation-plan.md
