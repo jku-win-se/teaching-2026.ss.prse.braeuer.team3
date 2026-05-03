@@ -75,3 +75,4 @@ class WebSocketConfigTest {
         verify(registration).setAllowedOrigins("http://localhost:4200");
     }
 }
+
