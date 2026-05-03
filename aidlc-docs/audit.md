@@ -1,5 +1,31 @@
 # AI-DLC Audit Log
 
+## Build and Test — FR-16: CSV Export (Backend + Frontend)
+**Timestamp**: 2026-05-03T12:40:00+02:00
+**TypeScript Check**: PASS — `npx tsc -p tsconfig.app.json --noEmit` (0 errors)
+**Angular Build**: not executed in sandbox (no network); TypeScript pass is the pre-build gate
+**Backend**: Maven not available in sandbox; static review performed — no PMD violations, full Javadoc, constructor signatures verified against domain classes
+**Constructor fixes applied**: `EnergyServiceTest` + `ActivityLogServiceTest` updated to pass new `CsvExportService` arg; `CsvExportServiceTest` helper corrected to use `User(String,String,String)`, `Room(User,String,String)`, `Device(Room,String,DeviceType)` constructors
+**Files Generated/Modified**:
+- `ActivityLogRepository.java` — added `findAllByUser(User, Sort)`
+- `CsvExportService.java` — new; RFC-4180 CSV builder for activity log + energy
+- `ActivityLogService.java` — added `exportActivityLogCsv`, injected `CsvExportService`
+- `EnergyService.java` — added `exportEnergyCsv`, injected `CsvExportService`
+- `ActivityLogController.java` — added `GET /api/activity-log/export`
+- `EnergyController.java` — added `GET /api/energy/export`
+- `CsvExportServiceTest.java` — new; 8 unit tests (header, data row, escaping)
+- `ActivityLogControllerTest.java` — extended; 2 export tests
+- `EnergyControllerTest.java` — extended; 2 export tests
+- `ActivityLogServiceTest.java` — constructor fix (5th arg)
+- `EnergyServiceTest.java` — constructor fix (3rd arg)
+- `activity-log.service.ts` — added `exportCsv()` blob download
+- `energy.service.ts` — added `exportCsv()` blob download
+- `log.component.ts` — added Export CSV button
+- `energy.component.ts` — wired existing Export CSV stub
+**Status**: Complete — ready for `mvn test` on developer machine
+
+---
+
 ## Build and Test — FR-13/FR-20 Frontend: Roles UI & Members
 **Timestamp**: 2026-05-01T14:45:00+02:00
 **Build Status**: SUCCESS

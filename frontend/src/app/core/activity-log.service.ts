@@ -51,4 +51,21 @@ export class ActivityLogService {
   deleteLog(id: number): Observable<void> {
     return this.http.delete<void>(`${BASE}/${id}`);
   }
+
+  /**
+   * Downloads the complete activity log as a CSV file (FR-16).
+   * Triggers a browser file-save dialog for "activity-log.csv".
+   */
+  exportCsv(): void {
+    this.http.get(`${BASE}/export`, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'activity-log.csv';
+        anchor.click();
+        URL.revokeObjectURL(url);
+      },
+    });
+  }
 }

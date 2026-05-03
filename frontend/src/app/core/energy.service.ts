@@ -14,4 +14,21 @@ export class EnergyService {
   getDeviceEnergy(): Observable<EnergyDevice[]> {
     return this.http.get<EnergyDevice[]>(`${this.API}/devices`);
   }
+
+  /**
+   * Downloads the energy usage summary as a CSV file (FR-16).
+   * Triggers a browser file-save dialog for "energy-summary.csv".
+   */
+  exportCsv(): void {
+    this.http.get(`${this.API}/export`, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'energy-summary.csv';
+        anchor.click();
+        URL.revokeObjectURL(url);
+      },
+    });
+  }
 }
