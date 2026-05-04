@@ -11,14 +11,15 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
-import { ACTIVITY_LOG } from '../../core/mock-data';
-import { Device, Room, ActivityEntry, SceneDto } from '../../core/models';
+import { Device, Room, ActivityLogDto, SceneDto } from '../../core/models';
 import { AuthService } from '../../core/auth.service';
 import { RoomService, RoomDto } from '../../core/room.service';
 import { DeviceService, DeviceDto } from '../../core/device.service';
 import { SceneService } from '../../core/scene.service';
+import { ActivityLogService } from '../../core/activity-log.service';
+import { RuleService } from '../../core/rule.service';
 import { RealtimeService } from '../../core/realtime.service';
-import { toRoom, dtoToDevice, DEVICE_ICON, DEVICE_ICON_BG, DEVICE_ICON_COLOR } from '../../core/device-utils';
+import { toRoom, dtoToDevice } from '../../core/device-utils';
 import { DeviceCardComponent } from '../../shared/components/device-card/device-card.component';
 
 @Component({
@@ -64,17 +65,8 @@ import { DeviceCardComponent } from '../../shared/components/device-card/device-
             <mat-icon style="color:#8B5CF6;">rule</mat-icon>
           </div>
           <div class="stat-info">
-            <div class="stat-value">4</div>
+            <div class="stat-value">{{ rulesCount }}</div>
             <div class="stat-label">Rules Running</div>
-          </div>
-        </mat-card>
-        <mat-card class="stat-card">
-          <div class="stat-icon-bg" style="background:rgba(249,115,22,0.1);">
-            <mat-icon style="color:#F97316;">notifications</mat-icon>
-          </div>
-          <div class="stat-info">
-            <div class="stat-value">2</div>
-            <div class="stat-label">Open Alerts</div>
           </div>
         </mat-card>
       </div>
@@ -113,11 +105,11 @@ import { DeviceCardComponent } from '../../shared/components/device-card/device-
         <mat-card-content>
           <div class="activity-list">
             <div class="activity-item" *ngFor="let entry of recentActivity">
-              <div class="activity-icon" [style.background]="getDeviceIconBg(entry.deviceType)">
-                <mat-icon [style.color]="getDeviceIconColor(entry.deviceType)">{{ getDeviceIcon(entry.deviceType) }}</mat-icon>
+              <div class="activity-icon" style="background:rgba(79,70,229,0.1);">
+                <mat-icon style="color:#4F46E5;">history</mat-icon>
               </div>
               <div class="activity-text">
-                <p class="activity-desc">{{ entry.description }}</p>
+                <p class="activity-desc"><strong>{{ entry.deviceName }}</strong> — {{ entry.action }}</p>
                 <p class="activity-time">{{ relativeTime(entry.timestamp) }}</p>
               </div>
             </div>
@@ -154,7 +146,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private sceneUpdateSub: Subscription | null = null;
 
   scenes: SceneDto[] = [];
-  recentActivity: ActivityEntry[] = [];
+  recentActivity: ActivityLogDto[] = [];
+  rulesCount = 0;
 
   constructor(
     private snackBar: MatSnackBar,
@@ -162,6 +155,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private roomService: RoomService,
     private deviceService: DeviceService,
     private sceneService: SceneService,
+    private activityLogService: ActivityLogService,
+    private ruleService: RuleService,
     private realtimeService: RealtimeService,
     public auth: AuthService
   ) {}
@@ -169,7 +164,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const hour = new Date().getHours();
     this.greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-    this.recentActivity = ACTIVITY_LOG.slice(0, 5);
+
+    this.activityLogService.getLogs(0, 5).subscribe({
+      next: page => { this.recentActivity = page.content; },
+      error: () => { this.recentActivity = []; }
+    });
+
+    this.ruleService.getRules().subscribe({
+      next: rules => { this.rulesCount = rules.filter(r => r.enabled).length; },
+      error: () => { this.rulesCount = 0; }
+    });
 
     this.roomService.getRooms().pipe(
       switchMap((dtos: RoomDto[]) => {
@@ -207,6 +211,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
 
     this.realtimeService.connect();
+    this.realtimeService.activityLogUpdates$.subscribe(dto => {
+      this.recentActivity = [dto, ...this.recentActivity].slice(0, 5);
+    });
     this.realtimeSub = this.realtimeService.deviceUpdates$.subscribe(dto => {
       const device = this.allDevices.find(d => d.id === String(dto.id));
       if (device) {
@@ -287,14 +294,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.snackBar.open(active ? 'Vacation mode enabled ✓' : 'Vacation mode disabled', '', { duration: 2000 });
   }
 
-  relativeTime(date: Date): string {
+  relativeTime(dateOrStr: Date | string): string {
+    const date = typeof dateOrStr === 'string' ? new Date(dateOrStr) : dateOrStr;
     const diff = Math.floor((Date.now() - date.getTime()) / 60000);
     if (diff < 1) { return 'just now'; }
     if (diff < 60) { return `${diff} min ago`; }
     return `${Math.floor(diff / 60)}h ago`;
   }
-
-  getDeviceIcon(type: string): string { return DEVICE_ICON[type] ?? 'devices'; }
-  getDeviceIconBg(type: string): string { return DEVICE_ICON_BG[type] ?? 'var(--bg)'; }
-  getDeviceIconColor(type: string): string { return DEVICE_ICON_COLOR[type] ?? '#94A3B8'; }
 }

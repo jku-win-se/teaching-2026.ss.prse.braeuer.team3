@@ -92,7 +92,7 @@ public class ActivityLogService {
      * @param from     optional start of the date range filter (inclusive); {@code null} = no lower bound
      * @param to       optional end of the date range filter (inclusive); {@code null} = no upper bound
      * @param deviceId optional device id filter; {@code null} = all devices
-     * @return a page of activity log response DTOs ordered by timestamp ascending (chronological)
+     * @return a page of activity log response DTOs ordered by timestamp descending (newest first)
      * @throws ResponseStatusException with status 404 if the user is not found
      * @throws ResponseStatusException with status 404 if the specified device is not found
      *                                 or does not belong to the user
@@ -102,7 +102,7 @@ public class ActivityLogService {
                                              Instant from, Instant to, Long deviceId) {
         memberService.requireOwnerRole(email);
         User user = memberService.resolveEffectiveOwner(email);
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "timestamp"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
 
         boolean hasDate = from != null || to != null;
         Instant effectiveFrom = from != null ? from : Instant.EPOCH;

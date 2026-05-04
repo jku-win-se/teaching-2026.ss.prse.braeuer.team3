@@ -256,3 +256,24 @@
 - **Current Stage**: Build and Test — COMPLETE
 - **Next Stage**: DONE — Projektdokumentation vollständig erstellt
 - **Summary**: aidlc-docs/inception/plans/doc01-execution-plan.md
+
+## Issue-70 Stage Progress (Bugfix: remove dashboard mocks)
+
+### 🔵 INCEPTION PHASE — Issue-70
+- [x] Workspace Detection — reuse existing (2026-05-04)
+- [x] Requirements Analysis — 2026-05-04 (issue #70: remove Open Alerts, Rules, Recent Activity mocks)
+- [ ] User Stories — SKIP
+- [x] Workflow Planning — 2026-05-04
+
+### 🟢 CONSTRUCTION PHASE — Issue-70
+- [ ] Functional Design — SKIP
+- [ ] NFR Requirements — SKIP
+- [ ] NFR Design — SKIP
+- [ ] Infrastructure Design — SKIP
+- [x] Code Generation (dashboard.component.ts) — 2026-05-04
+- [x] Build and Test — 2026-05-04 (Angular build success, no TypeScript errors)
+
+## Current Status (Issue-70)
+- **Lifecycle Phase**: CONSTRUCTION (Issue-70)
+- **Current Stage**: Build and Test — COMPLETE
+- **Next Stage**: DONE — Dashboard mocks removed, wired to real APIs
