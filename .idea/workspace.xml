@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="be43aaef-b273-4f1f-9350-4abfc25671b2" name="Changes" comment="#30 [11h] Einbindung von AI-DLC workflow + vergangen Stunden aus Praesenzeinheiten">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CLAUDE.md" beforeDir="false" afterPath="$PROJECT_DIR$/CLAUDE.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/backend/pom.xml" afterDir="false" />
-    </list>
+    <list default="true" id="be43aaef-b273-4f1f-9350-4abfc25671b2" name="Changes" comment="#30 [11h] Einbindung von AI-DLC workflow + vergangen Stunden aus Praesenzeinheiten" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -66,7 +62,7 @@
     "JUnit.TestDivideOperation.executor": "Run",
     "JUnit.TestOperationFactory.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "17-fr-10-rule-engine-if-then",
     "kotlin-language-version-configured": "true",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -200,6 +196,7 @@
       <workItem from="1775975126053" duration="1769000" />
       <workItem from="1776085664930" duration="6371000" />
       <workItem from="1776416237366" duration="5526000" />
+      <workItem from="1777901901958" duration="1197000" />
     </task>
     <task id="LOCAL-00001" summary="Implement DivOperation and Tests">
       <option name="closed" value="true" />

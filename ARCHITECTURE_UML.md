@@ -48,8 +48,10 @@ graph TB
         end
         subgraph Services["Business Services"]
             AuthSvc["AuthService"]
+            RoomSvc["RoomService"]
             DevSvc["DeviceService"]
-            RuleSvc["RuleService (@Scheduled eval)"]
+            RuleSvc["RuleService"]
+            RuleSched["RuleScheduler (@Scheduled cron)"]
             SchedSvc["ScheduleService (@Scheduled cron)"]
             SceneSvc["SceneService"]
             EnergySvc["EnergyService"]
@@ -76,19 +78,20 @@ graph TB
     SEC --> Controllers
 
     AuthCtrl --> AuthSvc --> UserRepo
-    RoomCtrl --> DevSvc --> RoomRepo & DevRepo
-    DevCtrl --> DevSvc
+    RoomCtrl --> RoomSvc --> RoomRepo & UserRepo
+    DevCtrl --> DevSvc --> RoomRepo & DevRepo
     RuleCtrl --> RuleSvc --> RuleRepo & DevRepo
+    RuleSched --> RuleSvc
     SchedCtrl --> SchedSvc --> SchedRepo & DevRepo
     SceneCtrl --> SceneSvc --> SceneRepo & DevRepo
     EnergyCtrl --> EnergySvc --> DevRepo
     LogCtrl --> LogSvc --> LogRepo
     MemberCtrl --> MemberSvc --> MemberRepo & UserRepo
 
-    DevSvc --> LogSvc
-    RuleSvc --> DevSvc & LogSvc & SseCtrl
-    SchedSvc --> DevSvc & LogSvc
-    SceneSvc --> DevSvc & LogSvc
+    DevSvc --> LogSvc & SseCtrl
+    RuleSvc --> DevSvc
+    SchedSvc --> DevSvc
+    SceneSvc --> DevSvc
     EnergyCtrl & LogCtrl --> CsvSvc
 
     Repos --> DB
@@ -101,7 +104,8 @@ graph TB
 - **Authentication**: Spring Security with BCrypt password hashing and self-issued JWTs (NFR-02). All endpoints (except `/api/auth/**`) require a valid Bearer token.
 - **Real-time updates**: Server-Sent Events (SSE) push device state changes and rule-fire notifications to the frontend — no external broker needed.
 - **Role enforcement**: `MemberService` resolves ownership and membership on every request. The `OwnerGuard` (frontend) and `@PreAuthorize` / runtime checks (backend) enforce Owner-only access to rules, schedules, and the activity log.
-- **Rule evaluation**: `RuleService` is triggered synchronously after each `PATCH /state` call. It evaluates all enabled rules whose trigger device and conditions match the new state, then calls `DeviceService.updateStateAsActor` to avoid infinite trigger chains.
+- **Ownership model**: Each `Room`, `Rule`, and `Scene` is linked directly to its owning `User` via a `user_id` FK. Shared-home membership is handled separately via the `HomeMember` join table (owner → member user pair).
+- **Rule evaluation**: `RuleService.evaluateRulesForDevice()` is called synchronously by `DeviceService` after each `PATCH /state` request. It checks all enabled IF-THEN rules for the updated device and calls `DeviceService.updateStateAsActor()` to apply actions — skipping recursive rule evaluation to prevent infinite trigger chains. Time-based rules are fired by `RuleScheduler` every minute.
 - **Schedule execution**: `ScheduleService.runDueSchedules()` runs every minute via Spring `@Scheduled(cron = "0 * * * * *")` and fires all schedules due within the current minute.
 - **Database**: PostgreSQL 16 in Docker. Schema managed by Flyway migrations (V1–V13) — version-controlled, auto-applied on startup.
 - **CSV export**: `CsvExportService` is shared by both `ActivityLogController` and `EnergyController` for FR-16.
@@ -124,15 +128,15 @@ sequenceDiagram
     FE->>DevCtrl: PATCH /api/rooms/{roomId}/devices/{id}/state
     DevCtrl->>DevSvc: updateState(email, roomId, deviceId, req)
     DevSvc->>DB: save(device)
-    DevSvc->>LogSvc: log(manual change)
-    DevSvc->>RuleSvc: evaluateRules(changedDevice)
-    RuleSvc->>DB: findMatchingEnabledRules()
+    DevSvc->>SseCtrl: broadcast(deviceUpdate)
+    DevSvc->>RuleSvc: evaluateRulesForDevice(device, req, stateOnChanged)
+    RuleSvc->>DB: findByEnabledTrueAndTriggerDevice(device)
     loop for each matching rule
-        RuleSvc->>DevSvc: updateStateAsActor(actionDevice, action)
+        RuleSvc->>DevSvc: updateStateAsActor(actionDeviceId, action, owner, actorName)
         DevSvc->>DB: save(actionDevice)
-        RuleSvc->>SseCtrl: push(rule fired notification)
+        DevSvc->>SseCtrl: broadcast(actionDeviceUpdate)
     end
-    SseCtrl-->>FE: SSE event (device update + notification)
+    SseCtrl-->>FE: SSE event (device update)
 ```
 
 ### Schedule Execution Flow (FR-09)
@@ -170,7 +174,9 @@ sequenceDiagram
 | EnergyController | `GET /api/energy/devices`, `GET /api/energy/export` | Energy dashboard + CSV | FR-14/16 |
 | ActivityLogController | `GET /api/activity-log`, `GET /api/activity-log/export` | Paginated log + CSV + delete | FR-08/16 |
 | MemberController | `GET/POST /api/members`, `DELETE /api/members/{id}` | Invite / revoke members (Owner only) | FR-13/20 |
-| RuleService | — | Rule evaluation engine | FR-10/11/12 |
+| RoomService | — | Room CRUD, owner-only write enforcement | FR-03/13 |
+| RuleService | — | IF-THEN rule evaluation engine | FR-10/11/12 |
+| RuleScheduler | — | Cron trigger for time-based rules (every minute) | FR-10/12 |
 | ScheduleService | — | Cron execution every minute | FR-09 |
 | MemberService | — | Ownership resolution, Owner authorization | FR-13/20 |
 | CsvExportService | — | CSV serialization shared by log + energy | FR-16 |
@@ -184,74 +190,85 @@ sequenceDiagram
 classDiagram
     class User {
         Long id
+        String name
         String email
         String passwordHash
     }
-    class Household {
-        Long id
-        Long ownerId
-    }
     class HomeMember {
         Long id
-        Long householdId
-        Long userId
+        User owner
+        User member
         String role
     }
     class Room {
         Long id
-        Long householdId
+        User user
         String name
+        String icon
     }
     class Device {
         Long id
-        Long roomId
+        Room room
         String name
-        String type
-        String stateJson
+        DeviceType type
+        boolean stateOn
+        int brightness
+        double temperature
+        double sensorValue
+        int coverPosition
     }
     class Rule {
         Long id
-        Long householdId
-        String triggerType
-        Long triggerDeviceId
-        Long actionDeviceId
-        Boolean enabled
+        User user
+        String name
+        TriggerType triggerType
+        Device triggerDevice
+        TriggerOperator triggerOperator
+        Double triggerThresholdValue
+        Device actionDevice
+        String actionValue
+        boolean enabled
     }
     class Schedule {
         Long id
-        Long deviceId
-        String cronDays
-        Integer hour
-        Integer minute
-        String actionJson
-        Boolean enabled
+        Device device
+        String name
+        String daysOfWeek
+        int hour
+        int minute
+        String actionPayload
+        boolean enabled
     }
     class Scene {
         Long id
-        Long householdId
+        User user
         String name
+        String icon
     }
     class SceneEntry {
         Long id
-        Long sceneId
-        Long deviceId
+        Scene scene
+        Device device
         String actionValue
     }
     class ActivityLog {
         Long id
-        Long deviceId
+        Device device
+        User user
         Instant timestamp
-        String actor
-        String description
+        String actorName
+        String action
     }
 
-    User "1" --> "1" Household : owns
-    Household "1" --> "*" HomeMember : has
-    Household "1" --> "*" Room : contains
+    User "1" --> "*" HomeMember : owns home
+    User "1" --> "*" HomeMember : member of
+    User "1" --> "*" Room : owns
     Room "1" --> "*" Device : contains
-    Household "1" --> "*" Rule : defines
+    User "1" --> "*" Rule : owns
+    Device "1" --> "*" Rule : triggers
+    Device "1" --> "*" Rule : acted on by
     Device "1" --> "*" Schedule : scheduled by
-    Household "1" --> "*" Scene : has
+    User "1" --> "*" Scene : owns
     Scene "1" --> "*" SceneEntry : contains
     Device "1" --> "*" ActivityLog : logs
 ```
