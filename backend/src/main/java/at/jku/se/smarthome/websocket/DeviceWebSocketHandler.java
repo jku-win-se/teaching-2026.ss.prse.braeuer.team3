@@ -203,6 +203,47 @@ public class DeviceWebSocketHandler extends TextWebSocketHandler {
     }
 
     /**
+     * Broadcasts a scene-list change notification to all open sessions belonging to the given user.
+     *
+     * <p>Sends {@code { "messageType": "sceneUpdate" }} so every open tab owned by the
+     * same user can refresh its scene list in real time (US-018).</p>
+     *
+     * <p>If sending to a single session fails, that session is removed from the
+     * registry and broadcasting continues to the remaining sessions.</p>
+     *
+     * @param userEmail the e-mail of the user whose sessions should receive the notification
+     */
+    public void broadcastSceneUpdate(String userEmail) {
+        CopyOnWriteArrayList<WebSocketSession> sessions = sessionMap.get(userEmail);
+        if (sessions == null) {
+            return;
+        }
+        String payload;
+        try {
+            ObjectNode node = objectMapper.createObjectNode();
+            node.put("messageType", "sceneUpdate");
+            payload = objectMapper.writeValueAsString(node);
+        } catch (JsonProcessingException serializationException) {
+            throw new IllegalStateException("Failed to serialise scene update message for broadcast",
+                    serializationException);
+        }
+        TextMessage message = new TextMessage(payload);
+        for (WebSocketSession session : sessions) {
+            if (!session.isOpen()) {
+                removeSession(session);
+                continue;
+            }
+            try {
+                synchronized (session) {
+                    session.sendMessage(message);
+                }
+            } catch (IOException sendException) {
+                removeSession(session);
+            }
+        }
+    }
+
+    /**
      * Removes the given session from the registry. If the user's session list becomes
      * empty the map entry is also removed.
      *

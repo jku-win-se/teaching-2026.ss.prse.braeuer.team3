@@ -151,6 +151,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private allDevices: Device[] = [];
   private realtimeSub: Subscription | null = null;
+  private sceneUpdateSub: Subscription | null = null;
 
   scenes: SceneDto[] = [];
   recentActivity: ActivityEntry[] = [];
@@ -198,6 +199,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next: scenes => { this.scenes = scenes; },
       error: () => { /* members get 403 — empty list is fine */ },
     });
+    this.sceneUpdateSub = this.realtimeService.sceneUpdates$.subscribe(() => {
+      this.sceneService.getScenes().subscribe({
+        next: scenes => { this.scenes = scenes; },
+        error: () => {},
+      });
+    });
 
     this.realtimeService.connect();
     this.realtimeSub = this.realtimeService.deviceUpdates$.subscribe(dto => {
@@ -218,6 +225,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.realtimeSub?.unsubscribe();
+    this.sceneUpdateSub?.unsubscribe();
     this.realtimeService.disconnect();
   }
 

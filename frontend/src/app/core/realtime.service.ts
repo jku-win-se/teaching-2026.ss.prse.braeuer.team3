@@ -37,6 +37,10 @@ export class RealtimeService implements OnDestroy {
   /** Observable stream of rule execution notifications received from the backend (US-013). */
   readonly ruleNotifications$ = this.ruleNotificationSubject.asObservable();
 
+  private readonly sceneUpdateSubject = new Subject<void>();
+  /** Emits whenever a scene is created, updated, or deleted (US-018). */
+  readonly sceneUpdates$ = this.sceneUpdateSubject.asObservable();
+
   private webSocket: WebSocket | null = null;
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -69,6 +73,8 @@ export class RealtimeService implements OnDestroy {
           this.activityLogSubject.next(raw as ActivityLogDto);
         } else if (raw.messageType === 'ruleNotification') {
           this.ruleNotificationSubject.next(raw as RuleNotificationDto);
+        } else if (raw.messageType === 'sceneUpdate') {
+          this.sceneUpdateSubject.next();
         } else {
           this.deviceSubject.next(raw as DeviceDto);
         }

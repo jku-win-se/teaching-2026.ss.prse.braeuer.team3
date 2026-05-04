@@ -11,6 +11,7 @@ import at.jku.se.smarthome.dto.SceneRequest;
 import at.jku.se.smarthome.dto.SceneResponse;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.SceneRepository;
+import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,7 @@ class SceneServiceTest {
     @Mock private DeviceRepository deviceRepository;
     @Mock private MemberService memberService;
     @Mock private DeviceService deviceService;
+    @Mock private DeviceWebSocketHandler wsHandler;
 
     private SceneService sceneService;
 
@@ -52,7 +54,7 @@ class SceneServiceTest {
 
     @BeforeEach
     void setUp() {
-        sceneService = new SceneService(sceneRepository, deviceRepository, memberService, deviceService);
+        sceneService = new SceneService(sceneRepository, deviceRepository, memberService, deviceService, wsHandler);
 
         user = new User("Test User", EMAIL, "hashed");
         ReflectionTestUtils.setField(user, "id", 1L);
