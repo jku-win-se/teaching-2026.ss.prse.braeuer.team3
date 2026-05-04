@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,6 +9,7 @@ import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SceneService } from '../../core/scene.service';
+import { RealtimeService } from '../../core/realtime.service';
 import { SceneDto } from '../../core/models';
 import { NewSceneDialogComponent } from './new-scene-dialog.component';
 
@@ -80,21 +82,31 @@ import { NewSceneDialogComponent } from './new-scene-dialog.component';
     </div>
   `,
 })
-export class ScenesComponent implements OnInit {
+export class ScenesComponent implements OnInit, OnDestroy {
   loading = true;
   scenes: SceneDto[] = [];
   activeSceneId: number | null = null;
   activatingId: number | null = null;
 
+  private sceneUpdateSub?: Subscription;
+
   constructor(
     private sceneService: SceneService,
+    private realtimeService: RealtimeService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
   ) {}
 
-  /** Loads all scenes from the backend on component init. */
+  /** Loads all scenes and subscribes to real-time scene-change events. */
   ngOnInit(): void {
     this.loadScenes();
+    this.sceneUpdateSub = this.realtimeService.sceneUpdates$.subscribe(() => {
+      this.loadScenes();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.sceneUpdateSub?.unsubscribe();
   }
 
   /** Activates a scene by calling the backend activate endpoint. */

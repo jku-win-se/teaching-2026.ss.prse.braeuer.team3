@@ -12,6 +12,7 @@ import at.jku.se.smarthome.dto.SceneRequest;
 import at.jku.se.smarthome.dto.SceneResponse;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.SceneRepository;
+import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -41,6 +42,7 @@ public class SceneService {
     private final DeviceRepository deviceRepository;
     private final MemberService memberService;
     private final DeviceService deviceService;
+    private final DeviceWebSocketHandler wsHandler;
 
     /**
      * Constructs a SceneService with all required dependencies.
@@ -49,15 +51,18 @@ public class SceneService {
      * @param deviceRepository the repository for device lookups and ownership checks
      * @param memberService    the service used for owner-only authorization
      * @param deviceService    the service used to apply device state on scene activation
+     * @param wsHandler        the WebSocket handler used to push real-time scene updates
      */
     public SceneService(SceneRepository sceneRepository,
                         DeviceRepository deviceRepository,
                         MemberService memberService,
-                        DeviceService deviceService) {
+                        DeviceService deviceService,
+                        DeviceWebSocketHandler wsHandler) {
         this.sceneRepository = sceneRepository;
         this.deviceRepository = deviceRepository;
         this.memberService = memberService;
         this.deviceService = deviceService;
+        this.wsHandler = wsHandler;
     }
 
     /**
@@ -101,6 +106,7 @@ public class SceneService {
         if (log.isInfoEnabled()) {
             log.info("Scene {} created by {}", saved.getId(), email);
         }
+        wsHandler.broadcastSceneUpdate(email);
         return toResponse(saved);
     }
 
@@ -125,6 +131,7 @@ public class SceneService {
         applyRequest(scene, request, user);
 
         Scene saved = sceneRepository.save(scene);
+        wsHandler.broadcastSceneUpdate(email);
         return toResponse(saved);
     }
 
@@ -145,6 +152,7 @@ public class SceneService {
         if (log.isInfoEnabled()) {
             log.info("Scene {} deleted by {}", sceneId, email);
         }
+        wsHandler.broadcastSceneUpdate(email);
     }
 
     /**
