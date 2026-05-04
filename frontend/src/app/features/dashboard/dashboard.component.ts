@@ -11,11 +11,12 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
-import { SCENES, ACTIVITY_LOG } from '../../core/mock-data';
-import { Device, Room, Scene, ActivityEntry } from '../../core/models';
+import { ACTIVITY_LOG } from '../../core/mock-data';
+import { Device, Room, ActivityEntry, SceneDto } from '../../core/models';
 import { AuthService } from '../../core/auth.service';
 import { RoomService, RoomDto } from '../../core/room.service';
 import { DeviceService, DeviceDto } from '../../core/device.service';
+import { SceneService } from '../../core/scene.service';
 import { RealtimeService } from '../../core/realtime.service';
 import { toRoom, dtoToDevice, DEVICE_ICON, DEVICE_ICON_BG, DEVICE_ICON_COLOR } from '../../core/device-utils';
 import { DeviceCardComponent } from '../../shared/components/device-card/device-card.component';
@@ -151,7 +152,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private allDevices: Device[] = [];
   private realtimeSub: Subscription | null = null;
 
-  scenes = SCENES;
+  scenes: SceneDto[] = [];
   recentActivity: ActivityEntry[] = [];
 
   constructor(
@@ -159,6 +160,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private router: Router,
     private roomService: RoomService,
     private deviceService: DeviceService,
+    private sceneService: SceneService,
     private realtimeService: RealtimeService,
     public auth: AuthService
   ) {}
@@ -190,6 +192,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.loading = false;
       },
       error: () => { this.loading = false; }
+    });
+
+    this.sceneService.getScenes().subscribe({
+      next: scenes => { this.scenes = scenes; },
+      error: () => { /* members get 403 — empty list is fine */ },
     });
 
     this.realtimeService.connect();
@@ -261,8 +268,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  activateScene(scene: Scene): void {
-    this.snackBar.open(`${scene.name} activated ✓`, '', { duration: 2000 });
+  activateScene(scene: SceneDto): void {
+    this.sceneService.activateScene(scene.id).subscribe({
+      next: () => this.snackBar.open(`${scene.name} activated ✓`, '', { duration: 2500 }),
+      error: () => this.snackBar.open(`Failed to activate ${scene.name}.`, 'Dismiss', { duration: 3000 }),
+    });
   }
 
   onVacationToggle(active: boolean): void {
