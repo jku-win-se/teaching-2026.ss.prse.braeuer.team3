@@ -100,15 +100,6 @@ public class DeviceController {
     }
 
     /**
-     * Deletes a virtual device from a room.
-     * FR-05: Gerät löschen.
-     *
-     * @param principal the authenticated user injected by Spring Security
-     * @param roomId    the room's primary key
-     * @param deviceId  the device's primary key
-     * @return 204 No Content on success
-     */
-    /**
      * Partially updates the runtime state of a virtual device.
      * FR-06: Gerät manuell steuern.
      *
@@ -128,6 +119,15 @@ public class DeviceController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Deletes a virtual device from a room.
+     * FR-05: Gerät löschen.
+     *
+     * @param principal the authenticated user injected by Spring Security
+     * @param roomId    the room's primary key
+     * @param deviceId  the device's primary key
+     * @return 204 No Content on success
+     */
     @DeleteMapping("/{deviceId}")
     public ResponseEntity<Void> deleteDevice(
             @AuthenticationPrincipal UserDetails principal,
