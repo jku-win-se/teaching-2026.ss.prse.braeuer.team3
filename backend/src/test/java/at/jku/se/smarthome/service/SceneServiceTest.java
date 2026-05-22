@@ -30,6 +30,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +53,7 @@ class SceneServiceTest {
     private Device coverDevice;
 
     private static final String EMAIL = "user@test.com";
+    private static final String MEMBER_EMAIL = "member@test.com";
 
     @BeforeEach
     void setUp() {
@@ -68,7 +71,7 @@ class SceneServiceTest {
         coverDevice = new Device(room, "Blind", DeviceType.COVER);
         ReflectionTestUtils.setField(coverDevice, "id", 11L);
 
-        when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
+        lenient().when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(user);
     }
 
     // --- getScenes ---
@@ -82,6 +85,20 @@ class SceneServiceTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getName()).isEqualTo("Movie Night");
+        verify(memberService, never()).requireOwnerRole(EMAIL);
+    }
+
+    @Test
+    void getScenes_memberCaller_returnsEffectiveOwnerScenes() {
+        when(memberService.resolveEffectiveOwner(MEMBER_EMAIL)).thenReturn(user);
+        Scene scene = buildScene("Movie Night", "movie");
+        when(sceneRepository.findByUserOrderByIdAsc(user)).thenReturn(List.of(scene));
+
+        List<SceneResponse> result = sceneService.getScenes(MEMBER_EMAIL);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getName()).isEqualTo("Movie Night");
+        verify(memberService, never()).requireOwnerRole(MEMBER_EMAIL);
     }
 
     @Test
@@ -106,7 +123,22 @@ class SceneServiceTest {
         SceneResponse response = sceneService.createScene(EMAIL, request);
 
         assertThat(response.getName()).isEqualTo("Movie Night");
+        verify(memberService).requireOwnerRole(EMAIL);
         verify(sceneRepository).save(any(Scene.class));
+    }
+
+    @Test
+    void createScene_memberCaller_throws403() {
+        SceneRequest request = buildRequest("Movie Night", "movie", 10L, "true");
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owners can manage scenes."))
+                .when(memberService).requireOwnerRole(EMAIL);
+
+        assertThatThrownBy(() -> sceneService.createScene(EMAIL, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(sceneRepository, never()).save(any());
     }
 
     @Test
@@ -153,7 +185,22 @@ class SceneServiceTest {
         SceneResponse response = sceneService.updateScene(EMAIL, 1L, request);
 
         assertThat(response).isNotNull();
+        verify(memberService).requireOwnerRole(EMAIL);
         verify(sceneRepository).save(existing);
+    }
+
+    @Test
+    void updateScene_memberCaller_throws403() {
+        SceneRequest request = buildRequest("New Name", "movie", 10L, "false");
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owners can manage scenes."))
+                .when(memberService).requireOwnerRole(EMAIL);
+
+        assertThatThrownBy(() -> sceneService.updateScene(EMAIL, 1L, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(sceneRepository, never()).save(any());
     }
 
     @Test
@@ -176,7 +223,21 @@ class SceneServiceTest {
 
         sceneService.deleteScene(EMAIL, 1L);
 
+        verify(memberService).requireOwnerRole(EMAIL);
         verify(sceneRepository).delete(scene);
+    }
+
+    @Test
+    void deleteScene_memberCaller_throws403() {
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owners can manage scenes."))
+                .when(memberService).requireOwnerRole(EMAIL);
+
+        assertThatThrownBy(() -> sceneService.deleteScene(EMAIL, 1L))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(sceneRepository, never()).delete(any());
     }
 
     @Test
@@ -205,6 +266,25 @@ class SceneServiceTest {
 
         sceneService.activateScene(EMAIL, 1L);
 
+        verify(memberService, never()).requireOwnerRole(EMAIL);
+        verify(deviceService).updateStateAsActor(anyLong(), any(), any(User.class), anyString());
+    }
+
+    @Test
+    void activateScene_memberCaller_callsUpdateStateAsActorForEffectiveOwnerScene() {
+        when(memberService.resolveEffectiveOwner(MEMBER_EMAIL)).thenReturn(user);
+        Scene scene = buildScene("Movie Night", "movie");
+        SceneEntry entry = new SceneEntry();
+        entry.setScene(scene);
+        entry.setDevice(switchDevice);
+        entry.setActionValue("true");
+        scene.getEntries().add(entry);
+
+        when(sceneRepository.findByIdAndUser(1L, user)).thenReturn(Optional.of(scene));
+
+        sceneService.activateScene(MEMBER_EMAIL, 1L);
+
+        verify(memberService, never()).requireOwnerRole(MEMBER_EMAIL);
         verify(deviceService).updateStateAsActor(anyLong(), any(), any(User.class), anyString());
     }
 
