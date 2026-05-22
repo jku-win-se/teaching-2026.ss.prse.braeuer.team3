@@ -19,7 +19,7 @@ export const routes: Routes = [
       { path: 'schedules', canActivate: [ownerGuard], loadComponent: () => import('./features/schedules/schedules.component').then(m => m.SchedulesComponent) },
       { path: 'vacation', canActivate: [ownerGuard], loadComponent: () => import('./features/vacation/vacation.component').then(m => m.VacationComponent) },
       { path: 'energy', loadComponent: () => import('./features/energy/energy.component').then(m => m.EnergyComponent) },
-      { path: 'log', canActivate: [ownerGuard], loadComponent: () => import('./features/log/log.component').then(m => m.LogComponent) },
+      { path: 'log', loadComponent: () => import('./features/log/log.component').then(m => m.LogComponent) },
       { path: 'settings', loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent) },
     ],
   },

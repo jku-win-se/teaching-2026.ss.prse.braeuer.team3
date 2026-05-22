@@ -17,6 +17,7 @@ import { ActivityLogService } from '../../core/activity-log.service';
 import { RealtimeService } from '../../core/realtime.service';
 import { DeviceService, DeviceDto } from '../../core/device.service';
 import { RoomService, RoomDto } from '../../core/room.service';
+import { AuthService } from '../../core/auth.service';
 import { ActivityLogDto } from '../../core/models';
 
 @Component({
@@ -35,7 +36,7 @@ import { ActivityLogDto } from '../../core/models';
           <h1>Activity Log</h1>
           <p class="subtitle">A full history of everything that happened in your home.</p>
         </div>
-        <button mat-stroked-button data-testid="btn-export-csv"
+        <button *ngIf="isOwner" mat-stroked-button data-testid="btn-export-csv"
                 (click)="exportCsv()">
           <mat-icon>download</mat-icon> Export CSV
         </button>
@@ -147,8 +148,6 @@ export class LogComponent implements OnInit, OnDestroy {
   filterTo = '';
   filterDeviceId: number | null = null;
 
-  displayedCols = ['timestamp', 'device', 'room', 'action', 'actor', 'delete'];
-
   private realtimeSub?: Subscription;
 
   constructor(
@@ -157,6 +156,7 @@ export class LogComponent implements OnInit, OnDestroy {
     private deviceService: DeviceService,
     private roomService: RoomService,
     private snackBar: MatSnackBar,
+    private auth: AuthService,
   ) {}
 
   ngOnInit(): void {
@@ -223,6 +223,9 @@ export class LogComponent implements OnInit, OnDestroy {
   }
 
   deleteEntry(entry: ActivityLogDto): void {
+    if (!this.isOwner) {
+      return;
+    }
     this.activityLogService.deleteLog(entry.id).subscribe({
       next: () => {
         this.entries = this.entries.filter(e => e.id !== entry.id);
@@ -236,6 +239,19 @@ export class LogComponent implements OnInit, OnDestroy {
   }
 
   exportCsv(): void {
+    if (!this.isOwner) {
+      return;
+    }
     this.activityLogService.exportCsv();
+  }
+
+  get isOwner(): boolean {
+    return this.auth.isOwner;
+  }
+
+  get displayedCols(): string[] {
+    return this.isOwner
+      ? ['timestamp', 'device', 'room', 'action', 'actor', 'delete']
+      : ['timestamp', 'device', 'room', 'action', 'actor'];
   }
 }

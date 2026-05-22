@@ -14,6 +14,7 @@ import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RoomRepository;
 import at.jku.se.smarthome.repository.UserRepository;
 import java.time.Instant;
+import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -338,6 +339,39 @@ class DeviceServiceTest {
     }
 
     @Test
+    void updateState_broadcastsDeviceAndActivityLogToHouseholdRecipients() {
+        CapturingWebSocketHandler ws = new CapturingWebSocketHandler();
+        RuleService noOpRuleService = new RuleService(null, null, null, null, null, null) {
+            @Override
+            public void evaluateRulesForDevice(at.jku.se.smarthome.domain.Device device,
+                                               at.jku.se.smarthome.dto.DeviceStateRequest request,
+                                               boolean stateOnChanged) {
+                // no-op
+            }
+        };
+        DeviceService service = new DeviceService(deviceRepository, roomRepository, userRepository, ws,
+                activityLogService, noOpRuleService, memberService);
+        Device device = new Device(room, "Lamp", DeviceType.SWITCH);
+        DeviceStateRequest request = new DeviceStateRequest();
+        request.setStateOn(true);
+
+        when(memberService.resolveEffectiveOwner("member@test.com")).thenReturn(user);
+        when(memberService.getHouseholdRecipientEmails(user)).thenReturn(List.of("user@test.com", "member@test.com"));
+        when(userRepository.findByEmail("member@test.com")).thenReturn(Optional.of(new User("Member", "member@test.com", "hashed")));
+        when(roomRepository.findByIdAndUserId(1L, user.getId())).thenReturn(Optional.of(room));
+        when(deviceRepository.findByIdAndRoomId(10L, room.getId())).thenReturn(Optional.of(device));
+        when(deviceRepository.save(device)).thenReturn(device);
+        when(activityLogService.buildActionDescription(any(), any())).thenReturn("Turned on");
+        when(activityLogService.log(any(), any(), any(), any())).thenReturn(
+                new ActivityLogResponse(1L, Instant.now(), null, "Lamp", "Living Room", "Member", "Turned on"));
+
+        service.updateState("member@test.com", 1L, 10L, request);
+
+        assertThat(ws.deviceRecipients).containsExactly("user@test.com", "member@test.com");
+        assertThat(ws.activityLogRecipients).containsExactly("user@test.com", "member@test.com");
+    }
+
+    @Test
     void updateState_throwsNotFound_whenDeviceNotInRoom() {
         DeviceStateRequest request = new DeviceStateRequest();
         request.setStateOn(true);
@@ -357,6 +391,25 @@ class DeviceServiceTest {
         RenameDeviceRequest req = new RenameDeviceRequest();
         req.setName(name);
         return req;
+    }
+
+    private static class CapturingWebSocketHandler extends DeviceWebSocketHandler {
+        private final List<String> deviceRecipients = new ArrayList<>();
+        private final List<String> activityLogRecipients = new ArrayList<>();
+
+        CapturingWebSocketHandler() {
+            super(new com.fasterxml.jackson.databind.ObjectMapper());
+        }
+
+        @Override
+        public void broadcast(String userEmail, DeviceResponse deviceResponse) {
+            deviceRecipients.add(userEmail);
+        }
+
+        @Override
+        public void broadcastActivityLog(String userEmail, ActivityLogResponse activityLogResponse) {
+            activityLogRecipients.add(userEmail);
+        }
     }
 
     // --- Bugfix #62: type-aware null filtering in toResponse() ---

@@ -182,6 +182,25 @@ public class MemberService {
                 .orElse("OWNER");
     }
 
+    /**
+     * Returns the e-mail addresses of all currently connected household recipients
+     * for real-time broadcasts: the owner plus every invited member of that home.
+     *
+     * @param owner the primary owner whose household should receive updates
+     * @return distinct recipient e-mail addresses for the owner's household
+     */
+    @Transactional(readOnly = true)
+    public List<String> getHouseholdRecipientEmails(User owner) {
+        List<String> memberEmails = homeMemberRepository.findByOwner(owner).stream()
+                .map(member -> member.getMember().getEmail())
+                .toList();
+        return java.util.stream.Stream.concat(
+                        java.util.stream.Stream.of(owner.getEmail()),
+                        memberEmails.stream())
+                .distinct()
+                .toList();
+    }
+
     private void requireOwnerRole(User caller) {
         requireOwnerRole(caller, "manage this home");
     }

@@ -30,9 +30,10 @@ import java.time.Instant;
  *
  * <p>Implements FR-08: Aktivitätsprotokoll.</p>
  *
- * <p>FR-13: Reading or deleting the activity log is owner-only. Member actions
- * are still recorded through {@link #log(Device, User, String, String)} using
- * the owner for scoping and the member name as actor.</p>
+ * <p>FR-13: Reading the activity log is scoped to the effective household owner,
+ * so members can view their household activity. Deleting and exporting remain
+ * owner-only. Member actions are still recorded through {@link #log(Device, User, String, String)}
+ * using the owner for scoping and the member name as actor.</p>
  *
  * <p>FR-16: CSV export via {@link #exportActivityLogCsv(String)}.</p>
  */
@@ -100,7 +101,6 @@ public class ActivityLogService {
     @Transactional(readOnly = true)
     public Page<ActivityLogResponse> getLogs(String email, int page, int size,
                                              Instant from, Instant to, Long deviceId) {
-        memberService.requireOwnerRole(email);
         User user = memberService.resolveEffectiveOwner(email);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
 
