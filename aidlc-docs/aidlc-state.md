@@ -277,3 +277,29 @@
 - **Lifecycle Phase**: CONSTRUCTION (Issue-70)
 - **Current Stage**: Build and Test — COMPLETE
 - **Next Stage**: DONE — Dashboard mocks removed, wired to real APIs
+
+## FR-21 Stage Progress (new feature cycle — Vacation Mode)
+
+### INCEPTION PHASE — FR-21
+- [x] Workspace Detection — reuse existing (2026-05-21)
+- [x] Reverse Engineering — reuse existing (2026-05-21)
+- [x] Requirements Analysis — 2026-05-21 (`aidlc-docs/inception/requirements/fr21-requirements.md`)
+- [ ] User Stories — SKIP (story defined in issue #28)
+- [x] Workflow Planning — 2026-05-21 (`aidlc-docs/inception/plans/fr21-execution-plan.md`)
+- [ ] Application Design — SKIP
+- [ ] Units Generation — EXECUTE (2 units: backend + frontend)
+
+### CONSTRUCTION PHASE — FR-21
+- [x] Functional Design (Unit 1: Backend) — COMPLETE (2026-05-21, embedded in execution plan)
+- [ ] NFR Requirements — SKIP
+- [ ] NFR Design — SKIP
+- [ ] Infrastructure Design — SKIP
+- [x] Code Generation (Unit 1: Backend) — COMPLETE (2026-05-21)
+- [x] Code Generation (Unit 2: Frontend) — COMPLETE (2026-05-21)
+- [x] Build and Test — COMPLETE (2026-05-21)
+
+## Current Status (FR-21)
+- **Lifecycle Phase**: CONSTRUCTION (FR-21)
+- **Current Stage**: Build and Test — COMPLETE
+- **Next Stage**: DONE — FR-21 fully implemented
+- **Summary**: aidlc-docs/inception/plans/fr21-execution-plan.md

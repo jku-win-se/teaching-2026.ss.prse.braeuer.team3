@@ -11,7 +11,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
-import { Device, Room, ActivityLogDto, SceneDto } from '../../core/models';
+import { Device, Room, ActivityLogDto, SceneDto, VacationModeDto } from '../../core/models';
 import { AuthService } from '../../core/auth.service';
 import { RoomService, RoomDto } from '../../core/room.service';
 import { DeviceService, DeviceDto } from '../../core/device.service';
@@ -19,6 +19,7 @@ import { SceneService } from '../../core/scene.service';
 import { ActivityLogService } from '../../core/activity-log.service';
 import { RuleService } from '../../core/rule.service';
 import { RealtimeService } from '../../core/realtime.service';
+import { VacationModeService } from '../../core/vacation-mode.service';
 import { toRoom, dtoToDevice } from '../../core/device-utils';
 import { DeviceCardComponent } from '../../shared/components/device-card/device-card.component';
 
@@ -117,15 +118,17 @@ import { DeviceCardComponent } from '../../shared/components/device-card/device-
         </mat-card-content>
       </mat-card>
 
-      <!-- Vacation Mode -->
-      <div class="vacation-banner">
-        <mat-icon class="vacation-icon">{{ vacationActive ? 'beach_access' : 'flight_takeoff' }}</mat-icon>
+      <!-- Vacation Mode (owner only) -->
+      <div class="vacation-banner" *ngIf="auth.isOwner">
+        <mat-icon class="vacation-icon">{{ activeVacation ? 'beach_access' : 'flight_takeoff' }}</mat-icon>
         <div class="vacation-text">
           <h3>Vacation Mode</h3>
-          <p *ngIf="vacationActive">🏖️ Vacation mode is active until {{ vacationEnd | date:'MMMM d' }}</p>
-          <p *ngIf="!vacationActive">Away for a while? Activate vacation mode to keep your home secure.</p>
+          <p *ngIf="activeVacation">{{ activeVacation.name }} — active until {{ activeVacation.endDate }}</p>
+          <p *ngIf="!activeVacation">Away for a while? Set up vacation mode to keep your home running.</p>
         </div>
-        <mat-slide-toggle [(ngModel)]="vacationActive" color="accent" (change)="onVacationToggle($event.checked)"></mat-slide-toggle>
+        <button mat-stroked-button color="accent" (click)="goToVacation()">
+          {{ activeVacation ? 'Manage' : 'Set up' }}
+        </button>
       </div>
     </div>
   `,
@@ -133,8 +136,7 @@ import { DeviceCardComponent } from '../../shared/components/device-card/device-
 export class DashboardComponent implements OnInit, OnDestroy {
   loading = true;
   greeting = '';
-  vacationActive = false;
-  vacationEnd = new Date(Date.now() + 14 * 86400000);
+  activeVacation: VacationModeDto | null = null;
 
   quickDevices: Device[] = [];
   rooms: Room[] = [];
@@ -158,6 +160,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private activityLogService: ActivityLogService,
     private ruleService: RuleService,
     private realtimeService: RealtimeService,
+    private vacationModeService: VacationModeService,
     public auth: AuthService
   ) {}
 
@@ -174,6 +177,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next: rules => { this.rulesCount = rules.filter(r => r.enabled).length; },
       error: () => { this.rulesCount = 0; }
     });
+
+    if (this.auth.isOwner) {
+      this.vacationModeService.getVacationModes().subscribe({
+        next: modes => { this.activeVacation = modes.find(v => !v.deactivated) ?? null; },
+        error: () => { this.activeVacation = null; }
+      });
+    }
 
     this.roomService.getRooms().pipe(
       switchMap((dtos: RoomDto[]) => {
@@ -290,8 +300,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  onVacationToggle(active: boolean): void {
-    this.snackBar.open(active ? 'Vacation mode enabled ✓' : 'Vacation mode disabled', '', { duration: 2000 });
+  goToVacation(): void {
+    this.router.navigate(['/vacation']);
   }
 
   relativeTime(dateOrStr: Date | string): string {
