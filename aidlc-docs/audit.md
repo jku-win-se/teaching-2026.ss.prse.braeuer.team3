@@ -1,5 +1,16 @@
 # AI-DLC Audit Log
 
+## FR-21 — Workflow Planning Complete
+**Timestamp**: 2026-05-21T00:00:00+02:00
+**AI Prompt**: "Using AI-DLC, implement #28. Provide a plan in localdocs."
+**Status**: Inception Phase complete — awaiting user approval to proceed to Functional Design (Unit 1: Backend)
+**Artifacts created**:
+- `aidlc-docs/inception/requirements/fr21-requirements.md`
+- `aidlc-docs/inception/plans/fr21-execution-plan.md`
+- `aidlc-docs/aidlc-state.md` updated with FR-21 section
+
+---
+
 ## Build and Test — FR-16: CSV Export (Backend + Frontend)
 **Timestamp**: 2026-05-03T12:40:00+02:00
 **TypeScript Check**: PASS — `npx tsc -p tsconfig.app.json --noEmit` (0 errors)

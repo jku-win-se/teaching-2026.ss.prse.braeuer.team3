@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="be43aaef-b273-4f1f-9350-4abfc25671b2" name="Changes" comment="#30 [11h] Einbindung von AI-DLC workflow + vergangen Stunden aus Praesenzeinheiten" />
+    <list default="true" id="be43aaef-b273-4f1f-9350-4abfc25671b2" name="Changes" comment="#30 [11h] Einbindung von AI-DLC workflow + vergangen Stunden aus Praesenzeinheiten">
+      <change beforePath="$PROJECT_DIR$/.github/workflows/Continuous Integration.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/Continuous Integration.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -62,7 +66,7 @@
     "JUnit.TestDivideOperation.executor": "Run",
     "JUnit.TestOperationFactory.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "17-fr-10-rule-engine-if-then",
+    "git-widget-placeholder": "94-create-javadocs-and-update-link-on-projectpage",
     "kotlin-language-version-configured": "true",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -79,6 +83,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/docs" />
       <recent name="$PROJECT_DIR$/src/test/java/at/jku/se/calculator" />
     </key>
     <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
@@ -197,6 +202,9 @@
       <workItem from="1776085664930" duration="6371000" />
       <workItem from="1776416237366" duration="5526000" />
       <workItem from="1777901901958" duration="1197000" />
+      <workItem from="1777909234190" duration="1886000" />
+      <workItem from="1778234484384" duration="731000" />
+      <workItem from="1779384153332" duration="4048000" />
     </task>
     <task id="LOCAL-00001" summary="Implement DivOperation and Tests">
       <option name="closed" value="true" />

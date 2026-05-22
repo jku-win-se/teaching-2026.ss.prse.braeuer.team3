@@ -206,3 +206,25 @@ export interface Member {
   role: 'Owner' | 'Member';
   avatarInitials: string;
 }
+
+/** Shape of a vacation mode as returned by the backend API (FR-21). */
+export interface VacationModeDto {
+  id: number;
+  name: string;
+  scheduleId: number;
+  scheduleName: string;
+  startDate: string;  // ISO date string yyyy-MM-dd
+  endDate: string;    // ISO date string yyyy-MM-dd
+  deactivated: boolean;
+  active: boolean;
+  action: 'ENABLE' | 'DISABLE';
+}
+
+/** Request body for creating a vacation mode (FR-21). */
+export interface VacationModeRequest {
+  name: string;
+  scheduleId: number;
+  action: 'ENABLE' | 'DISABLE';
+  startDate: string;  // yyyy-MM-dd
+  endDate: string;    // yyyy-MM-dd
+}
