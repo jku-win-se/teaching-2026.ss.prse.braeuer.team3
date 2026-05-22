@@ -195,11 +195,11 @@ public class DeviceService {
         boolean stateOnChanged = request.getStateOn() != null && request.getStateOn() != device.isStateOn();
         applyStateFields(device, request);
         DeviceResponse response = toResponse(deviceRepository.save(device));
-        webSocketHandler.broadcast(effectiveOwner.getEmail(), response);
+        broadcastDeviceUpdate(effectiveOwner, response);
 
         String action = activityLogService.buildActionDescription(device, request);
         ActivityLogResponse logEntry = activityLogService.log(device, effectiveOwner, caller.getName(), action);
-        webSocketHandler.broadcastActivityLog(effectiveOwner.getEmail(), logEntry);
+        broadcastActivityLog(effectiveOwner, logEntry);
 
         ruleService.evaluateRulesForDevice(device, request, stateOnChanged);
         return response;
@@ -227,11 +227,31 @@ public class DeviceService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Device not found."));
         applyStateFields(device, request);
         DeviceResponse response = toResponse(deviceRepository.save(device));
-        webSocketHandler.broadcast(owner.getEmail(), response);
+        broadcastDeviceUpdate(owner, response);
         String action = activityLogService.buildActionDescription(device, request);
         ActivityLogResponse logEntry = activityLogService.log(device, owner, actorName, action);
-        webSocketHandler.broadcastActivityLog(owner.getEmail(), logEntry);
+        broadcastActivityLog(owner, logEntry);
         return response;
+    }
+
+    private void broadcastDeviceUpdate(User owner, DeviceResponse response) {
+        for (String recipientEmail : getRealtimeRecipientEmails(owner)) {
+            webSocketHandler.broadcast(recipientEmail, response);
+        }
+    }
+
+    private void broadcastActivityLog(User owner, ActivityLogResponse logEntry) {
+        for (String recipientEmail : getRealtimeRecipientEmails(owner)) {
+            webSocketHandler.broadcastActivityLog(recipientEmail, logEntry);
+        }
+    }
+
+    private List<String> getRealtimeRecipientEmails(User owner) {
+        List<String> recipientEmails = memberService.getHouseholdRecipientEmails(owner);
+        if (recipientEmails == null || recipientEmails.isEmpty()) {
+            return List.of(owner.getEmail());
+        }
+        return recipientEmails;
     }
 
     private void applyStateFields(Device device, DeviceStateRequest request) {

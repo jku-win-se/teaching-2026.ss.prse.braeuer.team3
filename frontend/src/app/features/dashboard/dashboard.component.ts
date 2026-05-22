@@ -211,7 +211,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.sceneService.getScenes().subscribe({
       next: scenes => { this.scenes = scenes; },
-      error: () => { /* members get 403 — empty list is fine */ },
+      error: () => { /* scene management remains owner-only — empty list is fine */ },
     });
     this.sceneUpdateSub = this.realtimeService.sceneUpdates$.subscribe(() => {
       this.sceneService.getScenes().subscribe({

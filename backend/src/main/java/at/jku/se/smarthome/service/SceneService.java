@@ -30,8 +30,10 @@ import java.util.Objects;
  * operation that applies all contained device-action entries to their target
  * devices using {@link DeviceService#updateStateAsActor}.</p>
  *
- * <p>Scene management is owner-only (US-018). Each device referenced in a scene
- * must be owned by the authenticated user.</p>
+ * <p>Scene creation, editing, and deletion are owner-only management operations
+ * (US-018). Listing and activating existing scenes are control operations
+ * available to owners and members. Each device referenced in a scene must be
+ * owned by the effective owner.</p>
  */
 @Service
 public class SceneService {
@@ -66,15 +68,13 @@ public class SceneService {
     }
 
     /**
-     * Returns all scenes owned by the authenticated user.
+     * Returns all scenes owned by the authenticated user's effective owner.
      *
      * @param email the email of the authenticated user
      * @return list of scene response DTOs, ordered by id ascending
-     * @throws ResponseStatusException with status 403 if the caller is a member, not an owner
      */
     @Transactional(readOnly = true)
     public List<SceneResponse> getScenes(String email) {
-        memberService.requireOwnerRole(email);
         User user = memberService.resolveEffectiveOwner(email);
         return sceneRepository.findByUserOrderByIdAsc(user)
                 .stream()
@@ -164,12 +164,10 @@ public class SceneService {
      *
      * @param email   the email of the authenticated user
      * @param sceneId the primary key of the scene to activate
-     * @throws ResponseStatusException with status 403 if the caller is a member, not an owner
      * @throws ResponseStatusException with status 404 if the scene is not found or not owned
      */
     @Transactional
     public void activateScene(String email, Long sceneId) {
-        memberService.requireOwnerRole(email);
         User user = memberService.resolveEffectiveOwner(email);
         Scene scene = resolveOwnedScene(user, sceneId);
         String actorName = "Scene (" + scene.getName() + ")";

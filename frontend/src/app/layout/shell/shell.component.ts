@@ -166,7 +166,7 @@ export class ShellComponent implements OnInit, OnDestroy {
       label: 'Insights',
       items: [
         { label: 'Energy', icon: 'bolt', route: '/energy' },
-        { label: 'Activity Log', icon: 'history', route: '/log', ownerOnly: true },
+        { label: 'Activity Log', icon: 'history', route: '/log' },
       ]
     },
     {

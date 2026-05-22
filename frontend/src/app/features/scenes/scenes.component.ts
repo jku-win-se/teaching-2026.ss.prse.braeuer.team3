@@ -10,14 +10,15 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SceneService } from '../../core/scene.service';
 import { RealtimeService } from '../../core/realtime.service';
+import { AuthService } from '../../core/auth.service';
 import { SceneDto } from '../../core/models';
 import { NewSceneDialogComponent } from './new-scene-dialog.component';
 
 /**
  * Page component for scene management.
  *
- * Displays all scenes owned by the authenticated user and provides
- * controls to create, activate, edit, and delete them (US-018).
+ * Displays scenes for the authenticated user's home. Owners can manage scenes;
+ * owners and members can activate existing scenes (US-018 / FR-13).
  */
 @Component({
   selector: 'app-scenes',
@@ -39,7 +40,7 @@ import { NewSceneDialogComponent } from './new-scene-dialog.component';
            style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:48px 16px;color:#757575;">
         <mat-icon style="font-size:48px;width:48px;height:48px;">auto_awesome</mat-icon>
         <p style="margin:0;font-size:15px;text-align:center;">
-          No scenes yet.<br>Create your first scene with the + button below.
+          No scenes yet.<br>{{ isOwner ? 'Create your first scene with the + button below.' : 'Scenes created by the owner will appear here.' }}
         </p>
       </div>
 
@@ -61,11 +62,11 @@ import { NewSceneDialogComponent } from './new-scene-dialog.component';
                 <mat-icon>play_arrow</mat-icon>
                 {{ activatingId === scene.id ? 'Activating…' : 'Activate' }}
               </button>
-              <button mat-icon-button (click)="editScene(scene)"
+              <button *ngIf="isOwner" mat-icon-button (click)="editScene(scene)"
                       matTooltip="Edit scene" data-testid="scene-edit-button">
                 <mat-icon>edit</mat-icon>
               </button>
-              <button mat-icon-button color="warn" (click)="deleteScene(scene)"
+              <button *ngIf="isOwner" mat-icon-button color="warn" (click)="deleteScene(scene)"
                       matTooltip="Delete scene" data-testid="scene-delete-button">
                 <mat-icon>delete</mat-icon>
               </button>
@@ -75,7 +76,7 @@ import { NewSceneDialogComponent } from './new-scene-dialog.component';
       </div>
     </div>
 
-    <div class="fab-container">
+    <div class="fab-container" *ngIf="isOwner">
       <button mat-fab color="primary" (click)="openNewScene()" data-testid="scene-create-fab">
         <mat-icon>add</mat-icon>
       </button>
@@ -93,9 +94,14 @@ export class ScenesComponent implements OnInit, OnDestroy {
   constructor(
     private sceneService: SceneService,
     private realtimeService: RealtimeService,
+    private auth: AuthService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
   ) {}
+
+  get isOwner(): boolean {
+    return this.auth.isOwner;
+  }
 
   /** Loads all scenes and subscribes to real-time scene-change events. */
   ngOnInit(): void {
@@ -133,6 +139,10 @@ export class ScenesComponent implements OnInit, OnDestroy {
 
   /** Opens the edit dialog for an existing scene. */
   editScene(scene: SceneDto): void {
+    if (!this.isOwner) {
+      this.snackBar.open(this.ownerOnlyMessage('edit scenes'), 'Dismiss', { duration: 3000 });
+      return;
+    }
     const ref = this.dialog.open(NewSceneDialogComponent, {
       width: '560px',
       data: { scene },
@@ -152,6 +162,10 @@ export class ScenesComponent implements OnInit, OnDestroy {
 
   /** Deletes a scene immediately after the user clicks delete. */
   deleteScene(scene: SceneDto): void {
+    if (!this.isOwner) {
+      this.snackBar.open(this.ownerOnlyMessage('delete scenes'), 'Dismiss', { duration: 3000 });
+      return;
+    }
     this.sceneService.deleteScene(scene.id).subscribe({
       next: () => {
         this.scenes = this.scenes.filter(s => s.id !== scene.id);
@@ -163,6 +177,10 @@ export class ScenesComponent implements OnInit, OnDestroy {
 
   /** Opens the create dialog for a new scene. */
   openNewScene(): void {
+    if (!this.isOwner) {
+      this.snackBar.open(this.ownerOnlyMessage('create scenes'), 'Dismiss', { duration: 3000 });
+      return;
+    }
     const ref = this.dialog.open(NewSceneDialogComponent, {
       width: '560px',
       data: { scene: null },
@@ -195,6 +213,10 @@ export class ScenesComponent implements OnInit, OnDestroy {
       case 'close': return 'Close';
       default:      return value;
     }
+  }
+
+  private ownerOnlyMessage(action: string): string {
+    return `Only the home owner can ${action}.`;
   }
 
   private loadScenes(): void {

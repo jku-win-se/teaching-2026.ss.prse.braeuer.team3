@@ -118,6 +118,20 @@ class SceneControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    @WithMockUser(username = "member@test.com")
+    void createScene_memberCaller_returns403() throws Exception {
+        when(sceneService.createScene(anyString(), any()))
+                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Only the home owner can manage scenes."));
+
+        mockMvc.perform(post("/api/scenes")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildRequest())))
+                .andExpect(status().isForbidden());
+    }
+
     // --- PUT /api/scenes/{id} ---
 
     @Test
@@ -147,6 +161,20 @@ class SceneControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    @WithMockUser(username = "member@test.com")
+    void updateScene_memberCaller_returns403() throws Exception {
+        when(sceneService.updateScene(anyString(), anyLong(), any()))
+                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Only the home owner can manage scenes."));
+
+        mockMvc.perform(put("/api/scenes/1")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(buildRequest())))
+                .andExpect(status().isForbidden());
+    }
+
     // --- DELETE /api/scenes/{id} ---
 
     @Test
@@ -166,6 +194,17 @@ class SceneControllerTest {
 
         mockMvc.perform(delete("/api/scenes/99").with(csrf()))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "member@test.com")
+    void deleteScene_memberCaller_returns403() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Only the home owner can manage scenes."))
+                .when(sceneService).deleteScene(anyString(), anyLong());
+
+        mockMvc.perform(delete("/api/scenes/1").with(csrf()))
+                .andExpect(status().isForbidden());
     }
 
     // --- POST /api/scenes/{id}/activate ---

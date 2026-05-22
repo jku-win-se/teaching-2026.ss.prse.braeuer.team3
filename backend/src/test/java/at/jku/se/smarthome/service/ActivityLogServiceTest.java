@@ -146,17 +146,33 @@ class ActivityLogServiceTest {
     }
 
     @Test
-    void getLogs_memberCaller_throwsForbidden() {
-        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied: Owner role required."))
-                .when(memberService).requireOwnerRole("user@test.com");
+    void getLogs_memberCaller_returnsHouseholdOwnerEntries() {
+        ActivityLog entry = new ActivityLog(Instant.now(), device, user, "Member User", "Turned on");
+        Page<ActivityLog> page = new PageImpl<>(List.of(entry));
 
-        assertThatThrownBy(() -> activityLogService.getLogs("user@test.com", 0, 20, null, null, null))
+        when(memberService.resolveEffectiveOwner("member@test.com")).thenReturn(user);
+        when(activityLogRepository.findByUser(eq(user), any(Pageable.class))).thenReturn(page);
+
+        Page<ActivityLogResponse> result = activityLogService.getLogs("member@test.com", 0, 20, null, null, null);
+
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent().get(0).getActorName()).isEqualTo("Member User");
+        verify(memberService).resolveEffectiveOwner("member@test.com");
+        verify(activityLogRepository).findByUser(eq(user), any(Pageable.class));
+    }
+
+    // --- deleteLog ---
+
+    @Test
+    void deleteLog_memberCaller_throwsForbidden() {
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the home owner can manage this home."))
+                .when(memberService).requireOwnerRole("member@test.com");
+
+        assertThatThrownBy(() -> activityLogService.deleteLog("member@test.com", 1L))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
     }
-
-    // --- deleteLog ---
 
     @Test
     void deleteLog_removesEntry() {
@@ -179,6 +195,19 @@ class ActivityLogServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
                         .isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    // --- exportActivityLogCsv ---
+
+    @Test
+    void exportActivityLogCsv_memberCaller_throwsForbidden() {
+        doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the home owner can manage this home."))
+                .when(memberService).requireOwnerRole("member@test.com");
+
+        assertThatThrownBy(() -> activityLogService.exportActivityLogCsv("member@test.com"))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
     }
 
     // --- buildActionDescription ---

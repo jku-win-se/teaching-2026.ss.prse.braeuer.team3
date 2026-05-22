@@ -190,6 +190,15 @@ class MemberServiceTest {
         assertThat(memberService.resolveRole(coOwner)).isEqualTo("OWNER");
     }
 
+    @Test
+    void getHouseholdRecipientEmails_returnsOwnerAndMembers() {
+        when(homeMemberRepository.findByOwner(owner)).thenReturn(List.of(coOwnerMembership, membership));
+
+        List<String> result = memberService.getHouseholdRecipientEmails(owner);
+
+        assertThat(result).containsExactly("owner@test.com", "co-owner@test.com", "member@test.com");
+    }
+
     private static MemberInviteRequest invite(String email) {
         return invite(email, null);
     }
