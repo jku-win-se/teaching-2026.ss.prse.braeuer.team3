@@ -26,7 +26,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
@@ -87,10 +86,10 @@ class SimulationServiceTest {
         SimulationResponse response = simulationService.run(EMAIL, req);
 
         assertThat(response.getEvents()).hasSize(1);
-        assertThat(response.getEvents().get(0).getHour()).isEqualTo(7);
-        assertThat(response.getEvents().get(0).getMinute()).isEqualTo(0);
-        assertThat(response.getEvents().get(0).getDeviceName()).isEqualTo("Ceiling Light");
-        assertThat(response.getEvents().get(0).getActionValue()).isEqualTo("true");
+        assertThat(response.getEvents().getFirst().getHour()).isEqualTo(7);
+        assertThat(response.getEvents().getFirst().getMinute()).isEqualTo(0);
+        assertThat(response.getEvents().getFirst().getDeviceName()).isEqualTo("Ceiling Light");
+        assertThat(response.getEvents().getFirst().getActionValue()).isEqualTo("true");
     }
 
     @Test
@@ -138,7 +137,7 @@ class SimulationServiceTest {
     void run_thresholdAlreadyMet_firesAtMinuteZero() {
         // Sensor starts at 30 — rule fires when sensorValue > 25
         ReflectionTestUtils.setField(sensorDevice, "sensorValue", 30.0);
-        Rule thresholdRule = buildThresholdRule(sensorDevice, TriggerOperator.GT, 25.0, switchDevice, "true");
+        Rule thresholdRule = buildThresholdRule(sensorDevice, switchDevice);
 
         when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(owner);
         when(ruleRepository.findByUser(owner)).thenReturn(List.of(thresholdRule));
@@ -150,10 +149,10 @@ class SimulationServiceTest {
         SimulationResponse response = simulationService.run(EMAIL, req);
 
         assertThat(response.getEvents()).hasSize(1);
-        assertThat(response.getEvents().get(0).getHour()).isEqualTo(0);
-        assertThat(response.getEvents().get(0).getMinute()).isEqualTo(0);
-        assertThat(response.getEvents().get(0).getDeviceName()).isEqualTo("Ceiling Light");
-        assertThat(response.getEvents().get(0).getActionValue()).isEqualTo("true");
+        assertThat(response.getEvents().getFirst().getHour()).isEqualTo(0);
+        assertThat(response.getEvents().getFirst().getMinute()).isEqualTo(0);
+        assertThat(response.getEvents().getFirst().getDeviceName()).isEqualTo("Ceiling Light");
+        assertThat(response.getEvents().getFirst().getActionValue()).isEqualTo("true");
     }
 
     @Test
@@ -161,7 +160,7 @@ class SimulationServiceTest {
     void run_thresholdNotMet_noEventAtStart() {
         // Sensor starts at 20 — rule fires when sensorValue > 25 → should NOT fire
         ReflectionTestUtils.setField(sensorDevice, "sensorValue", 20.0);
-        Rule thresholdRule = buildThresholdRule(sensorDevice, TriggerOperator.GT, 25.0, switchDevice, "true");
+        Rule thresholdRule = buildThresholdRule(sensorDevice, switchDevice);
 
         when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(owner);
         when(ruleRepository.findByUser(owner)).thenReturn(List.of(thresholdRule));
@@ -180,7 +179,7 @@ class SimulationServiceTest {
     void run_thresholdMetViaStartCondition_fires() {
         // Sensor live-state is 10 (below threshold), but user overrides to 30 via start condition
         ReflectionTestUtils.setField(sensorDevice, "sensorValue", 10.0);
-        Rule thresholdRule = buildThresholdRule(sensorDevice, TriggerOperator.GT, 25.0, switchDevice, "true");
+        Rule thresholdRule = buildThresholdRule(sensorDevice, switchDevice);
 
         DeviceStartCondition cond = new DeviceStartCondition();
         cond.setDeviceId(20L); // sensorDevice id
@@ -197,7 +196,7 @@ class SimulationServiceTest {
         SimulationResponse response = simulationService.run(EMAIL, req);
 
         assertThat(response.getEvents()).hasSize(1);
-        assertThat(response.getEvents().get(0).getDeviceName()).isEqualTo("Ceiling Light");
+        assertThat(response.getEvents().getFirst().getDeviceName()).isEqualTo("Ceiling Light");
     }
 
     // ── Start conditions override ──────────────────────────────────────────────
@@ -206,7 +205,7 @@ class SimulationServiceTest {
     @DisplayName("Start condition overrides device's initial state")
     void run_startConditionApplied_overridesLiveState() {
         // Rule fires when sensor value > 25 (threshold)
-        Rule thresholdRule = buildThresholdRule(sensorDevice, TriggerOperator.GT, 25.0, switchDevice, "true");
+        Rule thresholdRule = buildThresholdRule(sensorDevice, switchDevice);
 
         // TIME rule at 08:00 sets sensor value via start condition
         Rule timeRule = buildTimeRule(8, 0, "MONDAY", switchDevice, "true");
@@ -241,7 +240,7 @@ class SimulationServiceTest {
         Rule timeRule = buildTimeRule(7, 0, "MONDAY", switchDevice, "true");
 
         // EVENT rule: when switchDevice turns on → open cover
-        Rule eventRule = buildEventRule(switchDevice, coverDevice, "open");
+        Rule eventRule = buildEventRule(switchDevice, coverDevice);
 
         when(memberService.resolveEffectiveOwner(EMAIL)).thenReturn(owner);
         when(ruleRepository.findByUser(owner)).thenReturn(List.of(timeRule, eventRule));
@@ -347,30 +346,30 @@ class SimulationServiceTest {
         return rule;
     }
 
-    private Rule buildThresholdRule(Device triggerDevice, TriggerOperator op, double threshold,
-                                    Device actionDevice, String actionValue) {
+    private Rule buildThresholdRule(Device triggerDevice,
+                                    Device actionDevice) {
         Rule rule = new Rule();
         ReflectionTestUtils.setField(rule, "id", (long) (Math.random() * 10000));
         rule.setName("ThresholdRule");
         rule.setTriggerType(TriggerType.THRESHOLD);
         rule.setTriggerDevice(triggerDevice);
-        rule.setTriggerOperator(op);
-        rule.setTriggerThresholdValue(threshold);
+        rule.setTriggerOperator(TriggerOperator.GT);
+        rule.setTriggerThresholdValue(25.0);
         rule.setActionDevice(actionDevice);
-        rule.setActionValue(actionValue);
+        rule.setActionValue("true");
         rule.setEnabled(true);
         rule.setUser(owner);
         return rule;
     }
 
-    private Rule buildEventRule(Device triggerDevice, Device actionDevice, String actionValue) {
+    private Rule buildEventRule(Device triggerDevice, Device actionDevice) {
         Rule rule = new Rule();
         ReflectionTestUtils.setField(rule, "id", (long) (Math.random() * 10000));
         rule.setName("EventRule");
         rule.setTriggerType(TriggerType.EVENT);
         rule.setTriggerDevice(triggerDevice);
         rule.setActionDevice(actionDevice);
-        rule.setActionValue(actionValue);
+        rule.setActionValue("open");
         rule.setEnabled(true);
         rule.setUser(owner);
         return rule;

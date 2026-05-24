@@ -128,13 +128,4 @@ public class DeviceStartCondition {
     public int getCoverPosition() {
         return coverPosition;
     }
-
-    /**
-     * Sets the cover position at simulation start.
-     *
-     * @param coverPosition cover position (0 = closed, 100 = open)
-     */
-    public void setCoverPosition(int coverPosition) {
-        this.coverPosition = coverPosition;
-    }
 }

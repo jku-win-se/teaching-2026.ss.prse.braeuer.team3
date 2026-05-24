@@ -47,15 +47,6 @@ class SimulationControllerTest {
     @MockBean
     private SimulationService simulationService;
 
-    @MockBean
-    private JwtUtil jwtUtil;
-
-    @MockBean
-    private UserRepository userRepository;
-
-    @MockBean
-    private JdbcTemplate jdbcTemplate;
-
     // ── POST /api/simulation/run ───────────────────────────────────────────────
 
     @Test

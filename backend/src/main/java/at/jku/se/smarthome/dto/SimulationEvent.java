@@ -35,10 +35,6 @@ public class SimulationEvent {
     /** Primary key of the rule that triggered this change. */
     private Long ruleId;
 
-    /** Default no-arg constructor required for JSON serialization. */
-    public SimulationEvent() {
-    }
-
     /**
      * Constructs a fully initialised simulation event.
      *
@@ -136,24 +132,6 @@ public class SimulationEvent {
     }
 
     /**
-     * Returns the room name of the affected device.
-     *
-     * @return room name
-     */
-    public String getRoomName() {
-        return roomName;
-    }
-
-    /**
-     * Sets the room name of the affected device.
-     *
-     * @param roomName room name
-     */
-    public void setRoomName(String roomName) {
-        this.roomName = roomName;
-    }
-
-    /**
      * Returns the action value applied to the device.
      *
      * @return {@code "true"}, {@code "false"}, {@code "open"}, or {@code "close"}
@@ -169,41 +147,5 @@ public class SimulationEvent {
      */
     public void setActionValue(String actionValue) {
         this.actionValue = actionValue;
-    }
-
-    /**
-     * Returns the display name of the rule that triggered this event.
-     *
-     * @return rule name
-     */
-    public String getRuleName() {
-        return ruleName;
-    }
-
-    /**
-     * Sets the display name of the rule that triggered this event.
-     *
-     * @param ruleName rule name
-     */
-    public void setRuleName(String ruleName) {
-        this.ruleName = ruleName;
-    }
-
-    /**
-     * Returns the primary key of the rule that triggered this event.
-     *
-     * @return rule id
-     */
-    public Long getRuleId() {
-        return ruleId;
-    }
-
-    /**
-     * Sets the primary key of the rule that triggered this event.
-     *
-     * @param ruleId rule id
-     */
-    public void setRuleId(Long ruleId) {
-        this.ruleId = ruleId;
     }
 }
