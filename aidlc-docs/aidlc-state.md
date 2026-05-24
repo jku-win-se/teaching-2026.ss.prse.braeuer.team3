@@ -303,3 +303,34 @@
 - **Current Stage**: Build and Test — COMPLETE
 - **Next Stage**: DONE — FR-21 fully implemented
 - **Summary**: aidlc-docs/inception/plans/fr21-execution-plan.md
+
+## US-020 Stage Progress (Day Simulation — Zeitraffer)
+
+### INCEPTION PHASE — US-020
+- [x] Workspace Detection — reuse existing (2026-05-24)
+- [x] Reverse Engineering — reuse existing (2026-05-24)
+- [x] Requirements Analysis — 2026-05-24 (`aidlc-docs/inception/requirements/us020-requirements.md`)
+- [ ] User Stories — SKIP (story provided as US-020)
+- [x] Workflow Planning — 2026-05-24 (`aidlc-docs/inception/plans/us020-execution-plan.md`)
+- [ ] Application Design — SKIP
+- [ ] Units Generation — SKIP (2 units embedded in execution plan)
+
+### CONSTRUCTION PHASE — US-020
+- [x] Functional Design — COMPLETE (2026-05-24, embedded in execution plan)
+- [ ] NFR Requirements — SKIP
+- [ ] NFR Design — SKIP
+- [ ] Infrastructure Design — SKIP
+- [x] Code Generation (Unit 1: Backend) — COMPLETE (2026-05-24)
+  - `SimulationService`, `SimulationController`, DTOs: `SimulationRequest`, `SimulationResponse`, `SimulationEvent`, `DeviceStartCondition`
+  - Tests: `SimulationServiceTest` (8 cases), `SimulationControllerTest` (5 cases)
+- [x] Code Generation (Unit 2: Frontend) — COMPLETE (2026-05-24)
+  - `SimulationService`, `SimulationComponent`, route `/simulation`, nav entry
+- [x] Build and Test — COMPLETE (2026-05-24)
+  - TypeScript: PASS (0 errors)
+  - Static review: PMD-clean (no System.out, no empty catch, no unused imports, full Javadoc)
+
+## Current Status (US-020)
+- **Lifecycle Phase**: CONSTRUCTION (US-020)
+- **Current Stage**: Build and Test — COMPLETE
+- **Next Stage**: DONE — US-020 fully implemented
+- **Summary**: aidlc-docs/inception/plans/us020-execution-plan.md
