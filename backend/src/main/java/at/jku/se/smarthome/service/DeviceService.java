@@ -12,6 +12,8 @@ import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RoomRepository;
 import at.jku.se.smarthome.repository.UserRepository;
 import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,9 +34,16 @@ import java.util.List;
  *
  * <p>FR-13: Members may read devices and update device state in their owner's
  * home. Device management operations remain owner-only.</p>
+ *
+ * <p>US-019: After every state change, the updated device state is forwarded to
+ * {@link MqttSimulatorService#publish} so the simulated MQTT broker log reflects
+ * the change (no-op when MQTT is not configured or not connected).</p>
  */
 @Service
 public class DeviceService {
+
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(DeviceService.class);
 
     private final DeviceRepository deviceRepository;
     private final RoomRepository roomRepository;
@@ -43,18 +52,22 @@ public class DeviceService {
     private final ActivityLogService activityLogService;
     private final RuleService ruleService;
     private final MemberService memberService;
+    private final MqttSimulatorService mqttSimulatorService;
+    private final ObjectMapper objectMapper;
 
     /**
      * Constructs a DeviceService with the required repositories, WebSocket handler,
-     * activity log service, and rule service.
+     * activity log service, rule service, and MQTT simulator service.
      *
-     * @param deviceRepository   the repository for device persistence
-     * @param roomRepository     the repository for room lookups
-     * @param userRepository     the repository for resolving the current user
-     * @param webSocketHandler   the handler used to push real-time state updates to WebSocket clients
-     * @param activityLogService the service used to record activity log entries (FR-08)
-     * @param ruleService        the service used to evaluate IF-THEN rules after state changes (FR-10)
-     * @param memberService      the service used for role checks and owner resolution (FR-13)
+     * @param deviceRepository     the repository for device persistence
+     * @param roomRepository       the repository for room lookups
+     * @param userRepository       the repository for resolving the current user
+     * @param webSocketHandler     the handler used to push real-time state updates to WebSocket clients
+     * @param activityLogService   the service used to record activity log entries (FR-08)
+     * @param ruleService          the service used to evaluate IF-THEN rules after state changes (FR-10)
+     * @param memberService        the service used for role checks and owner resolution (FR-13)
+     * @param mqttSimulatorService the service used to publish device states to the simulated MQTT broker (US-019)
+     * @param objectMapper         the Jackson mapper used to serialise device state payloads for MQTT
      */
     public DeviceService(DeviceRepository deviceRepository,
                          RoomRepository roomRepository,
@@ -62,7 +75,9 @@ public class DeviceService {
                          DeviceWebSocketHandler webSocketHandler,
                          ActivityLogService activityLogService,
                          @Lazy RuleService ruleService,
-                         MemberService memberService) {
+                         MemberService memberService,
+                         MqttSimulatorService mqttSimulatorService,
+                         ObjectMapper objectMapper) {
         this.deviceRepository = deviceRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
@@ -70,6 +85,8 @@ public class DeviceService {
         this.activityLogService = activityLogService;
         this.ruleService = ruleService;
         this.memberService = memberService;
+        this.mqttSimulatorService = mqttSimulatorService;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -202,6 +219,7 @@ public class DeviceService {
         broadcastActivityLog(effectiveOwner, logEntry);
 
         ruleService.evaluateRulesForDevice(device, request, stateOnChanged);
+        publishToMqtt(effectiveOwner, response);
         return response;
     }
 
@@ -231,6 +249,7 @@ public class DeviceService {
         String action = activityLogService.buildActionDescription(device, request);
         ActivityLogResponse logEntry = activityLogService.log(device, owner, actorName, action);
         broadcastActivityLog(owner, logEntry);
+        publishToMqtt(owner, response);
         return response;
     }
 
@@ -320,5 +339,14 @@ public class DeviceService {
         User effectiveOwner = memberService.resolveEffectiveOwner(email);
         return roomRepository.findByIdAndUserId(roomId, effectiveOwner.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Room not found."));
+    }
+
+    private void publishToMqtt(User owner, DeviceResponse response) {
+        try {
+            String payload = objectMapper.writeValueAsString(response);
+            mqttSimulatorService.publish(owner, response.getId(), response.getName(), payload);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialise device state for MQTT publish: {}", e.getMessage());
+        }
     }
 }

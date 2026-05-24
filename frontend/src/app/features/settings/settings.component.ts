@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,13 +7,17 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatChipsModule } from '@angular/material/chips';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subscription, interval } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { AuthService } from '../../core/auth.service';
 import { UserRole } from '../../core/auth.service';
 import { MemberResponseDto } from '../../core/member.service';
 import { MemberService } from '../../core/member.service';
+import { MqttService, MqttConfig, MqttMessage } from '../../core/mqtt.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { InviteMemberDialogComponent } from './invite-member-dialog.component';
 
@@ -31,7 +35,7 @@ interface MemberView {
   standalone: true,
   imports: [
     CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatProgressBarModule,
-    MatTabsModule, MatFormFieldModule, MatInputModule, MatDialogModule,
+    MatTabsModule, MatFormFieldModule, MatInputModule, MatChipsModule, MatDialogModule,
     MatSnackBarModule, FormsModule, ReactiveFormsModule,
   ],
   template: `
@@ -139,16 +143,148 @@ interface MemberView {
           </div>
         </mat-tab>
 
+        <!-- MQTT Integration Tab (owner only, US-019) -->
+        <mat-tab label="MQTT Integration" *ngIf="isOwner">
+          <div style="padding:24px 0;max-width:560px;">
+
+            <!-- Status chip -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+              <div class="mqtt-status-dot" [class.connected]="mqttConnected"></div>
+              <span style="font-size:15px;font-weight:500;color:#212121;">
+                {{ mqttConnected ? 'Verbunden (simuliert)' : 'Getrennt' }}
+              </span>
+              <span style="font-size:12px;color:#9e9e9e;margin-left:4px;">(kein echter Broker)</span>
+            </div>
+
+            <!-- Configuration form -->
+            <mat-card style="margin-bottom:20px;">
+              <mat-card-content style="padding:16px;">
+                <div style="font-size:14px;font-weight:500;margin-bottom:12px;color:#616161;">
+                  Broker-Konfiguration
+                </div>
+                <form [formGroup]="mqttForm" style="display:flex;flex-direction:column;gap:12px;">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Broker-URL</mat-label>
+                    <input matInput formControlName="brokerUrl"
+                           placeholder="z.B. mqtt://localhost:1883"
+                           data-testid="mqtt-broker-url-input">
+                    <mat-hint>Nur zur Konfiguration gespeichert — es wird kein echter Broker kontaktiert.</mat-hint>
+                    <mat-error *ngIf="mqttForm.get('brokerUrl')?.hasError('required')">
+                      Broker-URL ist erforderlich
+                    </mat-error>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline">
+                    <mat-label>Basis-Topic</mat-label>
+                    <input matInput formControlName="topic"
+                           placeholder="z.B. smarthome"
+                           data-testid="mqtt-topic-input">
+                    <mat-hint>Gerätezustände werden unter [topic]/devices/[id] publiziert.</mat-hint>
+                    <mat-error *ngIf="mqttForm.get('topic')?.hasError('required')">
+                      Topic ist erforderlich
+                    </mat-error>
+                  </mat-form-field>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button mat-stroked-button color="primary"
+                            (click)="saveMqttConfig()"
+                            [disabled]="mqttForm.invalid"
+                            data-testid="mqtt-save-button">
+                      <mat-icon>save</mat-icon> Speichern
+                    </button>
+                    <button mat-flat-button color="primary"
+                            *ngIf="!mqttConnected"
+                            (click)="connectMqtt()"
+                            [disabled]="!mqttConfigSaved"
+                            data-testid="mqtt-connect-button">
+                      <mat-icon>wifi</mat-icon> Verbinden
+                    </button>
+                    <button mat-flat-button color="warn"
+                            *ngIf="mqttConnected"
+                            (click)="disconnectMqtt()"
+                            data-testid="mqtt-disconnect-button">
+                      <mat-icon>wifi_off</mat-icon> Trennen
+                    </button>
+                  </div>
+                </form>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Message log -->
+            <mat-card>
+              <mat-card-content style="padding:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                  <span style="font-size:14px;font-weight:500;color:#616161;">
+                    Simuliertes Nachrichtenprotokoll
+                  </span>
+                  <button mat-icon-button
+                          title="Protokoll löschen"
+                          (click)="clearMqttMessages()"
+                          [disabled]="mqttMessages.length === 0"
+                          data-testid="mqtt-clear-log-button">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+                <div *ngIf="mqttMessages.length === 0"
+                     style="text-align:center;padding:20px 0;color:var(--text-muted);font-size:13px;">
+                  Noch keine MQTT-Nachrichten. Verbinde dich und ändere einen Gerätezustand.
+                </div>
+                <div class="mqtt-log" *ngIf="mqttMessages.length > 0">
+                  <div class="mqtt-log-entry" *ngFor="let msg of mqttMessages"
+                       data-testid="mqtt-log-entry">
+                    <span class="mqtt-ts">{{ msg.timestamp }}</span>
+                    <span class="mqtt-dir" [class.publish]="msg.direction === 'PUBLISH'"
+                          [class.system]="msg.direction === 'SYSTEM'">
+                      {{ msg.direction }}
+                    </span>
+                    <span class="mqtt-topic">{{ msg.topic }}</span>
+                    <span class="mqtt-payload">{{ msg.payload }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+
+          </div>
+        </mat-tab>
+
       </mat-tab-group>
     </div>
   `,
+  styles: [`
+    .mqtt-status-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: #bdbdbd; flex-shrink: 0;
+    }
+    .mqtt-status-dot.connected { background: #4caf50; }
+    .mqtt-log {
+      font-family: monospace; font-size: 12px;
+      max-height: 280px; overflow-y: auto;
+      background: #fafafa; border: 1px solid #e0e0e0;
+      border-radius: 4px; padding: 8px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .mqtt-log-entry {
+      display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap;
+    }
+    .mqtt-ts { color: #9e9e9e; min-width: 64px; }
+    .mqtt-dir { font-weight: 700; min-width: 60px; color: #757575; }
+    .mqtt-dir.publish { color: #1976d2; }
+    .mqtt-dir.system  { color: #f57c00; }
+    .mqtt-topic { color: #388e3c; }
+    .mqtt-payload { color: #424242; word-break: break-all; }
+  `]
 })
-export class SettingsComponent implements OnInit {
+export class SettingsComponent implements OnInit, OnDestroy {
   loading = true;
   members: MemberView[] = [];
   passwordStrength = 0;
   profileForm: FormGroup;
   passwordForm: FormGroup;
+
+  // MQTT state (US-019)
+  mqttForm: FormGroup;
+  mqttConnected = false;
+  mqttConfigSaved = false;
+  mqttMessages: MqttMessage[] = [];
+  private mqttPollSub?: Subscription;
 
   constructor(
     private fb: FormBuilder,
@@ -156,6 +292,7 @@ export class SettingsComponent implements OnInit {
     private snackBar: MatSnackBar,
     public auth: AuthService,
     private memberService: MemberService,
+    private mqttService: MqttService,
   ) {
     this.profileForm = this.fb.group({
       displayName: [this.auth.currentUser?.name ?? ''],
@@ -166,6 +303,10 @@ export class SettingsComponent implements OnInit {
       newPw: [''],
       confirm: [''],
     });
+    this.mqttForm = this.fb.group({
+      brokerUrl: ['', Validators.required],
+      topic: ['smarthome', Validators.required],
+    });
   }
 
   ngOnInit() {
@@ -174,6 +315,11 @@ export class SettingsComponent implements OnInit {
       return;
     }
     this.loadMembers();
+    this.loadMqttConfig();
+  }
+
+  ngOnDestroy() {
+    this.mqttPollSub?.unsubscribe();
   }
 
   get isOwner(): boolean {
@@ -261,6 +407,85 @@ export class SettingsComponent implements OnInit {
         });
       }
     });
+  }
+
+  // ── MQTT methods (US-019) ──────────────────────────────────────────────────
+
+  loadMqttConfig() {
+    this.mqttService.getConfig().subscribe({
+      next: (config: MqttConfig) => {
+        this.mqttForm.patchValue({ brokerUrl: config.brokerUrl, topic: config.topic });
+        this.mqttConnected = config.connected;
+        this.mqttConfigSaved = !!config.brokerUrl;
+        if (config.connected) {
+          this.startMqttPolling();
+        }
+      },
+      error: () => { /* MQTT config load failure is non-critical */ }
+    });
+  }
+
+  saveMqttConfig() {
+    const { brokerUrl, topic } = this.mqttForm.value;
+    this.mqttService.saveConfig(brokerUrl, topic).subscribe({
+      next: (config: MqttConfig) => {
+        this.mqttConfigSaved = true;
+        this.mqttConnected = config.connected;
+        this.snackBar.open('MQTT-Konfiguration gespeichert ✓', '', { duration: 2500 });
+      },
+      error: () => this.snackBar.open('Fehler beim Speichern der MQTT-Konfiguration.', '', { duration: 3000 }),
+    });
+  }
+
+  connectMqtt() {
+    this.mqttService.connect().subscribe({
+      next: (config: MqttConfig) => {
+        this.mqttConnected = config.connected;
+        this.snackBar.open('MQTT-Verbindung hergestellt (simuliert) ✓', '', { duration: 2500 });
+        this.startMqttPolling();
+      },
+      error: (err: { error?: { message?: string } }) => {
+        const msg = err?.error?.message ?? 'Verbindung fehlgeschlagen.';
+        this.snackBar.open(msg, '', { duration: 3000 });
+      },
+    });
+  }
+
+  disconnectMqtt() {
+    this.mqttService.disconnect().subscribe({
+      next: () => {
+        this.mqttConnected = false;
+        this.mqttPollSub?.unsubscribe();
+        this.snackBar.open('MQTT-Verbindung getrennt.', '', { duration: 2000 });
+        this.loadMqttMessages();
+      },
+      error: () => this.snackBar.open('Trennen fehlgeschlagen.', '', { duration: 3000 }),
+    });
+  }
+
+  clearMqttMessages() {
+    this.mqttService.clearMessages().subscribe({
+      next: () => { this.mqttMessages = []; },
+      error: () => { /* ignore */ }
+    });
+  }
+
+  private loadMqttMessages() {
+    this.mqttService.getMessages().subscribe({
+      next: (msgs: MqttMessage[]) => { this.mqttMessages = msgs; },
+      error: () => { /* non-critical */ }
+    });
+  }
+
+  private startMqttPolling() {
+    this.mqttPollSub?.unsubscribe();
+    this.mqttPollSub = interval(3000).pipe(
+      switchMap(() => this.mqttService.getMessages())
+    ).subscribe({
+      next: (msgs: MqttMessage[]) => { this.mqttMessages = msgs; },
+      error: () => { /* polling errors are non-critical */ }
+    });
+    this.loadMqttMessages();
   }
 
   private toView(member: MemberResponseDto): MemberView {

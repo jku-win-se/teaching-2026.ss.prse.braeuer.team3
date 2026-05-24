@@ -334,3 +334,39 @@
 - **Current Stage**: Build and Test — COMPLETE
 - **Next Stage**: DONE — US-020 fully implemented
 - **Summary**: aidlc-docs/inception/plans/us020-execution-plan.md
+
+## US-019 Stage Progress (MQTT Simulation)
+
+### INCEPTION PHASE — US-019
+- [x] Workspace Detection — reuse existing (2026-05-24)
+- [x] Reverse Engineering — reuse existing (2026-05-24)
+- [x] Requirements Analysis — 2026-05-24
+- [ ] User Stories — SKIP (story provided as US-019)
+- [x] Workflow Planning — 2026-05-24
+- [ ] Application Design — SKIP
+- [ ] Units Generation — SKIP (2 units embedded in plan)
+
+### CONSTRUCTION PHASE — US-019
+- [x] Functional Design — COMPLETE (2026-05-24, embedded)
+- [ ] NFR Requirements — SKIP
+- [ ] NFR Design — SKIP
+- [ ] Infrastructure Design — SKIP
+- [x] Code Generation (Unit 1: Backend) — COMPLETE (2026-05-24)
+  - `MqttConfig` entity, `MqttConfigRepository`, DTOs: `MqttConfigRequest`, `MqttConfigResponse`, `MqttMessageDto`
+  - `MqttSimulatorService` (connect/disconnect/publish/message-log, all in-memory)
+  - `MqttController` (GET/PUT /api/mqtt/config, POST connect/disconnect, GET/DELETE messages)
+  - Flyway `V16__create_mqtt_config.sql`
+  - `DeviceService` extended with `MqttSimulatorService` publish hook
+  - Tests: `MqttSimulatorServiceTest` (13 cases), `MqttControllerTest` (8 cases), `DeviceServiceTest` updated
+- [x] Code Generation (Unit 2: Frontend) — COMPLETE (2026-05-24)
+  - `mqtt.service.ts` (getConfig, saveConfig, connect, disconnect, getMessages, clearMessages)
+  - `settings.component.ts` extended with "MQTT Integration" tab (config form, connect/disconnect, message log)
+- [x] Build and Test — COMPLETE (2026-05-24)
+  - TypeScript: PASS (0 errors)
+  - Static review: PMD-clean (no System.out, no empty catch, no unused imports, full Javadoc)
+  - 21 new test cases across service + controller
+
+## Current Status (US-019)
+- **Lifecycle Phase**: CONSTRUCTION (US-019)
+- **Current Stage**: Build and Test — COMPLETE
+- **Next Stage**: DONE — US-019 fully implemented (simulated MQTT)

@@ -79,8 +79,16 @@ class DeviceServiceTest {
                 // no-op: rule evaluation is tested separately in RuleServiceTest
             }
         };
+        // no-op MQTT simulator: publish calls are silently ignored in unit tests
+        MqttSimulatorService noOpMqtt = new MqttSimulatorService(null, null, null) {
+            @Override
+            public void publish(at.jku.se.smarthome.domain.User owner, Long deviceId,
+                                String deviceName, String payload) {
+                // no-op
+            }
+        };
         deviceService = new DeviceService(deviceRepository, roomRepository, userRepository, noOpWs, activityLogService,
-                noOpRuleService, memberService);
+                noOpRuleService, memberService, noOpMqtt, new com.fasterxml.jackson.databind.ObjectMapper());
     }
 
     // --- getDevices ---
@@ -349,8 +357,16 @@ class DeviceServiceTest {
                 // no-op
             }
         };
+        MqttSimulatorService noOpMqtt2 = new MqttSimulatorService(null, null, null) {
+            @Override
+            public void publish(at.jku.se.smarthome.domain.User owner, Long deviceId,
+                                String deviceName, String payload) {
+                // no-op
+            }
+        };
         DeviceService service = new DeviceService(deviceRepository, roomRepository, userRepository, ws,
-                activityLogService, noOpRuleService, memberService);
+                activityLogService, noOpRuleService, memberService, noOpMqtt2,
+                new com.fasterxml.jackson.databind.ObjectMapper());
         Device device = new Device(room, "Lamp", DeviceType.SWITCH);
         DeviceStateRequest request = new DeviceStateRequest();
         request.setStateOn(true);
