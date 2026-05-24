@@ -151,15 +151,7 @@ public class SimulationService {
                 applyActionToState(actionState, rule.getActionValue(), rule.getActionDevice().getType());
                 boolean stateOnChanged = prevOn != actionState.stateOn;
 
-                events.add(new SimulationEvent(
-                        hour, minute,
-                        rule.getActionDevice().getId(),
-                        rule.getActionDevice().getName(),
-                        rule.getActionDevice().getRoom().getName(),
-                        rule.getActionValue(),
-                        rule.getName(),
-                        rule.getId()
-                ));
+                recordEvent(events, hour, minute, rule);
 
                 cascadeRules(rules, stateMap, rule.getActionDevice().getId(),
                         actionState, stateOnChanged, hour, minute, events, 0);
@@ -210,15 +202,7 @@ public class SimulationService {
             applyActionToState(actionState, rule.getActionValue(), rule.getActionDevice().getType());
             boolean stateOnChanged = prevOn != actionState.stateOn;
 
-            events.add(new SimulationEvent(
-                    0, 0,
-                    rule.getActionDevice().getId(),
-                    rule.getActionDevice().getName(),
-                    rule.getActionDevice().getRoom().getName(),
-                    rule.getActionValue(),
-                    rule.getName(),
-                    rule.getId()
-            ));
+            recordEvent(events, 0, 0, rule);
 
             cascadeRules(rules, stateMap, rule.getActionDevice().getId(),
                     actionState, stateOnChanged, 0, 0, events, 0);
@@ -275,15 +259,7 @@ public class SimulationService {
                     cascadeRule.getActionDevice().getType());
             boolean cascadeStateOnChanged = prevOn != actionState.stateOn;
 
-            events.add(new SimulationEvent(
-                    hour, minute,
-                    cascadeRule.getActionDevice().getId(),
-                    cascadeRule.getActionDevice().getName(),
-                    cascadeRule.getActionDevice().getRoom().getName(),
-                    cascadeRule.getActionValue(),
-                    cascadeRule.getName(),
-                    cascadeRule.getId()
-            ));
+            recordEvent(events, hour, minute, cascadeRule);
 
             cascadeRules(rules, stateMap,
                     cascadeRule.getActionDevice().getId(), actionState,
@@ -293,6 +269,30 @@ public class SimulationService {
     }
 
     // ── Private: helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Creates a {@link SimulationEvent} from a fired rule and appends it to the event list.
+     *
+     * <p>Extracted to eliminate copy-paste duplication across the three call sites
+     * ({@link #simulate}, {@link #evaluateThresholdRulesAtStart}, {@link #cascadeRules}).</p>
+     *
+     * @param events mutable list to append the new event to
+     * @param hour   simulated hour (0–23)
+     * @param minute simulated minute (0–59)
+     * @param rule   the rule that just fired
+     */
+    private void recordEvent(List<SimulationEvent> events, int hour, int minute, Rule rule) {
+        Device actionDevice = rule.getActionDevice();
+        events.add(new SimulationEvent(
+                hour, minute,
+                actionDevice.getId(),
+                actionDevice.getName(),
+                actionDevice.getRoom().getName(),
+                rule.getActionValue(),
+                rule.getName(),
+                rule.getId()
+        ));
+    }
 
     private boolean matchesTime(Rule rule, int hour, int minute, DayOfWeek dayOfWeek) {
         if (!Integer.valueOf(hour).equals(rule.getTriggerHour())) {
