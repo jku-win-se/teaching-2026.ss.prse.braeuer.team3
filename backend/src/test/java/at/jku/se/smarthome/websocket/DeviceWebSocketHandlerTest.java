@@ -2,6 +2,7 @@ package at.jku.se.smarthome.websocket;
 
 import at.jku.se.smarthome.domain.DeviceType;
 import at.jku.se.smarthome.dto.DeviceResponse;
+import at.jku.se.smarthome.dto.RuleNotificationDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -161,8 +162,8 @@ class DeviceWebSocketHandlerTest {
 
     @Test
     void broadcastRuleNotification_noSessions_doesNotThrow() {
-        at.jku.se.smarthome.dto.RuleNotificationDto dto =
-                new at.jku.se.smarthome.dto.RuleNotificationDto("Night Mode", true, "Lamp ausgeschaltet");
+        RuleNotificationDto dto =
+                new RuleNotificationDto("Night Mode", true, "Lamp ausgeschaltet");
         assertThatCode(() -> handler.broadcastRuleNotification("nobody@test.com", dto))
                 .doesNotThrowAnyException();
     }
@@ -173,8 +174,8 @@ class DeviceWebSocketHandlerTest {
         when(session.isOpen()).thenReturn(true);
         handler.afterConnectionEstablished(session);
 
-        at.jku.se.smarthome.dto.RuleNotificationDto dto =
-                new at.jku.se.smarthome.dto.RuleNotificationDto("Night Mode", true, "Lamp ausgeschaltet");
+        RuleNotificationDto dto =
+                new RuleNotificationDto("Night Mode", true, "Lamp ausgeschaltet");
         handler.broadcastRuleNotification("user@test.com", dto);
 
         verify(session).sendMessage(any(TextMessage.class));

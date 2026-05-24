@@ -13,6 +13,7 @@ import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RoomRepository;
 import at.jku.se.smarthome.repository.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,7 +61,7 @@ class DeviceServiceTest {
         room = new Room(user, "Living Room", "weekend");
         // Use a no-op DeviceWebSocketHandler subclass — avoids Mockito inline-mock
         // limitations on JVM versions that restrict byte-buddy instrumentation.
-        DeviceWebSocketHandler noOpWs = new DeviceWebSocketHandler(new com.fasterxml.jackson.databind.ObjectMapper()) {
+        DeviceWebSocketHandler noOpWs = new DeviceWebSocketHandler(new ObjectMapper()) {
             @Override
             public void broadcast(String userEmail, DeviceResponse deviceResponse) {
                 // no-op: WebSocket device broadcast is tested separately in DeviceWebSocketHandlerTest
@@ -73,14 +74,22 @@ class DeviceServiceTest {
         };
         RuleService noOpRuleService = new RuleService(null, null, null, null, null, null) {
             @Override
-            public void evaluateRulesForDevice(at.jku.se.smarthome.domain.Device device,
-                                               at.jku.se.smarthome.dto.DeviceStateRequest request,
+            public void evaluateRulesForDevice(Device device,
+                                               DeviceStateRequest request,
                                                boolean stateOnChanged) {
                 // no-op: rule evaluation is tested separately in RuleServiceTest
             }
         };
+        // no-op MQTT simulator: publish calls are silently ignored in unit tests
+        MqttSimulatorService noOpMqtt = new MqttSimulatorService(null, null, null) {
+            @Override
+            public void publish(User owner, Long deviceId,
+                                String deviceName, String payload) {
+                // no-op
+            }
+        };
         deviceService = new DeviceService(deviceRepository, roomRepository, userRepository, noOpWs, activityLogService,
-                noOpRuleService, memberService);
+                noOpRuleService, memberService, noOpMqtt, new ObjectMapper());
     }
 
     // --- getDevices ---
@@ -343,14 +352,22 @@ class DeviceServiceTest {
         CapturingWebSocketHandler ws = new CapturingWebSocketHandler();
         RuleService noOpRuleService = new RuleService(null, null, null, null, null, null) {
             @Override
-            public void evaluateRulesForDevice(at.jku.se.smarthome.domain.Device device,
-                                               at.jku.se.smarthome.dto.DeviceStateRequest request,
+            public void evaluateRulesForDevice(Device device,
+                                               DeviceStateRequest request,
                                                boolean stateOnChanged) {
                 // no-op
             }
         };
+        MqttSimulatorService noOpMqtt2 = new MqttSimulatorService(null, null, null) {
+            @Override
+            public void publish(User owner, Long deviceId,
+                                String deviceName, String payload) {
+                // no-op
+            }
+        };
         DeviceService service = new DeviceService(deviceRepository, roomRepository, userRepository, ws,
-                activityLogService, noOpRuleService, memberService);
+                activityLogService, noOpRuleService, memberService, noOpMqtt2,
+                new ObjectMapper());
         Device device = new Device(room, "Lamp", DeviceType.SWITCH);
         DeviceStateRequest request = new DeviceStateRequest();
         request.setStateOn(true);
@@ -398,7 +415,7 @@ class DeviceServiceTest {
         private final List<String> activityLogRecipients = new ArrayList<>();
 
         CapturingWebSocketHandler() {
-            super(new com.fasterxml.jackson.databind.ObjectMapper());
+            super(new ObjectMapper());
         }
 
         @Override
