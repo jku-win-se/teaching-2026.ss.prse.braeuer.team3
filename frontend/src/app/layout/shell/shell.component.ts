@@ -160,6 +160,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { label: 'Rules', icon: 'rule', route: '/rules', ownerOnly: true },
         { label: 'Schedules', icon: 'schedule', route: '/schedules', ownerOnly: true },
         { label: 'Vacation Mode', icon: 'beach_access', route: '/vacation', ownerOnly: true },
+        { label: 'Simulation', icon: 'play_circle', route: '/simulation', ownerOnly: true },
       ]
     },
     {

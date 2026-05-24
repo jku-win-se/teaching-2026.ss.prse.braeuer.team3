@@ -228,3 +228,38 @@ export interface VacationModeRequest {
   startDate: string;  // yyyy-MM-dd
   endDate: string;    // yyyy-MM-dd
 }
+
+// ── US-020: Day Simulation ─────────────────────────────────────────────────
+
+/** Per-device starting state override for the simulation (US-020). */
+export interface DeviceStartCondition {
+  deviceId: number;
+  stateOn: boolean;
+  brightness: number;
+  temperature: number;
+  sensorValue: number;
+  coverPosition: number;
+}
+
+/** Request body sent to POST /api/simulation/run (US-020). */
+export interface SimulationRequest {
+  dayOfWeek: string;   // e.g. "MONDAY"
+  startConditions: DeviceStartCondition[];
+}
+
+/** A single device state change produced by the simulation engine (US-020). */
+export interface SimulationEvent {
+  hour: number;
+  minute: number;
+  deviceId: number;
+  deviceName: string;
+  roomName: string;
+  actionValue: string;
+  ruleName: string;
+  ruleId: number;
+}
+
+/** Response from POST /api/simulation/run (US-020). */
+export interface SimulationResponse {
+  events: SimulationEvent[];
+}
