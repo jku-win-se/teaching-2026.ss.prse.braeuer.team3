@@ -48,6 +48,8 @@ public class DeviceStartCondition {
         this.deviceId = deviceId;
     }
 
+    // CPD-OFF -- getter/setter bodies intentionally mirror Device.java (shared field names, necessary DTO)
+
     /**
      * Returns whether the device is switched on at simulation start.
      *
@@ -128,5 +130,16 @@ public class DeviceStartCondition {
     public int getCoverPosition() {
         return coverPosition;
     }
+
+    /**
+     * Sets the cover position at simulation start.
+     *
+     * @param coverPosition cover position (0 = closed, 100 = open)
+     */
+    public void setCoverPosition(int coverPosition) {
+        this.coverPosition = coverPosition;
+    }
+
+    // CPD-ON
 
 }
