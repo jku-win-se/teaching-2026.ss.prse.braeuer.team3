@@ -47,6 +47,15 @@ class SimulationControllerTest {
     @MockBean
     private SimulationService simulationService;
 
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private UserRepository userRepository;
+
+    @MockBean
+    private JdbcTemplate jdbcTemplate;
+
     // ── POST /api/simulation/run ───────────────────────────────────────────────
 
     @Test
@@ -131,6 +140,7 @@ class SimulationControllerTest {
         request.setDayOfWeek("MONDAY");
 
         mockMvc.perform(post("/api/simulation/run")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());

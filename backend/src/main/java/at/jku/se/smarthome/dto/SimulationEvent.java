@@ -132,6 +132,24 @@ public class SimulationEvent {
     }
 
     /**
+     * Returns the name of the room the device belongs to.
+     *
+     * @return room name
+     */
+    public String getRoomName() {
+        return roomName;
+    }
+
+    /**
+     * Sets the name of the room the device belongs to.
+     *
+     * @param roomName room name
+     */
+    public void setRoomName(String roomName) {
+        this.roomName = roomName;
+    }
+
+    /**
      * Returns the action value applied to the device.
      *
      * @return {@code "true"}, {@code "false"}, {@code "open"}, or {@code "close"}
@@ -147,5 +165,41 @@ public class SimulationEvent {
      */
     public void setActionValue(String actionValue) {
         this.actionValue = actionValue;
+    }
+
+    /**
+     * Returns the display name of the rule that triggered this event.
+     *
+     * @return rule name
+     */
+    public String getRuleName() {
+        return ruleName;
+    }
+
+    /**
+     * Sets the display name of the rule that triggered this event.
+     *
+     * @param ruleName rule name
+     */
+    public void setRuleName(String ruleName) {
+        this.ruleName = ruleName;
+    }
+
+    /**
+     * Returns the primary key of the rule that triggered this event.
+     *
+     * @return rule id
+     */
+    public Long getRuleId() {
+        return ruleId;
+    }
+
+    /**
+     * Sets the primary key of the rule that triggered this event.
+     *
+     * @param ruleId rule id
+     */
+    public void setRuleId(Long ruleId) {
+        this.ruleId = ruleId;
     }
 }
