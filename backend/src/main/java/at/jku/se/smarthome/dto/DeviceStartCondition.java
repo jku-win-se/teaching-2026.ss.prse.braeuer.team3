@@ -128,4 +128,5 @@ public class DeviceStartCondition {
     public int getCoverPosition() {
         return coverPosition;
     }
+
 }

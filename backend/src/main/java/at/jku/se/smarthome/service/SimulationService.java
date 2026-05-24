@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
 
@@ -161,7 +162,7 @@ public class SimulationService {
                 ));
 
                 cascadeRules(rules, stateMap, rule.getActionDevice().getId(),
-                        actionState, stateOnChanged, hour, minute, rule.getId(), events, 0);
+                        actionState, stateOnChanged, hour, minute, events, 0);
             }
         }
         return events;
@@ -220,7 +221,7 @@ public class SimulationService {
             ));
 
             cascadeRules(rules, stateMap, rule.getActionDevice().getId(),
-                    actionState, stateOnChanged, 0, 0, rule.getId(), events, 0);
+                    actionState, stateOnChanged, 0, 0, events, 0);
         }
     }
 
@@ -236,14 +237,13 @@ public class SimulationService {
      * @param stateOnChanged whether the stateOn field changed
      * @param hour           simulated hour
      * @param minute         simulated minute
-     * @param originRuleId   the rule that originally triggered this cascade
      * @param events         mutable list to append new events to
      * @param depth          current cascade depth
      */
     private void cascadeRules(List<Rule> rules, Map<Long, SimDeviceState> stateMap,
                                Long changedDeviceId, SimDeviceState changedState,
                                boolean stateOnChanged, int hour, int minute,
-                               Long originRuleId, List<SimulationEvent> events, int depth) {
+                               List<SimulationEvent> events, int depth) {
         if (depth >= MAX_CASCADE_DEPTH) {
             return;
         }
@@ -287,7 +287,7 @@ public class SimulationService {
 
             cascadeRules(rules, stateMap,
                     cascadeRule.getActionDevice().getId(), actionState,
-                    cascadeStateOnChanged, hour, minute, cascadeRule.getId(),
+                    cascadeStateOnChanged, hour, minute,
                     events, depth + 1);
         }
     }
@@ -369,10 +369,10 @@ public class SimulationService {
                     "dayOfWeek is required (e.g. MONDAY).");
         }
         try {
-            return DayOfWeek.valueOf(value.toUpperCase());
+            return DayOfWeek.valueOf(value.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Invalid dayOfWeek: " + value + ". Use MONDAY..SUNDAY.");
+                    "Invalid dayOfWeek: " + value + ". Use MONDAY..SUNDAY.", e);
         }
     }
 
