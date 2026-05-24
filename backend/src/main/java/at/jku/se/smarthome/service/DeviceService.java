@@ -347,7 +347,9 @@ public class DeviceService {
             String payload = objectMapper.writeValueAsString(response);
             mqttSimulatorService.publish(owner, response.getId(), response.getName(), payload);
         } catch (JsonProcessingException e) {
-            log.warn("Failed to serialise device state for MQTT publish: {}", e.getMessage());
+            if (log.isWarnEnabled()) {
+                log.warn("Failed to serialise device state for MQTT publish", e);
+            }
         }
     }
 }
