@@ -25,10 +25,16 @@ interface DeviceRow {
   stateOn: boolean;
 }
 
+/** A SimulationEvent annotated with redundancy information. */
+interface TimelineEvent extends SimulationEvent {
+  /** True if the action had no effect because the device was already in the target state. */
+  redundant: boolean;
+}
+
 /** Events grouped by hour for display. */
 interface HourGroup {
   hour: number;
-  events: SimulationEvent[];
+  events: TimelineEvent[];
 }
 
 const DAYS_OF_WEEK = [
@@ -142,7 +148,10 @@ const DAYS_OF_WEEK = [
               No rules fire on {{ selectedDayLabel }} — all quiet.
             </mat-card-subtitle>
             <mat-card-subtitle *ngIf="hasRun && hourGroups.length > 0">
-              {{ totalEvents }} automation event{{ totalEvents === 1 ? '' : 's' }} on {{ selectedDayLabel }}
+              {{ totalEvents }} automation event{{ totalEvents === 1 ? '' : 's' }} on {{ selectedDayLabel
+              }}<span *ngIf="redundantEvents > 0" class="redundant-badge">
+                · {{ redundantEvents }} redundant
+              </span>
             </mat-card-subtitle>
           </mat-card-header>
 
@@ -173,7 +182,12 @@ const DAYS_OF_WEEK = [
                   <span class="hour-badge">{{ group.hour | number:'2.0-0' }}:00</span>
                 </div>
                 <div class="hour-events">
-                  <div *ngFor="let event of group.events" class="timeline-event">
+                  <div
+                    *ngFor="let event of group.events"
+                    class="timeline-event"
+                    [class.timeline-event--redundant]="event.redundant"
+                    [matTooltip]="event.redundant ? 'No-op: device was already in this state' : ''"
+                    matTooltipPosition="left">
                     <div class="event-time">
                       {{ event.hour | number:'2.0-0' }}:{{ event.minute | number:'2.0-0' }}
                     </div>
@@ -187,6 +201,10 @@ const DAYS_OF_WEEK = [
                         <span class="event-room">· {{ event.roomName }}</span>
                       </div>
                       <div class="event-action">{{ actionLabel(event.actionValue) }}</div>
+                      <div *ngIf="event.redundant" class="event-redundant-hint">
+                        <mat-icon style="font-size:11px;height:11px;width:11px;vertical-align:middle;">info_outline</mat-icon>
+                        Already in this state — rule fired but had no effect
+                      </div>
                       <div class="event-rule">
                         <mat-icon style="font-size:12px;height:12px;width:12px;vertical-align:middle;">rule</mat-icon>
                         {{ event.ruleName }}
@@ -330,6 +348,20 @@ const DAYS_OF_WEEK = [
       color: #94A3B8;
       margin-top: 2px;
     }
+
+    /* Redundant (no-op) events */
+    .event-redundant-hint {
+      font-size: 11px;
+      color: #F59E0B;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .redundant-badge {
+      color: #F59E0B;
+      font-weight: 500;
+    }
   `],
 })
 export class SimulationComponent implements OnInit {
@@ -344,6 +376,7 @@ export class SimulationComponent implements OnInit {
   deviceRows: DeviceRow[] = [];
   hourGroups: HourGroup[] = [];
   totalEvents = 0;
+  redundantEvents = 0;
 
   get selectedDayLabel(): string {
     return this.days.find(d => d.value === this.selectedDay)?.label ?? this.selectedDay;
@@ -422,11 +455,39 @@ export class SimulationComponent implements OnInit {
     });
   }
 
-  /** Group flat event list by hour for display. */
+  /** Group flat event list by hour for display, annotating redundant (no-op) events. */
   private buildTimeline(events: SimulationEvent[]): void {
-    this.totalEvents = events.length;
-    const map = new Map<number, SimulationEvent[]>();
-    events.forEach(e => {
+    // Initialise simulated device state from the chosen start conditions.
+    const deviceStateOn = new Map<number, boolean>();
+    this.deviceRows.forEach(row => deviceStateOn.set(row.device.id, row.stateOn));
+
+    // Sort chronologically so state advances in the correct order.
+    const sorted = [...events].sort(
+      (a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute),
+    );
+
+    // Annotate each event and advance the tracked state.
+    let redundantCount = 0;
+    const annotated: TimelineEvent[] = sorted.map(e => {
+      let redundant = false;
+      const av = e.actionValue?.toLowerCase();
+      if (av === 'true' || av === 'false') {
+        const targetOn = av === 'true';
+        const currentOn = deviceStateOn.get(e.deviceId) ?? false;
+        redundant = targetOn === currentOn;
+        deviceStateOn.set(e.deviceId, targetOn);
+      }
+      if (redundant) {
+        redundantCount++;
+      }
+      return { ...e, redundant };
+    });
+
+    this.totalEvents = annotated.length;
+    this.redundantEvents = redundantCount;
+
+    const map = new Map<number, TimelineEvent[]>();
+    annotated.forEach(e => {
       if (!map.has(e.hour)) {
         map.set(e.hour, []);
       }
