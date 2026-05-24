@@ -33,7 +33,6 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>An in-memory rolling message log (max {@value #MAX_MESSAGES} entries) per user,
  *       holding simulated PUBLISH and RECEIVE entries</li>
  * </ul>
- * </p>
  *
  * <p>Acceptance criteria satisfied:
  * <ul>
@@ -42,7 +41,6 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>AC-3: System bleibt funktionsfähig, wenn MQTT nicht konfiguriert ist — {@link #publish}
  *       is a no-op when not connected</li>
  * </ul>
- * </p>
  */
 @Service
 public class MqttSimulatorService {

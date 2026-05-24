@@ -45,7 +45,6 @@ import java.util.Queue;
  *   <li>AC-2: Zustandsänderungen werden im Zeitraffer wiedergegeben</li>
  *   <li>AC-3: Simulation beeinflusst das Live-System nicht</li>
  * </ul>
- * </p>
  */
 @Service
 public class SimulationService {
@@ -89,7 +88,6 @@ public class SimulationService {
      *   <li>Walk minutes 0–1439, firing TIME rules and cascading THRESHOLD/EVENT rules</li>
      *   <li>Return ordered list of {@link SimulationEvent}</li>
      * </ol>
-     * </p>
      *
      * @param email   email of the authenticated caller (must be owner)
      * @param request the simulation parameters (day of week + optional start conditions)
