@@ -72,7 +72,7 @@ class DeviceServiceTest {
                 // no-op: WebSocket activity log broadcast is tested separately
             }
         };
-        RuleService noOpRuleService = new RuleService(null, null, null, null, null, null) {
+        RuleService noOpRuleService = new RuleService(null, null, null, null, null) {
             @Override
             public void evaluateRulesForDevice(Device device,
                                                DeviceStateRequest request,
@@ -350,7 +350,7 @@ class DeviceServiceTest {
     @Test
     void updateState_broadcastsDeviceAndActivityLogToHouseholdRecipients() {
         CapturingWebSocketHandler ws = new CapturingWebSocketHandler();
-        RuleService noOpRuleService = new RuleService(null, null, null, null, null, null) {
+        RuleService noOpRuleService = new RuleService(null, null, null, null, null) {
             @Override
             public void evaluateRulesForDevice(Device device,
                                                DeviceStateRequest request,

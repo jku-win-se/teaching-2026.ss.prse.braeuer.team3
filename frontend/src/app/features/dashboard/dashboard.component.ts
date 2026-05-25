@@ -61,7 +61,7 @@ import { DeviceCardComponent } from '../../shared/components/device-card/device-
             <div class="stat-label">Active Now</div>
           </div>
         </mat-card>
-        <mat-card class="stat-card">
+        <mat-card class="stat-card" *ngIf="auth.isOwner">
           <div class="stat-icon-bg" style="background:rgba(139,92,246,0.1);">
             <mat-icon style="color:#8B5CF6;">rule</mat-icon>
           </div>
@@ -173,10 +173,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
       error: () => { this.recentActivity = []; }
     });
 
-    this.ruleService.getRules().subscribe({
-      next: rules => { this.rulesCount = rules.filter(r => r.enabled).length; },
-      error: () => { this.rulesCount = 0; }
-    });
+    if (this.auth.isOwner) {
+      this.ruleService.getRules().subscribe({
+        next: rules => { this.rulesCount = rules.filter(r => r.enabled).length; },
+        error: () => { this.rulesCount = 0; }
+      });
+    }
 
     if (this.auth.isOwner) {
       this.vacationModeService.getVacationModes().subscribe({

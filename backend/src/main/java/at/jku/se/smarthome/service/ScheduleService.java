@@ -8,7 +8,6 @@ import at.jku.se.smarthome.dto.ScheduleRequest;
 import at.jku.se.smarthome.dto.ScheduleResponse;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.ScheduleRepository;
-import at.jku.se.smarthome.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -44,7 +43,6 @@ public class ScheduleService {
 
     private final ScheduleRepository scheduleRepository;
     private final DeviceRepository deviceRepository;
-    private final UserRepository userRepository;
     private final DeviceService deviceService;
     private final ActivityLogService activityLogService;
     private final ObjectMapper objectMapper;
@@ -55,7 +53,6 @@ public class ScheduleService {
      *
      * @param scheduleRepository  the repository for schedule persistence
      * @param deviceRepository    the repository for device lookups
-     * @param userRepository      the repository for user lookups
      * @param deviceService       the service used to apply device state on execution
      * @param activityLogService  the service used to log execution results
      * @param objectMapper        the Jackson mapper for action payload deserialization
@@ -63,14 +60,12 @@ public class ScheduleService {
      */
     public ScheduleService(ScheduleRepository scheduleRepository,
                            DeviceRepository deviceRepository,
-                           UserRepository userRepository,
                            DeviceService deviceService,
                            ActivityLogService activityLogService,
                            ObjectMapper objectMapper,
                            MemberService memberService) {
         this.scheduleRepository = scheduleRepository;
         this.deviceRepository = deviceRepository;
-        this.userRepository = userRepository;
         this.deviceService = deviceService;
         this.activityLogService = activityLogService;
         this.objectMapper = objectMapper;
@@ -112,8 +107,7 @@ public class ScheduleService {
      */
     @Transactional(readOnly = true)
     public List<ScheduleResponse> getSchedules(String userEmail, Long deviceId) {
-        memberService.requireOwnerRole(userEmail);
-        User user = memberService.resolveEffectiveOwner(userEmail);
+        User user = resolveOwner(userEmail);
         List<Schedule> schedules;
         if (deviceId != null) {
             Device device = resolveOwnedDevice(user, deviceId);
@@ -137,8 +131,7 @@ public class ScheduleService {
      */
     @Transactional
     public ScheduleResponse createSchedule(String userEmail, ScheduleRequest request) {
-        memberService.requireOwnerRole(userEmail);
-        User user = memberService.resolveEffectiveOwner(userEmail);
+        User user = resolveOwner(userEmail);
         Device device = resolveOwnedDevice(user, request.getDeviceId());
         validateRequest(request);
 
@@ -170,8 +163,7 @@ public class ScheduleService {
      */
     @Transactional
     public ScheduleResponse updateSchedule(String userEmail, Long scheduleId, ScheduleRequest request) {
-        memberService.requireOwnerRole(userEmail);
-        User user = memberService.resolveEffectiveOwner(userEmail);
+        User user = resolveOwner(userEmail);
         Schedule schedule = resolveOwnedSchedule(user, scheduleId);
         validateRequest(request);
 
@@ -204,8 +196,7 @@ public class ScheduleService {
      */
     @Transactional
     public ScheduleResponse setEnabled(String userEmail, Long scheduleId, boolean enabled) {
-        memberService.requireOwnerRole(userEmail);
-        User user = memberService.resolveEffectiveOwner(userEmail);
+        User user = resolveOwner(userEmail);
         Schedule schedule = resolveOwnedSchedule(user, scheduleId);
         schedule.setEnabled(enabled);
         return toResponse(scheduleRepository.save(schedule));
@@ -220,8 +211,7 @@ public class ScheduleService {
      */
     @Transactional
     public void deleteSchedule(String userEmail, Long scheduleId) {
-        memberService.requireOwnerRole(userEmail);
-        User user = memberService.resolveEffectiveOwner(userEmail);
+        User user = resolveOwner(userEmail);
         Schedule schedule = resolveOwnedSchedule(user, scheduleId);
         scheduleRepository.delete(schedule);
         if (log.isInfoEnabled()) {
@@ -274,9 +264,9 @@ public class ScheduleService {
 
     // ── Private helpers ────────────────────────────────────────────────────────
 
-    private User resolveUser(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found."));
+    private User resolveOwner(String email) {
+        memberService.requireOwnerRole(email);
+        return memberService.resolveEffectiveOwner(email);
     }
 
     private Device resolveOwnedDevice(User user, Long deviceId) {

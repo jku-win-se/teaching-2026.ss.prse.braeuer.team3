@@ -13,7 +13,6 @@ import at.jku.se.smarthome.dto.RuleRequest;
 import at.jku.se.smarthome.dto.RuleResponse;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RuleRepository;
-import at.jku.se.smarthome.repository.UserRepository;
 import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,7 +43,6 @@ class RuleServiceTest {
 
     @Mock private RuleRepository ruleRepository;
     @Mock private DeviceRepository deviceRepository;
-    @Mock private UserRepository userRepository;
     @Mock private DeviceService deviceService;
     @Mock private DeviceWebSocketHandler wsHandler;
     @Mock private MemberService memberService;
@@ -61,8 +59,7 @@ class RuleServiceTest {
 
     @BeforeEach
     void setUp() {
-        ruleService = new RuleService(ruleRepository, deviceRepository, userRepository, deviceService, wsHandler,
-                memberService);
+        ruleService = new RuleService(ruleRepository, deviceRepository, deviceService, wsHandler, memberService);
 
         user = new User("Test User", EMAIL, "hashed");
         ReflectionTestUtils.setField(user, "id", 1L);
