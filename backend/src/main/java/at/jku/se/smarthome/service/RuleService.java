@@ -11,7 +11,6 @@ import at.jku.se.smarthome.dto.RuleRequest;
 import at.jku.se.smarthome.dto.RuleResponse;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.RuleRepository;
-import at.jku.se.smarthome.repository.UserRepository;
 import at.jku.se.smarthome.websocket.DeviceWebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +45,6 @@ public class RuleService {
 
     private final RuleRepository ruleRepository;
     private final DeviceRepository deviceRepository;
-    private final UserRepository userRepository;
     private final DeviceService deviceService;
     private final DeviceWebSocketHandler wsHandler;
     private final MemberService memberService;
@@ -56,20 +54,17 @@ public class RuleService {
      *
      * @param ruleRepository   the repository for rule persistence
      * @param deviceRepository the repository for device lookups and ownership checks
-     * @param userRepository   the repository for user lookups
      * @param deviceService    the service used to apply device state when a rule fires
      * @param wsHandler        the WebSocket handler used to push rule notifications to the frontend
      * @param memberService    the service used for owner-only authorization (FR-13)
      */
     public RuleService(RuleRepository ruleRepository,
                        DeviceRepository deviceRepository,
-                       UserRepository userRepository,
                        DeviceService deviceService,
                        DeviceWebSocketHandler wsHandler,
                        MemberService memberService) {
         this.ruleRepository = ruleRepository;
         this.deviceRepository = deviceRepository;
-        this.userRepository = userRepository;
         this.deviceService = deviceService;
         this.wsHandler = wsHandler;
         this.memberService = memberService;
@@ -334,15 +329,9 @@ public class RuleService {
     }
 
     private DeviceStateRequest buildActionRequest(Rule rule) {
-        DeviceStateRequest req = new DeviceStateRequest();
-        if (rule.getActionDevice().getType() == DeviceType.COVER) {
-            boolean open = "open".equalsIgnoreCase(rule.getActionValue());
-            req.setStateOn(open);
-            req.setCoverPosition(open ? 100 : 0);
-        } else {
-            req.setStateOn("true".equalsIgnoreCase(rule.getActionValue()));
-        }
-        return req;
+        return DeviceStateRequest.fromActionValue(
+                rule.getActionDevice().getType() == DeviceType.COVER,
+                rule.getActionValue());
     }
 
     private Device resolveTriggerDevice(User user, RuleRequest request) {
@@ -400,11 +389,6 @@ public class RuleService {
             case "close" -> "open";
             default      -> null;
         };
-    }
-
-    private User resolveUser(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found."));
     }
 
     /**

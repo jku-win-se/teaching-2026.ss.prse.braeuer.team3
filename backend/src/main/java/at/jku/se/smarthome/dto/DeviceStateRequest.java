@@ -8,6 +8,31 @@ package at.jku.se.smarthome.dto;
  */
 public class DeviceStateRequest {
 
+    /**
+     * Creates a {@code DeviceStateRequest} from a string action value as stored in rules and scenes.
+     *
+     * <p>For COVER devices, {@code "open"} maps to {@code stateOn=true, coverPosition=100}
+     * and {@code "close"} maps to {@code stateOn=false, coverPosition=0}.
+     * For all other device types, {@code "true"} maps to {@code stateOn=true}
+     * and any other value maps to {@code stateOn=false}.</p>
+     *
+     * @param isCover     {@code true} if the target device is a COVER type
+     * @param actionValue the stored action string (e.g. {@code "true"}, {@code "false"},
+     *                    {@code "open"}, {@code "close"})
+     * @return a new {@code DeviceStateRequest} with the appropriate fields set
+     */
+    public static DeviceStateRequest fromActionValue(boolean isCover, String actionValue) {
+        DeviceStateRequest req = new DeviceStateRequest();
+        if (isCover) {
+            boolean open = "open".equalsIgnoreCase(actionValue);
+            req.setStateOn(open);
+            req.setCoverPosition(open ? 100 : 0);
+        } else {
+            req.setStateOn("true".equalsIgnoreCase(actionValue));
+        }
+        return req;
+    }
+
     /** New on/off state. {@code null} = no change. */
     private Boolean stateOn;
 

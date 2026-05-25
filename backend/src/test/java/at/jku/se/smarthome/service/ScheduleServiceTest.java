@@ -9,7 +9,6 @@ import at.jku.se.smarthome.dto.ScheduleRequest;
 import at.jku.se.smarthome.dto.ScheduleResponse;
 import at.jku.se.smarthome.repository.DeviceRepository;
 import at.jku.se.smarthome.repository.ScheduleRepository;
-import at.jku.se.smarthome.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +39,6 @@ class ScheduleServiceTest {
 
     @Mock private ScheduleRepository scheduleRepository;
     @Mock private DeviceRepository deviceRepository;
-    @Mock private UserRepository userRepository;
     @Mock private DeviceService deviceService;
     @Mock private ActivityLogService activityLogService;
     @Mock private MemberService memberService;
@@ -59,7 +57,7 @@ class ScheduleServiceTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         scheduleService = new ScheduleService(
-                scheduleRepository, deviceRepository, userRepository,
+                scheduleRepository, deviceRepository,
                 deviceService, activityLogService, objectMapper, memberService);
 
         user = new User("Test User", EMAIL, "hashed");

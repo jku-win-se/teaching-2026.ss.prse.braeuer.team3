@@ -224,17 +224,9 @@ public class SceneService {
     }
 
     private DeviceStateRequest buildStateRequest(SceneEntry entry) {
-        DeviceStateRequest req = new DeviceStateRequest();
-        String action = entry.getActionValue();
-
-        if (entry.getDevice().getType() == DeviceType.COVER) {
-            boolean open = "open".equalsIgnoreCase(action);
-            req.setStateOn(open);
-            req.setCoverPosition(open ? 100 : 0);
-        } else {
-            req.setStateOn("true".equalsIgnoreCase(action));
-        }
-        return req;
+        return DeviceStateRequest.fromActionValue(
+                entry.getDevice().getType() == DeviceType.COVER,
+                entry.getActionValue());
     }
 
     private Scene resolveOwnedScene(User user, Long sceneId) {
