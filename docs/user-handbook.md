@@ -15,12 +15,13 @@
 6. [Geräte steuern](#6-geräte-steuern)
 7. [Automationsregeln (Rules)](#7-automationsregeln-rules)
 8. [Zeitpläne (Schedules)](#8-zeitpläne-schedules)
-9. [Szenen (Scenes)](#9-szenen-scenes)
-10. [Energie-Dashboard](#10-energie-dashboard)
-11. [Aktivitätslog & CSV-Export](#11-aktivitätslog--csv-export)
-12. [Benachrichtigungen & Konfliktwarnungen](#12-benachrichtigungen--konfliktwarnungen)
-13. [Mitglieder einladen (Settings)](#13-mitglieder-einladen-settings)
-14. [Bekannte Einschränkungen](#14-bekannte-einschränkungen)
+9. [Vacation Mode](#9-vacation-mode)
+10. [Day Simulation](#10-day-simulation)
+11. [Szenen (Scenes)](#11-szenen-scenes)
+12. [Energie-Dashboard](#12-energie-dashboard)
+13. [Aktivitätslog & CSV-Export](#13-aktivitätslog--csv-export)
+14. [Benachrichtigungen & Konfliktwarnungen](#14-benachrichtigungen--konfliktwarnungen)
+15. [Settings: Mitglieder & MQTT](#15-settings-mitglieder--mqtt)
 
 ---
 
@@ -74,14 +75,16 @@ Das System kennt zwei Rollen:
 
 | Rolle | Rechte |
 |-------|--------|
-| **Owner** (Eigentümer) | Vollzugriff: Geräte/Räume verwalten, Regeln, Zeitpläne, Log, Mitglieder einladen/entfernen |
+| **Owner** (Eigentümer) | Vollzugriff: Geräte/Räume verwalten, Regeln, Zeitpläne, Vacation Mode, Day Simulation, Log, Mitglieder und MQTT verwalten |
 | **Member** (Mitglied) | Geräte steuern und Szenen aktivieren — keine Verwaltungsfunktionen |
 
-Die eigene Rolle ist in den Einstellungen (Settings) sichtbar. Bestimmte Seiten (Regeln, Zeitpläne, Aktivitätslog) sind für Member nicht zugänglich.
+Die eigene Rolle ist in den Einstellungen (Settings) sichtbar. Member sehen nur die Funktionen, die sie verwenden dürfen. Owner-only Seiten und Tabs wie Rules, Schedules, Vacation Mode, Day Simulation, Aktivitätslog, Household Access und MQTT Integration werden für Member nicht angezeigt bzw. sind nicht zugänglich.
 
 ---
 
 ## 4. Räume verwalten
+
+> 🔒 Nur für Owner verfügbar.
 
 Räume sind die zentrale Organisationsstruktur. Jedes Gerät gehört zu genau einem Raum.
 
@@ -98,6 +101,8 @@ Das Papierkorb-Icon neben dem Raumnamen anklicken → Löschung bestätigen.
 ---
 
 ## 5. Geräte verwalten
+
+> 🔒 Nur für Owner verfügbar.
 
 ### Gerät hinzufügen
 
@@ -120,6 +125,8 @@ Das Stift-Icon auf der Gerätekarte anklicken → neuen Namen eingeben.
 ### Gerät entfernen
 
 Das Papierkorb-Icon auf der Gerätekarte anklicken → Löschung bestätigen.
+
+Member sehen diese Verwaltungsaktionen nicht. Sie können vorhandene Geräte steuern, aber keine Räume oder Geräte anlegen, umbenennen oder löschen.
 
 ---
 
@@ -199,7 +206,74 @@ Den Toggle auf der Zeitplankarte umlegen.
 
 ---
 
-## 9. Szenen (Scenes)
+## 9. Vacation Mode
+
+> 🔒 Nur für Owner verfügbar.
+
+Der Vacation Mode aktiviert oder deaktiviert einen bestehenden Zeitplan für einen bestimmten Urlaubszeitraum. Damit kann ein Haushalt während der Abwesenheit anders automatisiert werden, ohne normale Zeitpläne dauerhaft umbauen zu müssen.
+
+**Beispiel:** Während des Urlaubs wird ein Zeitplan aktiviert, der abends Licht einschaltet. Alternativ kann ein normaler Alltags-Zeitplan für den Urlaubszeitraum deaktiviert werden.
+
+### Vacation Mode erstellen
+
+Auf der Vacation-Mode-Seite den Plus-Button anklicken. Im Dialog:
+
+1. **Vacation name** vergeben
+2. **Schedule** auswählen
+3. **Action** auswählen:
+   - **Enable schedule during vacation**: Der Zeitplan wird im Urlaubszeitraum aktiviert
+   - **Disable schedule during vacation**: Der Zeitplan wird im Urlaubszeitraum deaktiviert
+4. **Start date** und **End date** festlegen
+5. "Add Vacation Mode" klicken
+
+Das Enddatum darf nicht vor dem Startdatum liegen. Der gewählte Zeitraum ist inklusive Start- und Enddatum.
+
+### Statusanzeigen
+
+| Status | Bedeutung |
+|--------|-----------|
+| **Active** | Der Vacation Mode ist aktuell im gewählten Zeitraum aktiv |
+| **Upcoming** | Der Vacation Mode startet erst zu einem späteren Datum |
+| **Deactivated** | Der Vacation Mode wurde beendet oder vorzeitig deaktiviert |
+
+### Vacation Mode deaktivieren oder löschen
+
+Über "Deactivate" kann ein Vacation Mode vorzeitig beendet werden. Über das Papierkorb-Icon kann der Eintrag gelöscht werden.
+
+---
+
+## 10. Day Simulation
+
+> 🔒 Nur für Owner verfügbar.
+
+Die Day Simulation testet Automationsregeln in einem simulierten 24-Stunden-Tag. Sie dient als Vorschau: Das Live-System wird nicht verändert, es werden keine echten Gerätezustände überschrieben und keine Aktivitätslog-Einträge geschrieben.
+
+### Simulation starten
+
+Auf der Simulation-Seite:
+
+1. **Day to Simulate** auswählen (Montag bis Sonntag)
+2. Unter **Starting Device States** die Startzustände der Geräte setzen
+3. "Run Simulation" klicken
+
+Die Simulation verwendet die aktuellen Geräte als Ausgangspunkt. Die Startzustände können vor dem Lauf angepasst werden, um unterschiedliche Situationen zu testen.
+
+### Timeline auswerten
+
+Nach dem Lauf zeigt die **Simulation Timeline**, welche Automationen an diesem Tag auslösen würden.
+
+| Anzeige | Bedeutung |
+|---------|-----------|
+| Uhrzeit | Simulierter Zeitpunkt der Aktion |
+| Gerät und Raum | Betroffenes Gerät und dessen Raum |
+| Aktion | Zielzustand, der durch die Regel gesetzt wird |
+| Regel | Name der auslösenden Automationsregel |
+
+Wenn ein Ereignis als **redundant** markiert ist, hat die Regel zwar ausgelöst, aber keine praktische Änderung bewirkt, weil das Gerät bereits im Zielzustand war.
+
+---
+
+## 11. Szenen (Scenes)
 
 Szenen sind benannte Gruppen von Gerätezuständen, die mit einem einzigen Klick aktiviert werden können.
 
@@ -219,7 +293,7 @@ Den "Play"-Button auf der Szenenkarte anklicken. Alle konfigurierten Gerätezust
 
 ---
 
-## 10. Energie-Dashboard
+## 12. Energie-Dashboard
 
 Das Energie-Dashboard zeigt den geschätzten Stromverbrauch aller Geräte.
 
@@ -237,7 +311,7 @@ Das Energie-Dashboard zeigt den geschätzten Stromverbrauch aller Geräte.
 
 ---
 
-## 11. Aktivitätslog & CSV-Export
+## 13. Aktivitätslog & CSV-Export
 
 > 🔒 Nur für Owner verfügbar.
 
@@ -264,7 +338,7 @@ Einzelne Einträge können über das Papierkorb-Icon entfernt werden (z.B. zum B
 
 ---
 
-## 12. Benachrichtigungen & Konfliktwarnungen
+## 14. Benachrichtigungen & Konfliktwarnungen
 
 ### Regelausführung (Benachrichtigungen)
 
@@ -278,33 +352,53 @@ Beim Speichern einer neuen oder geänderten Regel prüft das System, ob ein Konf
 
 ---
 
-## 13. Mitglieder einladen (Settings)
+## 15. Settings: Mitglieder & MQTT
+
+Die Settings-Seite enthält das eigene Profil. Owner sehen zusätzlich Tabs für Haushaltszugriff und MQTT Integration. Member sehen nur die Profilfunktionen.
+
+### Household Access
 
 > 🔒 Nur für Owner verfügbar.
 
-Über die Settings-Seite können weitere Personen als **Member** zum Haushalt eingeladen werden.
+Über den Tab **Household Access** können weitere Personen als **Member** zum Haushalt eingeladen werden.
 
-### Mitglied einladen
+#### Mitglied einladen
 
 1. Settings-Seite öffnen
-2. E-Mail-Adresse des einzuladenden Nutzers eingeben
-3. "Invite" klicken
+2. Tab "Household Access" öffnen
+3. E-Mail-Adresse des einzuladenden Nutzers eingeben
+4. "Invite" klicken
 
 Die eingeladene Person muss bereits ein registriertes Konto im System haben. Nach der Einladung kann sie sich mit ihrem eigenen Account anmelden und hat sofort Zugriff auf die Haushaltsdaten mit Member-Rechten.
 
-### Mitglied entfernen
+#### Mitglied entfernen
 
-In der Mitgliederliste das Papierkorb-Icon neben dem Mitglied anklicken → Zugang wird sofort entzogen.
+In der Mitgliederliste "Revoke Access" neben dem Mitglied anklicken → Zugang wird sofort entzogen.
 
----
+### MQTT Integration
 
-## 14. Bekannte Einschränkungen
+> 🔒 Nur für Owner verfügbar.
 
-| Einschränkung | Beschreibung |
-|---------------|-------------|
-| Virtuelle Geräte | Das System arbeitet ausschließlich mit simulierten Geräten — keine Anbindung an reale Smart-Home-Hardware |
-| Kein Mobile-App | Die Anwendung ist als Web-App konzipiert; native iOS/Android-Apps sind nicht vorgesehen |
-| Kein Push-Benachrichtigungen | Benachrichtigungen bei Regelausführung erscheinen nur in der offenen Browser-Session (keine E-Mail/SMS) |
-| Einzelner Haushalt | Jeder Owner verwaltet genau einen Haushalt; Multi-Haushalt-Szenarien werden nicht unterstützt |
-| Energieverbrauch ist geschätzt | Die angezeigten Watt-Werte basieren auf typischen Gerätewerten, nicht auf Echtraummessung |
-| Sensor-Werte manuell | Sensorwerte müssen manuell über "Inject Value" eingespeist werden (kein automatischer Sensor-Feed) |
+Der Tab **MQTT Integration** simuliert eine MQTT-Anbindung. Es wird eine Broker-Konfiguration gespeichert und ein Nachrichtenprotokoll geführt, aber kein echter MQTT-Broker kontaktiert.
+
+#### MQTT konfigurieren
+
+1. Settings-Seite öffnen
+2. Tab "MQTT Integration" öffnen
+3. **Broker-URL** eingeben (z.B. `mqtt://localhost:1883`)
+4. **Basis-Topic** eingeben (z.B. `smarthome`)
+5. "Speichern" klicken
+
+Die Gerätezustände werden bei aktiver Verbindung unter dem Schema `[topic]/devices/[id]` publiziert.
+
+#### Verbindung herstellen oder trennen
+
+Nach dem Speichern der Konfiguration kann über "Verbinden" eine simulierte Verbindung hergestellt werden. Der Status wechselt von **Getrennt** zu **Verbunden (simuliert)**. Über "Trennen" wird die simulierte Verbindung wieder beendet.
+
+Wenn keine Verbindung aktiv ist, bleibt das Smart-Home-System normal verwendbar. MQTT-Publish-Einträge werden dann nicht erzeugt.
+
+#### Nachrichtenprotokoll
+
+Im simulierten Nachrichtenprotokoll erscheinen Systemmeldungen und `PUBLISH`-Nachrichten, sobald bei aktiver Verbindung Gerätezustände geändert werden. Das Protokoll kann über das Papierkorb-Icon gelöscht werden.
+
+Typische Einträge enthalten Zeitstempel, Richtung (`SYSTEM` oder `PUBLISH`), Topic und Payload.
