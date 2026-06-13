@@ -1,0 +1,13 @@
+# Distribution profile — used when running as a packaged desktop application.
+# DB credentials can be overridden via environment variables before launching.
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:smarthome}
+    username: ${DB_USER:smarthome_user}
+    password: ${DB_PASSWORD:your_password_here}
+  flyway:
+    enabled: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:dist-default-secret-change-me-32chars!!}

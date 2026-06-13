@@ -29,6 +29,12 @@ target/
 # Local Spring Boot config — for development only
 backend/src/main/resources/application-local.yml
 
+# Generated Angular static files embedded in Spring Boot (created by build-dist scripts)
+/backend/src/main/resources/static/
+
+# Native app installers (created by build-dist scripts)
+/dist-app/
+
 # Local docs (never upload to git)
 localDocs/*
 !localDocs/.gitkeep
