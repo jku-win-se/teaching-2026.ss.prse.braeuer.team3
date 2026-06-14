@@ -53,9 +53,15 @@ Die Anwendung ist danach unter **http://localhost:4200** erreichbar.
 
 ## 2. Registrierung & Login
 
+### Login
+
+Beim ersten Besuch erscheint die Login-Seite. E-Mail und Passwort eingeben → "Sign in" klicken. Bei korrekten Zugangsdaten wird man automatisch zum Dashboard weitergeleitet. Die Session bleibt aktiv bis zum manuellen Abmelden (Sign out-Button in der Navigation).
+
+![Login-Seite](screenshots/01_login.png)
+
 ### Registrierung
 
-Beim ersten Besuch erscheint die Login-Seite. Über den Link "Register" gelangt man zum Registrierungsformular.
+Über den Link "Sign up" gelangt man zum Registrierungsformular.
 
 **Felder:**
 - **E-Mail-Adresse** — muss einzigartig im System sein
@@ -63,9 +69,7 @@ Beim ersten Besuch erscheint die Login-Seite. Über den Link "Register" gelangt 
 
 Nach erfolgreicher Registrierung ist man automatisch als **Owner** (Eigentümer) des eigenen Haushalts eingetragen.
 
-### Login
-
-E-Mail und Passwort eingeben → "Login" klicken. Bei korrekten Zugangsdaten wird man automatisch zum Dashboard weitergeleitet. Die Session bleibt aktiv bis zum manuellen Abmelden (Logout-Button in der Navigation).
+![Registrierung](screenshots/02_register.png)
 
 ---
 
@@ -87,6 +91,8 @@ Die eigene Rolle ist in den Einstellungen (Settings) sichtbar. Member sehen nur 
 > 🔒 Nur für Owner verfügbar.
 
 Räume sind die zentrale Organisationsstruktur. Jedes Gerät gehört zu genau einem Raum.
+
+![Rooms & Devices](screenshots/04_rooms.jpg)
 
 **Neuen Raum anlegen:**  
 Auf der Rooms-Seite den Button "Add Room" klicken → Namen eingeben → bestätigen.
@@ -152,6 +158,8 @@ Jede manuelle Zustandsänderung wird automatisch im Aktivitätslog erfasst.
 
 Regeln ermöglichen automatische Gerätesteuerung nach dem Prinzip **IF \<Trigger\> THEN \<Aktion\>**.
 
+![Rules-Seite](screenshots/05_rules.jpg)
+
 ### Regel erstellen
 
 Auf der Rules-Seite "Add Rule" klicken. Im Dialog:
@@ -187,6 +195,8 @@ Zeitpläne sind wiederkehrende Aktionen zu festen Uhrzeiten — ohne Bedingungen
 
 **Beispiel:** Jeden Abend um 22:00 Uhr alle Lichter ausschalten.
 
+![Schedules-Seite](screenshots/06_schedules.jpg)
+
 ### Zeitplan erstellen
 
 Auf der Schedules-Seite "Add Schedule" klicken. Im Dialog:
@@ -213,6 +223,8 @@ Den Toggle auf der Zeitplankarte umlegen.
 Der Vacation Mode aktiviert oder deaktiviert einen bestehenden Zeitplan für einen bestimmten Urlaubszeitraum. Damit kann ein Haushalt während der Abwesenheit anders automatisiert werden, ohne normale Zeitpläne dauerhaft umbauen zu müssen.
 
 **Beispiel:** Während des Urlaubs wird ein Zeitplan aktiviert, der abends Licht einschaltet. Alternativ kann ein normaler Alltags-Zeitplan für den Urlaubszeitraum deaktiviert werden.
+
+![Vacation Mode](screenshots/08_vacation.jpg)
 
 ### Vacation Mode erstellen
 
@@ -248,6 +260,8 @@ Das Enddatum darf nicht vor dem Startdatum liegen. Der gewählte Zeitraum ist in
 
 Die Day Simulation testet Automationsregeln in einem simulierten 24-Stunden-Tag. Sie dient als Vorschau: Das Live-System wird nicht verändert, es werden keine echten Gerätezustände überschrieben und keine Aktivitätslog-Einträge geschrieben.
 
+![Day Simulation](screenshots/09_simulation.jpg)
+
 ### Simulation starten
 
 Auf der Simulation-Seite:
@@ -279,6 +293,8 @@ Szenen sind benannte Gruppen von Gerätezuständen, die mit einem einzigen Klick
 
 **Beispiel:** Szene "Filmabend" → Licht auf 20 % dimmen, Rollade schließen.
 
+![Scenes-Seite](screenshots/07_scenes.jpg)
+
 ### Szene erstellen
 
 Auf der Scenes-Seite "Add Scene" klicken:
@@ -296,6 +312,8 @@ Den "Play"-Button auf der Szenenkarte anklicken. Alle konfigurierten Gerätezust
 ## 12. Energie-Dashboard
 
 Das Energie-Dashboard zeigt den geschätzten Stromverbrauch aller Geräte.
+
+![Energie-Dashboard](screenshots/10_energy.jpg)
 
 **Anzeige:**
 - **Pro Gerät**: geschätzte Leistungsaufnahme (Watt) und kumulierter Verbrauch
@@ -316,6 +334,8 @@ Das Energie-Dashboard zeigt den geschätzten Stromverbrauch aller Geräte.
 > 🔒 Nur für Owner verfügbar.
 
 Das Aktivitätslog erfasst automatisch jeden Zustandswechsel im Haushalt:
+
+![Aktivitätslog](screenshots/11_log.jpg)
 
 | Spalte | Beschreibung |
 |--------|-------------|
@@ -355,6 +375,8 @@ Beim Speichern einer neuen oder geänderten Regel prüft das System, ob ein Konf
 ## 15. Settings: Mitglieder & MQTT
 
 Die Settings-Seite enthält das eigene Profil. Owner sehen zusätzlich Tabs für Haushaltszugriff und MQTT Integration. Member sehen nur die Profilfunktionen.
+
+![Settings-Seite](screenshots/12_settings.png)
 
 ### Household Access
 
