@@ -48,7 +48,7 @@ public class BrowserLauncher implements ApplicationListener<ApplicationReadyEven
         try {
             desktop.browse(new URI(APP_URL));
         } catch (URISyntaxException | IOException e) {
-            log.warn("Could not open browser automatically: {}", e.getMessage());
+            log.warn("Could not open browser automatically", e);
         }
     }
 }
