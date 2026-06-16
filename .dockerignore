@@ -1,0 +1,14 @@
+.git
+.github
+frontend/node_modules
+frontend/dist
+frontend/.angular
+backend/target
+backend/src/main/resources/static
+dist-app
+localDocs
+docs
+aidlc-docs
+aws-aidlc-rule-details
+*.md
+.env
