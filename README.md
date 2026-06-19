@@ -29,10 +29,10 @@ A home automation platform for managing smart devices, automation rules, schedul
 | FR-15 | Konflikterkennung bei widersprüchlichen Regeln | ✅ Umgesetzt |
 | FR-16 | CSV-Export (Aktivitätslog + Energiezusammenfassung) | ✅ Umgesetzt |
 | FR-17 | Szenen (benannte Gerätezustandsgruppen, einmalige Aktivierung) | ✅ Umgesetzt |
-| FR-18 | Optionale IoT-Integration (MQTT) | ❌ Nicht umgesetzt (out of scope) |
-| FR-19 | Tages-Simulation (Zeitraffer) | ❌ Nicht umgesetzt (out of scope) |
+| FR-18 | Optionale IoT-Integration (MQTT) | ✅ Umgesetzt |
+| FR-19 | Tages-Simulation (Zeitraffer) | ✅ Umgesetzt |
 | FR-20 | Owner kann Mitglieder per E-Mail einladen und Zugang entziehen | ✅ Umgesetzt |
-| FR-21 | Urlaubsmodus (Zeitplan-Override für Datumsbereich) | ❌ Nicht umgesetzt (out of scope) |
+| FR-21 | Urlaubsmodus (Zeitplan-Override für Datumsbereich) | ✅ Umgesetzt |
 
 # Überblick über die Applikation aus Benutzersicht
 
