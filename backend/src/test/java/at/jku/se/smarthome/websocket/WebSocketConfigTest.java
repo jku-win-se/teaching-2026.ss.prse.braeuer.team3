@@ -42,7 +42,7 @@ class WebSocketConfigTest {
         config = new WebSocketConfig(handler, interceptor);
         when(registry.addHandler(handler, "/ws/devices")).thenReturn(registration);
         when(registration.addInterceptors(interceptor)).thenReturn(registration);
-        when(registration.setAllowedOrigins("http://localhost:4200")).thenReturn(registration);
+        when(registration.setAllowedOrigins("http://localhost:4200", "http://localhost:8080")).thenReturn(registration);
     }
 
     /**
@@ -66,13 +66,13 @@ class WebSocketConfigTest {
     }
 
     /**
-     * The allowed origin must be set to the Angular development server URL.
+     * Both the Angular dev server and the Spring Boot origin must be allowed.
      */
     @Test
     void registerWebSocketHandlers_setsAllowedOrigin() {
         config.registerWebSocketHandlers(registry);
 
-        verify(registration).setAllowedOrigins("http://localhost:4200");
+        verify(registration).setAllowedOrigins("http://localhost:4200", "http://localhost:8080");
     }
 }
 
