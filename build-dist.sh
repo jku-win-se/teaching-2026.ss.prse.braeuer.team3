@@ -79,6 +79,19 @@ cd "$BACKEND_DIR"
 mvn package -DskipTests -q
 cd "$PROJECT_ROOT"
 
+# ── jlink: create self-contained JRE ──────────────────────────────────────────
+echo ""
+echo "==> Creating self-contained JRE with jlink..."
+RUNTIME_DIR="$PROJECT_ROOT/jre-runtime"
+rm -rf "$RUNTIME_DIR"
+
+jlink \
+  --add-modules java.se,jdk.crypto.ec,jdk.crypto.cryptoki,jdk.unsupported,jdk.zipfs,jdk.localedata,jdk.management \
+  --strip-debug \
+  --no-man-pages \
+  --no-header-files \
+  --output "$RUNTIME_DIR"
+
 # ── jpackage ───────────────────────────────────────────────────────────────────
 echo ""
 echo "==> Creating native macOS installer with jpackage..."
@@ -92,9 +105,12 @@ jpackage \
   --app-version "$APP_VERSION" \
   --dest "$OUTPUT_DIR" \
   --type dmg \
+  --runtime-image "$RUNTIME_DIR" \
   --java-options "-Dspring.profiles.active=dist" \
   --java-options "-Xmx512m" \
-  --java-options "-Djava.awt.headless=false"
+  --java-options "-Djava.awt.headless=true"
+
+rm -rf "$RUNTIME_DIR"
 
 echo ""
 echo "══════════════════════════════════════════════════════════════"

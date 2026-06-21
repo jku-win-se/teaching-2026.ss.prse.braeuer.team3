@@ -79,6 +79,21 @@ call mvn package -DskipTests -q
 if errorlevel 1 ( echo ERROR: Maven build failed. & exit /b 1 )
 cd /d "%PROJECT_ROOT%"
 
+:: ── jlink: create self-contained JRE ─────────────────────────────────────────
+echo.
+echo =^> Creating self-contained JRE with jlink...
+set "RUNTIME_DIR=%PROJECT_ROOT%\jre-runtime"
+if exist "%RUNTIME_DIR%" rmdir /s /q "%RUNTIME_DIR%"
+
+jlink ^
+  --add-modules java.se,jdk.crypto.ec,jdk.crypto.cryptoki,jdk.unsupported,jdk.zipfs,jdk.localedata,jdk.management ^
+  --strip-debug ^
+  --no-man-pages ^
+  --no-header-files ^
+  --output "%RUNTIME_DIR%"
+
+if errorlevel 1 ( echo ERROR: jlink failed. & exit /b 1 )
+
 :: ── jpackage ───────────────────────────────────────────────────────────────────
 echo.
 echo =^> Creating native Windows installer with jpackage...
@@ -92,14 +107,17 @@ jpackage ^
   --app-version "%APP_VERSION%" ^
   --dest "%OUTPUT_DIR%" ^
   --type msi ^
+  --runtime-image "%RUNTIME_DIR%" ^
   --java-options "-Dspring.profiles.active=dist" ^
   --java-options "-Xmx512m" ^
-  --java-options "-Djava.awt.headless=false" ^
+  --java-options "-Djava.awt.headless=true" ^
   --win-menu ^
   --win-shortcut ^
   --win-dir-chooser
 
 if errorlevel 1 ( echo ERROR: jpackage failed. & exit /b 1 )
+
+if exist "%RUNTIME_DIR%" rmdir /s /q "%RUNTIME_DIR%"
 
 echo.
 echo ================================================================
