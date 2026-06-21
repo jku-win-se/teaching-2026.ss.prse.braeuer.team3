@@ -45,7 +45,7 @@ public class BrowserLauncher implements ApplicationListener<ApplicationReadyEven
             }
             pb.start();
         } catch (IOException e) {
-            log.warn("Could not open browser automatically: {}", e.getMessage());
+            log.warn("Could not open browser automatically", e);
         }
     }
 }
