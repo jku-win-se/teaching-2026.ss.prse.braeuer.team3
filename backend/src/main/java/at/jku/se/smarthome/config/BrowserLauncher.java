@@ -7,10 +7,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import java.awt.Desktop;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 
 /**
  * Opens the system default browser to the application URL once the Spring Boot
@@ -36,19 +33,19 @@ public class BrowserLauncher implements ApplicationListener<ApplicationReadyEven
      */
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-        if (!Desktop.isDesktopSupported()) {
-            log.info("Auto-open browser skipped: java.awt.Desktop not supported on this platform.");
-            return;
-        }
-        Desktop desktop = Desktop.getDesktop();
-        if (!desktop.isSupported(Desktop.Action.BROWSE)) {
-            log.info("Auto-open browser skipped: BROWSE action not supported.");
-            return;
-        }
         try {
-            desktop.browse(new URI(APP_URL));
-        } catch (URISyntaxException | IOException e) {
-            log.warn("Could not open browser automatically", e);
+            String os = System.getProperty("os.name", "").toLowerCase();
+            ProcessBuilder pb;
+            if (os.contains("win")) {
+                pb = new ProcessBuilder("cmd", "/c", "start", APP_URL);
+            } else if (os.contains("mac")) {
+                pb = new ProcessBuilder("open", APP_URL);
+            } else {
+                pb = new ProcessBuilder("xdg-open", APP_URL);
+            }
+            pb.start();
+        } catch (IOException e) {
+            log.warn("Could not open browser automatically: {}", e.getMessage());
         }
     }
 }
